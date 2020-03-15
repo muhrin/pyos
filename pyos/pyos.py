@@ -12,8 +12,8 @@ from . import utils
 
 # pylint: disable=invalid-name
 
-__all__ = 'pwd', 'cwd', 'cd', 'ls', 'load', 'cat', 'locate', 'mv', 'meta', 'rm', 'f', 'rename', \
-          'ROOT'
+__all__ = ('pwd', 'cwd', 'cd', 'ls', 'load', 'save', 'cat', 'locate', 'mv', 'meta', 'rm', 'f',
+           'rename', 'ROOT')
 
 lib.init()
 
@@ -80,9 +80,14 @@ def ls(*opts, type: typing.Type = None, **meta):
 
 
 def load(*obj_or_ids):
-    """Load or more objects"""
+    """Load one or more objects"""
     obj_ids = utils.expand_to_obj_ids(obj_or_ids)
     return mincepy.load(*obj_ids)
+
+
+def save(*objs):
+    """Save one or more objects"""
+    return mincepy.save(*objs)
 
 
 def cat(*obj_or_ids):

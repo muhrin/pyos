@@ -77,6 +77,7 @@ def update_meta(*obj_ids: typing.Iterable, meta: dict):
     for obj_id in obj_ids:
         hist.meta.update(obj_id, meta)
 
+
 def set_meta(*obj_ids: typing.Iterable, meta: dict):
     """Set the metadata for a bunch of objects"""
     hist = mincepy.get_historian()
