@@ -5,7 +5,7 @@ import mincepy
 
 from .constants import DIR_KEY, NAME_KEY
 from . import dirs
-from . import query
+from . import queries
 
 __all__ = 'init', 'reset'
 
@@ -18,23 +18,23 @@ def reset():
     dirs.reset()
 
 
-def get_contents(directory: [str, PurePosixPath] = None, type=None, meta=None, as_objects=False):
-    """Get the content of the given directory.  Use the current by default"""
-    path = dirs.getpath(directory)
+def get_records(path: [str, PurePosixPath] = None, type=None, meta=None):
+    """Get the records in the given directory.  Use the current by default"""
+    abspath = dirs.abspath(path)
     hist = mincepy.get_historian()
 
     meta_query = meta or {}
-    meta_query.update({DIR_KEY: dirs.dirstring(path)})
-    return hist.find(obj_type=type, meta=meta_query, as_objects=as_objects)
+    meta_query.update(queries.dirmatch(dirs.dirstring(abspath)))
+    return hist.find(obj_type=type, meta=meta_query, as_objects=False)
 
 
-def find(directory: [str, PurePosixPath] = None, type=None, meta=None, as_objects=False):
+def find(path: [str, PurePosixPath] = None, type=None, meta=None, as_objects=False):
     """Get the content of the given directory.  Use the current by default"""
-    path = dirs.getpath(directory)
+    abspath = dirs.abspath(path)
     hist = mincepy.get_historian()
 
     meta_query = meta or {}
-    meta_query.update({DIR_KEY: dirs.dirstring(path)})
+    meta_query.update(queries.dirmatch(dirs.dirstring(abspath)))
     return hist.find(obj_type=type, meta=meta_query, as_objects=as_objects)
 
 
@@ -50,32 +50,38 @@ def locate(obj_or_ids):
 
 def get_ids(directory: [str, PurePosixPath] = None, type=None):
     """Get all obj ids in the directory"""
-    return [record.obj_id for record in get_contents(directory, type=type)]
+    return [record.obj_id for record in get_records(directory, type=type)]
 
 
-def mv(destination: PurePosixPath, obj_ids: typing.Iterable):
+def mv(path: PurePosixPath, obj_ids: typing.Iterable):
     hist = mincepy.get_historian()
-    path = dirs.abspath(destination)
+    abspath = dirs.abspath(path)
 
-    update = {DIR_KEY: dirs.dirstring(path)}
+    update = dirs.dirstring(dirs.dirstring(abspath))
     for obj_id in obj_ids:
         hist.meta.update(obj_id, update)
 
 
-def set_meta(obj_ids: typing.Iterable, meta: dict):
-    """Set the metadata for a bunch of objects"""
-    hist = mincepy.get_historian()
-    for obj_id in obj_ids:
-        hist.meta.update(obj_id, meta)
-
-
-def get_meta(obj_ids: typing.Iterable) -> typing.List[dict]:
+def get_meta(*obj_ids: typing.Iterable) -> typing.List[dict]:
     """Get the metadata for a bunch of objects"""
     hist = mincepy.get_historian()
     meta = []
     for obj_id in obj_ids:
         meta.append(hist.meta.get(obj_id))
     return meta
+
+
+def update_meta(*obj_ids: typing.Iterable, meta: dict):
+    """Update the metadata for a bunch of objects"""
+    hist = mincepy.get_historian()
+    for obj_id in obj_ids:
+        hist.meta.update(obj_id, meta)
+
+def set_meta(*obj_ids: typing.Iterable, meta: dict):
+    """Set the metadata for a bunch of objects"""
+    hist = mincepy.get_historian()
+    for obj_id in obj_ids:
+        hist.meta.set(obj_id, meta)
 
 
 def set_name(obj_id, name: str):
@@ -86,12 +92,12 @@ def set_name(obj_id, name: str):
 
 
 def find_ids(*starting_point, **meta_filter):
-    starting_point = starting_point or [dirs.get_directory()]
+    starting_point = starting_point or [dirs.cwd()]
     meta_filter = meta_filter or {}
 
     meta_filter.update({
         '$or': [
-            query.subdirs(dirs.dirstring(dirs.abspath(point)), 0, 0) for point in starting_point
+            queries.subdirs(dirs.dirstring(dirs.abspath(point)), 0, 0) for point in starting_point
         ]
     })
 

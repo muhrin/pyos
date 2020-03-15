@@ -22,11 +22,11 @@ ROOT = dirs.Directory('/')
 
 def pwd():
     """Return the current working directory"""
-    print(dirs.get_directory())
+    print(dirs.cwd())
 
 
 def cwd() -> dirs.Directory:
-    return dirs.Directory(dirs.get_directory())
+    return dirs.Directory(dirs.cwd())
 
 
 def cd(path: [str, PurePosixPath, dirs.Directory]):
@@ -40,7 +40,7 @@ def ls(*opts, type: typing.Type = None, **meta):
 
     :type: restrict listing to a particular type
     """
-    cwd = dirs.get_directory()
+    cwd = dirs.cwd()
 
     format_flags = {}
     ncols = 4
@@ -57,7 +57,7 @@ def ls(*opts, type: typing.Type = None, **meta):
             identifiers.append(opt)
 
     objects, subdirs = dirs.get_contents(cwd)
-    contents = lib.get_contents(type=type, meta=meta)
+    contents = lib.get_records(type=type, meta=meta)
     objs = []
     for record in contents:
         row = format.format_record(record, **format_flags)
@@ -135,10 +135,10 @@ def meta(*obj_or_ids, **meta):
 
     if meta:
         # In 'setting' mode
-        lib.set_meta(obj_ids, meta)
+        lib.update_meta(*obj_ids, meta=meta)
     else:
         # In 'getting' mode
-        for meta in lib.get_meta(obj_ids):
+        for meta in lib.get_meta(*obj_ids):
             pprint.pprint(meta)
 
 

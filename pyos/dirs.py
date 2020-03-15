@@ -7,13 +7,13 @@ import typing
 import mincepy
 
 from .constants import DIR_KEY, NAME_KEY
-from . import query
+from . import queries
 
 _DIRECTORY = None  # type: typing.Optional[PurePosixPath]
 
 
 def init():
-    get_directory()  # Makes sure the directory is set up
+    cwd()  # Makes sure the directory is set up
 
 
 def reset():
@@ -22,7 +22,8 @@ def reset():
     _DIRECTORY = None
 
 
-def get_directory() -> PurePosixPath:
+def cwd() -> PurePosixPath:
+    """Get the current working directory"""
     global _DIRECTORY
     if _DIRECTORY is None:
         cd('/{}'.format(getpass.getuser()))
@@ -40,11 +41,11 @@ def cd(directory: [str, PurePosixPath]) -> PurePosixPath:
 
 def get_contents(path: [str, PurePosixPath] = None) -> [dir, set]:
     """Get the objects and subdirectories given a path"""
-    path = path or get_directory()
+    path = path or cwd()
     path = abspath(path)
     hist = mincepy.get_historian()
 
-    metas = hist.meta.find(query.subdirs(dirstring(path), 0, 1))
+    metas = hist.meta.find(queries.subdirs(dirstring(path), 0, 1))
 
     objects = {}
     subdirs = set()
@@ -65,7 +66,7 @@ def get_contents(path: [str, PurePosixPath] = None) -> [dir, set]:
 
 
 def get_obj_id(objname: str, directory: PurePosixPath = None):
-    directory = directory or get_directory()
+    directory = directory or cwd()
     hist = mincepy.get_historian()
 
     metas = tuple(hist.meta.find({DIR_KEY: dirstring(directory), NAME_KEY: objname}))
@@ -80,13 +81,15 @@ def get_obj_id(objname: str, directory: PurePosixPath = None):
 
 
 def abspath(path: [str, PurePosixPath]) -> PurePosixPath:
-    """Given an absolute or relative path returns a normalised absolute path"""
+    """Given an absolute or relative path returns a normalised absolute path. Any occurences of
+    . or .. will be resolved as expected.
+    If no directory is supplied the current working directory will be used"""
     if not path:
-        return get_directory()
+        return cwd()
 
     path = PurePosixPath(path)
     if not path.is_absolute():
-        path = get_directory() / path
+        path = cwd() / path
 
     return norm(path)
 
@@ -103,16 +106,6 @@ def dirstring(path: PurePosixPath):
         return '/'
 
     return str(path) + '/'
-
-
-def getpath(directory: [str, PurePosixPath] = None) -> PurePosixPath:
-    """Given a (possibly empty) path which can contain .. and . get the an abspath.  If no
-    directory is supplied the current working directory will be used"""
-    if directory:
-        return abspath(directory)
-
-    # Return cwd
-    return get_directory()
 
 
 # endregion
@@ -207,4 +200,4 @@ class CWD(Directory):
 
     def __init__(self):
         super(CWD, self).__init__()
-        self.__path = property(get_directory)
+        self.__path = property(cwd)
