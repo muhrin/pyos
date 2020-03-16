@@ -18,7 +18,7 @@ def init():
 
 def reset():
     global _DIRECTORY
-    mincepy.get_historian().meta.sticky.pop(DIR_KEY)
+    mincepy.get_historian().meta.sticky.pop(DIR_KEY, None)
     _DIRECTORY = None
 
 

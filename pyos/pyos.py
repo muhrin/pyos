@@ -6,16 +6,18 @@ import typing
 import mincepy
 
 from . import dirs
-from . import format
+from . import fmt
 from . import lib
+from . import opts
+from . import sopts
 from . import utils
+from . import res
+from .sopts import *
 
 # pylint: disable=invalid-name
 
-__all__ = ('pwd', 'cwd', 'cd', 'ls', 'load', 'save', 'cat', 'locate', 'mv', 'meta', 'rm', 'f',
-           'rename', 'ROOT')
-
-lib.init()
+__all__ = ('pwd', 'cwd', 'cd', 'ls', 'load', 'save', 'cat', 'locate', 'mv', 'meta', 'rm', 'find',
+           'rename', 'ROOT', 'history') + sopts.__all__
 
 ROOT = dirs.Directory('/')
 
@@ -35,48 +37,46 @@ def cd(path: [str, PurePosixPath, dirs.Directory]):
     print(dirs.cd(path))
 
 
-def ls(*opts, type: typing.Type = None, **meta):
+def ls(*args, type: typing.Type = None, **meta):
     """List the contents of a directory
 
     :type: restrict listing to a particular type
     """
     cwd = dirs.cwd()
 
-    format_flags = {}
-    ncols = 4
-
-    identifiers = []
-    for opt in opts:
-        if isinstance(opt, str) and opt.strip() == '-l':
-            format_flags['user'] = True
-            format_flags['ctime'] = True
-            format_flags['version'] = True
-            ncols = 7
-        else:
-            # Assume it's an identifier
-            identifiers.append(opt)
+    options, paths = opts.separate_opts(*args)
 
     objects, subdirs = dirs.get_contents(cwd)
-    contents = lib.get_records(type=type, meta=meta)
-    objs = []
-    for record in contents:
-        row = format.format_record(record, **format_flags)
-        name = objects[record.obj_id]
-        row.append(name if name else '')
-        objs.append(row)
 
-    show_dirs = not type and not meta
+    results = res.ObjIdList(objects.keys())
+    results.show_types = True
+    if l in options:
+        results.show_user = True
+        results.show_mtime = True
+        results.show_version = True
 
-    table = []
-    if show_dirs:
-        for subdir in sorted(subdirs):
-            row = [''] * ncols
-            row[0] = 'directory'
-            row[-1] = subdir
-            table.append(row)
-    table.extend(objs)
+    return results
 
-    print(tabulate.tabulate(table, tablefmt='plain'))
+    # contents = lib.get_records(type=type, meta=meta)
+    # objs = []
+    # for record in contents:
+    #     row = fmt.format_record(record, **format_flags)
+    #     name = objects[record.obj_id]
+    #     row.append(name if name else '')
+    #     objs.append(row)
+    #
+    # show_dirs = not type and not meta
+    #
+    # table = []
+    # if show_dirs:
+    #     for subdir in sorted(subdirs):
+    #         row = [''] * ncols
+    #         row[0] = 'directory'
+    #         row[-1] = subdir
+    #         table.append(row)
+    # table.extend(objs)
+    #
+    # print(tabulate.tabulate(table, tablefmt='plain'))
 
 
 def load(*obj_or_ids):
@@ -107,7 +107,7 @@ def cat(*obj_or_ids):
             if isinstance(obj, mincepy.File):
                 print(obj.read_text())
             else:
-                pprint.pprint(format.obj_dict(obj))
+                pprint.pprint(fmt.obj_dict(obj))
 
 
 def locate(*obj_or_ids):
@@ -153,8 +153,8 @@ def rename(obj_or_id, name: str):
     lib.set_name(obj_ids, name)
 
 
-def f(*starting_point, **meta_filter):
-    return lib.find_ids(*starting_point, **meta_filter)
+def find(*args, **meta_filter):
+    return lib.find(*args, **meta_filter)
 
 
 def history(obj):

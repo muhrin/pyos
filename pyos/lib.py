@@ -5,6 +5,8 @@ import mincepy
 
 from .constants import DIR_KEY, NAME_KEY
 from . import dirs
+from . import opts
+from . import sopts
 from . import queries
 
 __all__ = 'init', 'reset'
@@ -26,16 +28,6 @@ def get_records(path: [str, PurePosixPath] = None, type=None, meta=None):
     meta_query = meta or {}
     meta_query.update(queries.dirmatch(dirs.dirstring(abspath)))
     return hist.find(obj_type=type, meta=meta_query, as_objects=False)
-
-
-def find(path: [str, PurePosixPath] = None, type=None, meta=None, as_objects=False):
-    """Get the content of the given directory.  Use the current by default"""
-    abspath = dirs.abspath(path)
-    hist = mincepy.get_historian()
-
-    meta_query = meta or {}
-    meta_query.update(queries.dirmatch(dirs.dirstring(abspath)))
-    return hist.find(obj_type=type, meta=meta_query, as_objects=as_objects)
 
 
 def locate(obj_or_ids):
@@ -92,17 +84,26 @@ def set_name(obj_id, name: str):
     hist.meta.update(obj_id, update)
 
 
-def find_ids(*starting_point, **meta_filter):
-    starting_point = starting_point or [dirs.cwd()]
+def find(*args, **meta_filter) -> typing.Iterable:
+    options, starting_point = opts.separate_opts(*args)
+
+    min_depth = opts.extract_val(sopts.mindepth, options, 0)
+    max_depth = opts.extract_val(sopts.maxdepth, options, -1)
+
+    if starting_point:
+        spoints = [dirs.dirstring(dirs.abspath(path)) for path in starting_point]
+    else:
+        spoints = [dirs.dirstring(dirs.cwd())]
+
     meta_filter = meta_filter or {}
 
-    meta_filter.update({
-        '$or': [
-            queries.subdirs(dirs.dirstring(dirs.abspath(point)), 0, 0) for point in starting_point
-        ]
-    })
+    meta_filter.update(
+        queries.or_(*(queries.subdirs(point, min_depth, max_depth) for point in spoints)))
 
     hist = mincepy.get_historian()
     metas = hist.meta.find(meta_filter)
 
     return set(meta['obj_id'] for meta in metas)
+
+
+init()  # by importing this module we initialise
