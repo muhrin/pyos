@@ -1,6 +1,6 @@
 from mincepy.testing import *
 
-from pyos import pyos, lib
+from pyos import pyos
 
 
 def test_locate():
