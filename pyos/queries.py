@@ -5,6 +5,9 @@ from .constants import DIR_KEY
 
 
 def or_(*conditions):
+    if len(conditions) == 1:
+        return conditions[0]
+
     return {'$or': list(conditions)}
 
 

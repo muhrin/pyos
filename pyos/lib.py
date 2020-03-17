@@ -8,6 +8,7 @@ from . import dirs
 from . import opts
 from . import sopts
 from . import queries
+from . import res
 
 __all__ = 'init', 'reset'
 
@@ -84,11 +85,11 @@ def set_name(obj_id, name: str):
     hist.meta.update(obj_id, update)
 
 
-def find(*args, **meta_filter) -> typing.Iterable:
+def find(*args, **meta_filter) -> res.ObjIdList:
     options, starting_point = opts.separate_opts(*args)
 
-    min_depth = opts.extract_val(sopts.mindepth, options, 0)
-    max_depth = opts.extract_val(sopts.maxdepth, options, -1)
+    min_depth = options.pop(sopts.mindepth, 0)
+    max_depth = options.pop(sopts.maxdepth, -1)
 
     if starting_point:
         spoints = [dirs.dirstring(dirs.abspath(path)) for path in starting_point]
@@ -103,7 +104,7 @@ def find(*args, **meta_filter) -> typing.Iterable:
     hist = mincepy.get_historian()
     metas = hist.meta.find(meta_filter)
 
-    return set(meta['obj_id'] for meta in metas)
+    return res.ObjIdList(meta['obj_id'] for meta in metas)
 
 
 init()  # by importing this module we initialise

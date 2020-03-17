@@ -8,12 +8,13 @@ import mincepy
 
 from .constants import DIR_KEY, NAME_KEY
 from . import queries
+from . import res
 
 _DIRECTORY = None  # type: typing.Optional[PurePosixPath]
 
 
 def init():
-    cwd()  # Makes sure the directory is set up
+    cd('/{}'.format(getpass.getuser()))
 
 
 def reset():
@@ -25,9 +26,6 @@ def reset():
 def cwd() -> PurePosixPath:
     """Get the current working directory"""
     global _DIRECTORY
-    if _DIRECTORY is None:
-        cd('/{}'.format(getpass.getuser()))
-
     return _DIRECTORY
 
 
@@ -62,7 +60,7 @@ def get_contents(path: [str, PurePosixPath] = None) -> [dir, set]:
         else:
             subdirs.add(directory[len(my_dir):-1])
 
-    return objects, subdirs
+    return objects, res.PathList(subdirs)
 
 
 def get_obj_id(objname: str, directory: PurePosixPath = None):

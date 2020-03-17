@@ -1,9 +1,10 @@
 """Datastructures and functions to deal with results"""
-from collections.abc import MutableSequence
-import typing
+from pathlib import PurePosixPath
+from typing import MutableSequence
+
+import tabulate
 
 import mincepy
-import tabulate
 
 from . import fmt
 
@@ -11,11 +12,12 @@ __all__ = 'ObjIdList'
 
 
 class ObjIdList(MutableSequence):
+
     def __init__(self, *args, **kwargs):
         super().__init__()
         self._hist = mincepy.get_historian()
         self._ids = []
-        self._repr = None
+        self._table = None
         self._show_loaded = False
         self._show_types = False
         self._show_mtime = False
@@ -25,7 +27,11 @@ class ObjIdList(MutableSequence):
         self.extend(list(*args, **kwargs))
 
     def refresh(self):
-        self._repr = None
+        self._table = None
+
+    @property
+    def table(self):
+        return self._table
 
     @property
     def show_loaded(self) -> bool:
@@ -34,7 +40,7 @@ class ObjIdList(MutableSequence):
     @show_loaded.setter
     def show_loaded(self, value: bool):
         self._show_loaded = value
-        self._repr = None
+        self._table = None
 
     @property
     def show_types(self):
@@ -43,7 +49,7 @@ class ObjIdList(MutableSequence):
     @show_types.setter
     def show_types(self, value):
         self._show_types = value
-        self._repr = None
+        self._table = None
 
     @property
     def show_mtime(self):
@@ -52,7 +58,7 @@ class ObjIdList(MutableSequence):
     @show_mtime.setter
     def show_mtime(self, value):
         self._show_mtime = value
-        self._repr = None
+        self._table = None
 
     @property
     def show_user(self):
@@ -61,7 +67,7 @@ class ObjIdList(MutableSequence):
     @show_user.setter
     def show_user(self, value):
         self._show_user = value
-        self._repr = None
+        self._table = None
 
     @property
     def show_version(self):
@@ -70,13 +76,13 @@ class ObjIdList(MutableSequence):
     @show_version.setter
     def show_version(self, value):
         self._show_version = value
-        self._repr = None
+        self._table = None
 
     def _generate_repr(self):
         table = []
-        records = {record.obj_id: record
-                   for record
-                   in self._hist.archive.find(obj_id={'$in': self._ids})}
+        records = {
+            record.obj_id: record for record in self._hist.archive.find(obj_id={'$in': self._ids})
+        }
 
         for obj_id in self._ids:
             row = []
@@ -87,7 +93,7 @@ class ObjIdList(MutableSequence):
                     self._hist.get_obj(obj_id)
                     is_loaded = '*'
                 except mincepy.NotFound:
-                    is_loaded = ''
+                    is_loaded = '-'
                 row.append(is_loaded)
 
             if self.show_types:
@@ -121,12 +127,19 @@ class ObjIdList(MutableSequence):
             row.append(str(obj_id))
             table.append(row)
 
-        self._repr = tabulate.tabulate(table, tablefmt="plain")
+        self._table = table
+
+    def __add__(self, other):
+        if isinstance(other, ObjIdList):
+            return ObjIdList(self._ids + other._ids)
+
+        raise TypeError("Cannot add to type '{}'".format(type(other)))
 
     def __repr__(self) -> str:
-        if self._repr is None:
+        if self._table is None:
             self._generate_repr()
-        return self._repr
+
+        return tabulate.tabulate(self.table, tablefmt="plain")
 
     def __getitem__(self, item):
         return self._ids.__getitem__(item)
@@ -144,3 +157,69 @@ class ObjIdList(MutableSequence):
     def insert(self, i: int, item):
         item = self._hist._ensure_obj_id(item)
         self._ids.insert(i, item)
+
+
+class PathList(MutableSequence):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+
+        self._hist = mincepy.get_historian()
+        self._paths = []
+
+        self.extend(list(*args, **kwargs))
+
+    def table(self):
+        return [str(path) for path in self._path]
+
+    def __repr__(self) -> str:
+        return tabulate.tabulate(self.table, tablefmt="plain")
+
+    def __getitem__(self, item):
+        return self._paths.__getitem__(item)
+
+    def __setitem__(self, key, value):
+        self._paths.__setitem__(key, PurePosixPath(value))
+
+    def __delitem__(self, key):
+        return self._paths.__delitem__(key)
+
+    def __len__(self):
+        return self._paths.__len__()
+
+    def insert(self, i: int, item):
+        self._paths.insert(i, PurePosixPath(item))
+
+
+class ObjIdPathList(MutableSequence):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+
+        self._obj_ids = ObjIdList()
+        self._paths = PathList()
+
+        self.extend(list(*args, **kwargs))
+
+    def __repr__(self) -> str:
+        table = self._obj_ids.table
+        cols = 2
+        if table:
+            cols = len(table[0])
+
+        return tabulate.tabulate(table, tablefmt="plain")
+
+    def __getitem__(self, item):
+        return self._paths.__getitem__(item)
+
+    def __setitem__(self, key, value):
+        self._paths.__setitem__(key, PurePosixPath(value))
+
+    def __delitem__(self, key):
+        return self._paths.__delitem__(key)
+
+    def __len__(self):
+        return self._paths.__len__()
+
+    def insert(self, i: int, item):
+        self._paths.insert(i, PurePosixPath(item))

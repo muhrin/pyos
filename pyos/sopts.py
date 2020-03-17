@@ -5,8 +5,8 @@ from . import opts
 __all__ = ('l', 'mindepth', 'maxdepth')
 
 # region Options
-l = opts.Op('minus_l')
-maxdepth = opts.Op('maxdepth')
-mindepth = opts.Op('mindepth')
+l = opts.Flag('l')
+maxdepth = opts.ValueOp('maxdepth')
+mindepth = opts.ValueOp('mindepth')
 
 # endregion

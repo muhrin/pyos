@@ -6,7 +6,7 @@ import pyos
 
 
 @pytest.fixture(autouse=True)
-def lib():
+def lib(historian):
     pyos.lib.init()
     yield pyos.lib
     pyos.lib.reset()
