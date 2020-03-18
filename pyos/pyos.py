@@ -1,6 +1,4 @@
-from pathlib import PurePosixPath
 import pprint
-import tabulate
 import typing
 
 import mincepy
@@ -8,19 +6,17 @@ import mincepy
 from . import dirs
 from . import fmt
 from . import lib
+from . import nodes
+from .dirs import PyosPath
 from . import opts
 from . import sopts
 from . import utils
-from . import res
 from .sopts import *
-from .constants import DIR_KEY
 
 # pylint: disable=invalid-name
 
-__all__ = ('pwd', 'cd', 'ls', 'load', 'save', 'cat', 'locate', 'mv', 'meta', 'rm', 'find', 'rename',
-           'ROOT', 'history') + sopts.__all__
-
-ROOT = dirs.Directory('/')
+__all__ = ('pwd', 'cd', 'ls', 'load', 'save', 'cat', 'locate', 'mv', 'meta', 'rm', 'find',
+           'history') + sopts.__all__
 
 
 def pwd():
@@ -28,79 +24,87 @@ def pwd():
     return dirs.cwd()
 
 
-def cd(path: [str, PurePosixPath, dirs.Directory]):
-    if isinstance(path, dirs.Directory):
-        path = path.__path
-    print(dirs.cd(path))
+def cd(path: dirs.PathSpec):
+    path = PyosPath(path)
+    if path.is_file():
+        # Assume they just left out the slash
+        path = path.to_dir()
+
+    dirs.cd(path)
 
 
-def ls(*args, type: typing.Type = None):
+def ls(*args, _type: typing.Type = None) -> nodes.ResultsNode:
     """List the contents of a directory
 
     :type: restrict listing to a particular type
     """
-    cwd = dirs.cwd()
+    options, rest = opts.separate_opts(*args)
+    parsed = utils.parse_args(*rest)
 
-    options, paths = opts.separate_opts(*args)
+    results = nodes.ResultsNode()
+    if parsed:
+        for entry in parsed:
+            if isinstance(entry, Exception):
+                raise entry
+            results.append(nodes.to_node(entry))
+    else:
+        results.append(nodes.to_node(dirs.cwd()))
 
-    objects, subdirs = dirs.get_contents(cwd)
+    if not options.pop(sopts.d):
+        for entry in results:
+            if isinstance(entry, nodes.DirectoryNode):
+                entry.expand()
 
-    results = res.ObjIdList(objects.keys())
-    results.show_types = True
-    if l in options:
-        results.show_loaded = True
-        results.show_user = True
-        results.show_mtime = True
-        results.show_version = True
+        if len(results) == 1 and isinstance(results[0], nodes.DirectoryNode):
+            new_results = nodes.ResultsNode()
+            for result in tuple(results[0].children):
+                result.parent = new_results
+
+            return new_results
 
     return results
 
-    # contents = lib.get_records(type=type, meta=meta)
-    # objs = []
-    # for record in contents:
-    #     row = fmt.format_record(record, **format_flags)
-    #     name = objects[record.obj_id]
-    #     row.append(name if name else '')
-    #     objs.append(row)
-    #
-    # show_dirs = not type and not meta
-    #
-    # table = []
-    # if show_dirs:
-    #     for subdir in sorted(subdirs):
-    #         row = [''] * ncols
-    #         row[0] = 'directory'
-    #         row[-1] = subdir
-    #         table.append(row)
-    # table.extend(objs)
-    #
-    # print(tabulate.tabulate(table, tablefmt='plain'))
 
-
-def load(*obj_or_ids):
+def load(*obj_or_ids) -> typing.Iterable:
     """Load one or more objects"""
-    obj_ids = utils.flatten_obj_ids(*obj_or_ids)
-    return mincepy.load(*obj_ids)
+    _options, rest = opts.separate_opts(*obj_or_ids)
+    to_load = ls(-d, *rest)
+
+    loaded = []
+    for node in to_load:
+        try:
+            loaded.append(mincepy.load(node.obj_id))
+        except Exception as exc:  # pylint: disable=broad-except
+            loaded.append(exc)
+    return loaded
 
 
 def save(*objs):
     """Save one or more objects"""
-    return mincepy.save(*objs)
+
+    if len(objs) > 1 and isinstance(objs[-1], (str, dirs.PyosPath)):
+        # Extract the destination
+        dest = PyosPath(objs[-1]).resolve()
+        objs = objs[:-1]
+
+        if len(objs) > 1 and dest.is_file():
+            # Automatically convert to directory if there are many objects as they can't save
+            # more than one with the same filename in the same folder!
+            dest = dest.to_dir()
+
+        return lib.save(objs, [dest] * len(objs))
+
+    return lib.save(objs)
 
 
 def cat(*obj_or_ids):
     """Print the contents of one or more objects"""
-    hist = mincepy.get_historian()
-    obj_or_ids = utils.flatten_obj_ids(*obj_or_ids)
+    _options, rest = opts.separate_opts(*obj_or_ids)
+    to_cat = load(*rest)
 
-    for obj_or_id in obj_or_ids:
-        try:
-            if hist.is_obj_id(obj_or_id) or isinstance(obj_or_id, str):
-                obj = load(obj_or_id)
-            else:
-                obj = obj_or_id
-        except TypeError as exc:
-            print(exc)
+    for obj in to_cat:
+        if isinstance(obj, Exception):
+            print(obj)
         else:
             if isinstance(obj, mincepy.File):
                 print(obj.read_text())
@@ -108,55 +112,58 @@ def cat(*obj_or_ids):
                 pprint.pprint(fmt.obj_dict(obj))
 
 
-def locate(*obj_or_ids) -> res.PathList:
+def locate(*obj_or_ids) -> typing.Sequence[str]:
     """Locate the directory of or more objects"""
-    obj_ids = utils.flatten_obj_ids(*obj_or_ids)
-    hist = mincepy.get_historian()
-    path_list = res.PathList()
-
-    results = hist.meta.find({'obj_id': {'$in': list(obj_ids)}})
-    directories = {meta['obj_id']: meta.get(DIR_KEY, '/') for meta in results}
-
-    for obj_id in obj_ids:
-        path_list.append(directories[obj_id] / PurePosixPath(str(obj_id)))
-
-    return path_list
+    _options, rest = opts.separate_opts(*obj_or_ids)
+    to_locate = ls(-d, *rest)
+    return [node.abspath for node in to_locate]
 
 
-def mv(*obj_or_ids):
-    assert len(obj_or_ids) >= 2, "mv: missing destination"
-    dest = PurePosixPath(obj_or_ids[-1])
-    obj_ids = utils.flatten_obj_ids(*obj_or_ids[:-1])
-    lib.mv(dest, obj_ids)
-    print("OK")
+def mv(*args):  # pylint: disable=invalid-name
+
+    """Take one or more files or directories with the final parameter being interpreted as
+     destination"""
+    _options, rest = opts.separate_opts(*args)
+    assert len(rest) <= 2, "mv: missing destination"
+    dest = dirs.PyosPath(rest.pop())
+    if len(rest) > 1:
+        # If there is more than one thing to move then we assume that dest is a directory
+        dest = dest.to_dir()
+    dest = dest.resolve()
+    to_move = ls(*rest[:-1])
+    to_move.move(dest)
 
 
 def rm(*obj_or_ids):
-    hist = mincepy.get_historian()
-    for obj_or_id in utils.flatten_obj_ids(*obj_or_ids):
-        try:
-            hist.delete(obj_or_id)
-        except mincepy.NotFound:
-            print("rm: cannot remove '{}': no such object".format(obj_or_id))
+    _options, rest = opts.separate_opts(*obj_or_ids)
+    to_delete = ls(-d, *rest)
+    for node in to_delete:
+        node.delete()
 
 
-def meta(*obj_or_ids, **meta):
+def meta(*obj_or_ids, **updates):
     """Get or update the metadata on one or more objects"""
-    obj_ids = utils.flatten_obj_ids(*obj_or_ids)
+    _options, rest = opts.separate_opts(*obj_or_ids)
+    to_update = ls(-d, *rest)
+    obj_ids = []
+    for node in to_update:
+        if isinstance(node, nodes.ObjectNode):
+            obj_ids.append(node.obj_id)
+        else:
+            print("Can't set metadata on '{}'".format(node))
 
-    if meta:
+    if updates:
         # In 'setting' mode
-        lib.update_meta(*obj_ids, meta=meta)
+        lib.update_meta(*obj_ids, meta=updates)
     else:
         # In 'getting' mode
-        for meta in lib.get_meta(*obj_ids):
-            return meta
+        metas = lib.get_meta(*obj_ids)
+        if len(metas) == 1:
+            return metas[0]
 
+        return metas
 
-def rename(obj_or_id, name: str):
-    """Set the name of one or more objects."""
-    obj_ids = utils.flatten_obj_ids(obj_or_id)
-    lib.set_name(obj_ids, name)
+    return None
 
 
 def find(*args, **meta_filter):

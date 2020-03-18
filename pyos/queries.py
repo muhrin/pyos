@@ -31,7 +31,7 @@ def subdirs(root: str, start_depth=1, end_depth=1) -> dict:
 
 def dirmatch(directory: str) -> dict:
     """Get the query dictionary to search in a particular directory"""
-    query = {DIR_KEY: directory}
+    query = {DIR_KEY: str(directory)}
     if directory == "/":
         # Special case for root: all objects that have no DIR_KEY are by default
         # considered to be in the root

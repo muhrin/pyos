@@ -25,6 +25,7 @@ setup(name='pyos',
       ],
       keywords='database schemaless nosql object-store',
       install_requires=[
+          'anytree',
           'mincepy>=0.10.4',
           'click',
           'tabulate',

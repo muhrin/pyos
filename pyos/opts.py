@@ -1,54 +1,44 @@
-from typing import Iterable, Union
+__all__ = 'ValueOp', 'Flag', 'Options', 'separate_opts'
 
 
-class Op:
-    """A simple option, acts as a flag (it's presence means True)"""
+class ValueOp:
+    """An operator that has a value"""
 
-    def __init__(self, name: str):
+    def __init__(self, name: str, **kwargs):
         self._name = name
+        self._kwargs = kwargs
 
     def __str__(self):
         return self._name
 
     def __eq__(self, other) -> bool:
-        if not isinstance(other, Op):
+        if not isinstance(other, ValueOp):
             return False
 
-        return self.name == other.name
-
-    @property
-    def name(self):
-        return self._name
-
-    def __neg__(self):
-        """Enable the familiar command line -[op] notation, e.g. -l.
-        This also allows for double negation i.e. --l"""
-        return self
-
-
-class ValueOp(Op):
-    """An operator that has a value"""
-
-    def __init__(self, name: str, **kwargs):
-        super().__init__(name)
-        self._kwargs = kwargs
-
-    def __eq__(self, other) -> bool:
-        if not super().__eq__(other):
-            return True
+        if not self.name == other.name:
+            return False
 
         try:
             return self.get() == other.get()
         except RuntimeError:
             return False
 
+    def __neg__(self):
+        """Enable the familiar command line -[op] notation, e.g. -l.
+        This also allows for double negation i.e. --l"""
+        return self
+
     def __call__(self, val):
         """pass in a value for this option"""
         if hasattr(self, '_val'):
             raise RuntimeError("Value already set!")
-        op = ValueOp(self.name, **self._kwargs)
-        setattr(op, '_val', val)
-        return op
+        option = ValueOp(self.name, **self._kwargs)
+        setattr(option, '_val', val)
+        return option
+
+    @property
+    def name(self):
+        return self._name
 
     @property
     def default(self):
@@ -93,9 +83,11 @@ class Flag(ValueOp):
     def get(self, *args):
         if args:
             raise ValueError("A flag cannot be passed a default value, it is always True")
+        return True
 
 
 class Options:
+    """Container storing options, using this with seperate_opts makes writing tools much easier"""
 
     def __init__(self):
         self._opts = {}
@@ -104,7 +96,7 @@ class Options:
         self._opts[opt.name] = opt
 
     def pop(self, opt: ValueOp, *default):
-        if not isinstance(opt, Op):
+        if not isinstance(opt, ValueOp):
             raise TypeError("Unsupported option type '{}'".format(type(opt)))
         if len(default) > 1:
             raise ValueError("Can only pass at most one default")
@@ -134,27 +126,8 @@ def separate_opts(*args) -> [Options, list]:
     opts = Options()
     rest = []
     for arg in args:
-        if isinstance(arg, Op):
+        if isinstance(arg, ValueOp):
             opts.add(arg)
         else:
             rest.append(arg)
     return opts, rest
-
-
-def extract(opt: Op, opts: list) -> False:
-    try:
-        opts.remove(opt)
-        return True
-    except ValueError:
-        return False
-
-
-def extract_val(opt: Op, opts: list, *args):
-    assert len(args) < 2, "Can only supply one default value"
-    try:
-        return opts.pop(opts.index(opt)).get(args[0])
-    except ValueError:
-        if args:
-            return args[0]
-
-        raise
