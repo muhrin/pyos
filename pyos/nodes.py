@@ -1,10 +1,15 @@
 from abc import ABCMeta
 from collections.abc import Sequence
+import typing
 
 import anytree
+import columnize
+import tabulate
+
 import mincepy
 
 from . import constants
+from . import fmt
 from . import dirs
 from . import queries
 
@@ -96,7 +101,7 @@ class DirectoryNode(PyosNode):
                     path = (self._abspath / obj_dir.parts[len(self._abspath.parts)]).to_dir()
 
                     dir_node = DirectoryNode(path, parent=self)
-                    if child_expand_depth > 0:
+                    if abs(child_expand_depth) > 0:
                         dir_node.expand(child_expand_depth)
 
     def delete(self):
@@ -134,13 +139,13 @@ class ObjectNode(PyosNode):
 
         return ObjectNode(obj_id, meta=meta)
 
-    def __init__(self, obj_id, record=None, meta=None, parent=None):
+    def __init__(self, obj_id, record: mincepy.DataRecord = None, meta=None, parent=None):
         self._hist = mincepy.get_historian()
         self._obj_id = obj_id
 
         # Set up the record
         if record is None:
-            self._record = tuple(self._hist.archive.find(obj_id))[0]
+            self._record = tuple(self._hist.archive.find(obj_id))[0]  # type: mincepy.DataRecord
         else:
             self._record = record
         assert self._record.obj_id == obj_id
@@ -164,12 +169,43 @@ class ObjectNode(PyosNode):
         return item == self.obj_id
 
     @property
+    def loaded(self):
+        try:
+            self._hist.get_obj(self._obj_id)
+            return True
+        except mincepy.NotFound:
+            return False
+
+    @property
     def abspath(self) -> dirs.PyosPath:
         return self._abspath
 
     @property
     def obj_id(self):
         return self._obj_id
+
+    @property
+    def type(self):
+        try:
+            return self._hist.get_obj_type(self._record.type_id)
+        except TypeError:
+            return self._record.type_id
+
+    @property
+    def ctime(self):
+        return self._record.creation_time
+
+    @property
+    def version(self):
+        return self._record.version
+
+    @property
+    def mtime(self):
+        return self._record.snapshot_time
+
+    @property
+    def creator(self):
+        return self._record.get_extra(mincepy.ExtraKeys.CREATED_BY)
 
     @property
     def meta(self) -> dict:
@@ -183,10 +219,18 @@ class ObjectNode(PyosNode):
         self._hist.meta.update(self._obj_id, meta_update)
 
 
-class ResultsNode(BaseNode):
+LIST_VIEW = 'list'
+TREE_VIEW = 'tree'
+TABLE_VIEW = 'table'
 
-    def __init__(self, parent=None):
-        super().__init__('results', parent)
+
+class ResultsNode(BaseNode):
+    VIEW_PROPERTIES = ('loaded', 'type', 'creator', 'version', 'ctime', 'mtime', 'name', 'str')
+
+    def __init__(self, name='results', parent=None):
+        super().__init__(name, parent)
+        self._view_mode = TABLE_VIEW
+        self._show = {'name'}
 
     def __contains__(self, item) -> bool:
         for child in self.children:
@@ -196,15 +240,126 @@ class ResultsNode(BaseNode):
         return False
 
     def __repr__(self):
-        rep = []
-        for pre, _, node in anytree.RenderTree(self):
-            rep.append("%s%s" % (pre, node.name))
-        return "\n".join(rep)
+        if self._view_mode == TREE_VIEW:
+            rep = []
+            for child in self.directories:
+                for pre, _, node in anytree.RenderTree(child):
+                    rep.append("%s%s" % (pre, node.name))
+            for child in self.objects:
+                rep.append(str(child))
+            return "\n".join(rep)
+
+        if self._view_mode == TABLE_VIEW:
+            rep = []
+
+            if self._deeply_nested():
+                # Do the objects first, like linux's 'ls'
+                table = self._get_table(self.objects)
+                rep.append(tabulate.tabulate(table, tablefmt='plain'))
+
+                for directory in self.directories:
+                    dir_repr = []
+                    dir_repr.append("{}:".format(directory.name))
+                    table = self._get_table(directory)
+                    dir_repr.append(tabulate.tabulate(table, tablefmt='plain'))
+                    rep.append("\n".join(dir_repr))
+            else:
+                my_repr = []
+                table = self._get_table(self.directories)
+                table.extend(self._get_table(self.objects))
+                my_repr.append(tabulate.tabulate(table, tablefmt='plain'))
+                rep.append("\n".join(my_repr))
+
+            return "\n\n".join(rep)
+
+        if self._view_mode == LIST_VIEW:
+
+            repr_list = []
+            for child in self:
+                repr_list.append("-".join(self._get_row(child)))
+
+            return columnize.columnize(repr_list, displaywidth=100)
+
+        return super().__repr__()
+
+    @property
+    def directories(self):
+        return filter(lambda node: isinstance(node, DirectoryNode), self.children)
+
+    @property
+    def objects(self):
+        return filter(lambda node: isinstance(node, ObjectNode), self.children)
 
     def append(self, node: PyosNode, display_name: str = None):
         node.parent = self
         display_name = display_name or node.name
         node.display_name = display_name
+
+    def show(self, *properties, mode: str = None):
+        if mode is not None:
+            self._view_mode = mode
+        if properties:
+            self._show = set(properties)
+
+    def _get_row(self, child) -> typing.Sequence[str]:
+        empty = ''
+        row = []
+
+        if 'loaded' in self._show:
+            try:
+                row.append('*' if child.loaded else '')
+            except AttributeError:
+                row.append(empty)
+
+        if 'type' in self._show:
+            try:
+                row.append(fmt.pretty_type_string(child.type))
+            except AttributeError:
+                row.append('directory')
+
+        if 'creator' in self._show:
+            row.append(getattr(child, 'creator', empty))
+
+        if 'version' in self._show:
+            row.append(getattr(child, 'version', empty))
+
+        if 'ctime' in self._show:
+            try:
+                row.append(fmt.pretty_datetime(child.ctime))
+            except AttributeError:
+                row.append(empty)
+
+        if 'mtime' in self._show:
+            try:
+                row.append(fmt.pretty_datetime(child.mtime))
+            except AttributeError:
+                row.append(empty)
+
+        if 'name' in self._show:
+            row.append(getattr(child, 'name', empty))
+
+        if 'str' in self._show:
+            row.append(str(child))
+
+        if 'abspath' in self._show:
+            row.append(str(getattr(child, 'abspath', empty)))
+
+        return row
+
+    def _get_table(self, entry):
+        table = []
+
+        for child in entry:
+            table.append(self._get_row(child))
+
+        return table
+
+    def _deeply_nested(self) -> bool:
+        for directory in self.directories:
+            if len(directory) > 0:
+                return True
+
+        return False
 
 
 def to_node(entry) -> PyosNode:

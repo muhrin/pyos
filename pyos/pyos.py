@@ -11,12 +11,13 @@ from .dirs import PyosPath
 from . import opts
 from . import sopts
 from . import utils
+from . import sopts
 from .sopts import *
 
 # pylint: disable=invalid-name
 
 __all__ = ('pwd', 'cd', 'ls', 'load', 'save', 'cat', 'locate', 'mv', 'meta', 'rm', 'find',
-           'history') + sopts.__all__
+           'history', 'tree') + sopts.__all__
 
 
 def pwd():
@@ -56,11 +57,17 @@ def ls(*args, _type: typing.Type = None) -> nodes.ResultsNode:
                 entry.expand()
 
         if len(results) == 1 and isinstance(results[0], nodes.DirectoryNode):
-            new_results = nodes.ResultsNode()
-            for result in tuple(results[0].children):
+            sole_dir = results[0]
+            new_results = nodes.ResultsNode(sole_dir.name)
+            for result in tuple(sole_dir.children):
                 result.parent = new_results
 
-            return new_results
+            results = new_results
+
+    if options.pop(sopts.l):
+        results.show('loaded', 'type', 'creator', 'version', 'mtime', 'name', mode=nodes.TABLE_VIEW)
+    else:
+        results.show(mode=nodes.LIST_VIEW)
 
     return results
 
@@ -76,6 +83,10 @@ def load(*obj_or_ids) -> typing.Iterable:
             loaded.append(mincepy.load(node.obj_id))
         except Exception as exc:  # pylint: disable=broad-except
             loaded.append(exc)
+
+    if len(loaded) == 1:
+        return loaded[0]
+
     return loaded
 
 
@@ -112,15 +123,16 @@ def cat(*obj_or_ids):
                 pprint.pprint(fmt.obj_dict(obj))
 
 
-def locate(*obj_or_ids) -> typing.Sequence[str]:
+def locate(*obj_or_ids) -> nodes.ResultsNode:
     """Locate the directory of or more objects"""
     _options, rest = opts.separate_opts(*obj_or_ids)
     to_locate = ls(-d, *rest)
-    return [node.abspath for node in to_locate]
+    to_locate.show('abspath', mode=nodes.TABLE_VIEW)
+
+    return to_locate
 
 
 def mv(*args):  # pylint: disable=invalid-name
-
     """Take one or more files or directories with the final parameter being interpreted as
      destination"""
     _options, rest = opts.separate_opts(*args)
@@ -176,3 +188,14 @@ def history(obj):
         print(entry.ref)
         cat(entry.obj)
         print()
+
+
+def tree(*obj_or_ids):
+    options, rest = opts.separate_opts(*obj_or_ids)
+    to_tree = ls(-d, *rest)
+    level = options.pop(sopts.L, -1)
+    # Fully expand all directories
+    for dir_node in to_tree.directories:
+        dir_node.expand(level)
+    to_tree.show(mode=nodes.TREE_VIEW)
+    return to_tree

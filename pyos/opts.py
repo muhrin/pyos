@@ -92,6 +92,12 @@ class Options:
     def __init__(self):
         self._opts = {}
 
+    def __contains__(self, item):
+        if not isinstance(item, ValueOp):
+            return False
+
+        return item.name in self._opts
+
     def add(self, opt: ValueOp):
         self._opts[opt.name] = opt
 
