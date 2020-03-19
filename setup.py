@@ -50,4 +50,4 @@ setup(name='pyos',
       ],
       include_package_data=True,
       test_suite='test',
-      entry_points={})
+      entry_points={'mincepy.plugins.types': ['pyos_types = pyos.provides:get_types',]})
