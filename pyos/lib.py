@@ -1,9 +1,8 @@
-from pathlib import PurePosixPath
 import typing
 
 import mincepy
 
-from .constants import DIR_KEY, NAME_KEY
+from .constants import NAME_KEY
 from . import dirs
 from . import nodes
 from . import opts
@@ -21,31 +20,6 @@ def init():
 
 def reset():
     dirs.reset()
-
-
-def get_records(path: dirs.PathSpec = None, type=None, meta=None):
-    """Get the records in the given directory.  Use the current by default"""
-    path = dirs.PyosPath(path).resolve()
-    hist = mincepy.get_historian()
-
-    meta_query = meta or {}
-    meta_query.update(queries.dirmatch(str(path)))
-    return hist.find(obj_type=type, meta=meta_query, as_objects=False)
-
-
-def locate(obj_or_ids):
-    hist = mincepy.get_historian()
-    directories = []
-    for entry in obj_or_ids:
-        obj_id = hist._ensure_obj_id(entry)
-        meta = hist.meta.get(entry)
-        directories.append(str(meta.get(DIR_KEY) / PurePosixPath(str(obj_id))))
-    return directories
-
-
-def get_ids(directory: [str, PurePosixPath] = None, type=None):
-    """Get all obj ids in the directory"""
-    return [record.obj_id for record in get_records(directory, type=type)]
 
 
 def get_meta(*obj_ids: typing.Iterable) -> typing.List[dict]:
@@ -123,6 +97,3 @@ def find(*args, **meta_filter) -> nodes.ResultsNode:
         results.append(nodes.ObjectNode(meta['obj_id']))
 
     return results
-
-
-init()  # by importing this module we initialise
