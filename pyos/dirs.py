@@ -3,6 +3,7 @@ import contextlib
 import getpass
 import os
 import typing
+import uuid
 
 import mincepy
 
@@ -13,15 +14,18 @@ __all__ = 'PyosPath', 'working_path'
 _DIRECTORY = None  # type: typing.Optional[PyosPath]
 
 
-class PyosPath:
+class PyosPath(mincepy.BaseSavableObject):
     """A path in Pyos.  Where possible the convention follows that of a PurePosixPath in pathlib.
     The one major exception is that folders are represented with an explicit trailing '/' and
     anything else is a file.
 
     This is a 'pure' path in the pathlib sens in that it does not interact with the database at all
     """
+    ATTRS = ('_path',)
+    TYPE_ID = uuid.UUID('5eac541e-848c-43aa-818d-50cf8a2b8507')
 
     def __init__(self, path='./'):
+        super().__init__()
         if isinstance(path, PyosPath):
             self._path = path._path
         elif isinstance(path, str):
