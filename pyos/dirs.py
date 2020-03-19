@@ -1,4 +1,5 @@
 """Module that deals with directories and paths"""
+import contextlib
 import getpass
 import os
 import typing
@@ -7,7 +8,7 @@ import mincepy
 
 from .constants import DIR_KEY, NAME_KEY
 
-__all__ = ('PyosPath',)
+__all__ = 'PyosPath', 'working_path'
 
 _DIRECTORY = None  # type: typing.Optional[PyosPath]
 
@@ -285,3 +286,13 @@ def path_to_meta_dict(path: PathSpec):
         meta[DIR_KEY] = str(path.parent)
 
     return meta
+
+
+@contextlib.contextmanager
+def working_path(path: PyosPath):
+    orig = cwd()
+    cd(path)
+    try:
+        yield path
+    finally:
+        cd(orig)
