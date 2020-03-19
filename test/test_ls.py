@@ -1,3 +1,5 @@
+import pytest
+
 from mincepy.testing import Car
 
 from pyos import pyos, nodes
@@ -78,3 +80,8 @@ def test_ls_minus_d():
     results = pyos.ls(-pyos.d)
     assert len(results) == 1
     assert results[0].abspath == pyos.pwd()
+
+
+def test_ls_inexistent():
+    with pytest.raises(ValueError):
+        assert not pyos.ls('inexistent')

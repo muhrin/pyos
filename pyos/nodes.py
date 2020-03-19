@@ -20,6 +20,7 @@ class BaseNode(Sequence, anytree.NodeMixin, metaclass=ABCMeta):
         super().__init__()
         self._name = name
         self.parent = parent
+        self._hist = mincepy.get_historian()
 
     def __getitem__(self, item):
         return self.children.__getitem__(item)
@@ -48,7 +49,6 @@ class PyosNode(BaseNode):
     def __init__(self, abspath: dirs.PyosPath, parent=None):
         super().__init__(abspath.name, parent)
         self._abspath = abspath
-        self._hist = mincepy.get_historian()
 
     @property
     def abspath(self) -> dirs.PyosPath:
@@ -68,10 +68,29 @@ class DirectoryNode(PyosNode):
         return "\n".join(rep)
 
     def __contains__(self, item):
-        for child in self.children:
-            if item in child:
-                return True
+        if isinstance(item, dirs.PyosPath):
+            path = item.resolve()
+            for child in self.children:
+                if path == child.abspath:
+                    return True
+
+            return False
+
+        if self._hist.is_obj_id(item):
+            for node in self.objects:
+                if item == node.obj_id:
+                    return True
+            return False
+
         return False
+
+    @property
+    def directories(self):
+        return filter(lambda node: isinstance(node, DirectoryNode), self.children)
+
+    @property
+    def objects(self):
+        return filter(lambda node: isinstance(node, ObjectNode), self.children)
 
     def _invalidate_cache(self):
         self.children = []
@@ -131,10 +150,13 @@ class ObjectNode(PyosNode):
             obj_id = hist._ensure_obj_id(path.name)
             meta = None
         except mincepy.NotFound:
-            meta = tuple(
+            results = tuple(
                 hist.meta.find(
-                    queries.and_(queries.dirmatch(path.parent),
-                                 {constants.NAME_KEY: path.name})))[0]
+                    queries.and_(queries.dirmatch(path.parent), {constants.NAME_KEY: path.name})))
+            if not results:
+                raise ValueError("Object not found: {}".format(path))
+
+            meta = results[0]
             obj_id = meta['obj_id']
 
         return ObjectNode(obj_id, meta=meta)
@@ -232,10 +254,20 @@ class ResultsNode(BaseNode):
         self._view_mode = TABLE_VIEW
         self._show = {'name'}
 
-    def __contains__(self, item) -> bool:
-        for child in self.children:
-            if item in child:
-                return True
+    def __contains__(self, item):
+        if isinstance(item, dirs.PyosPath):
+            path = item.resolve()
+            for child in self.children:
+                if path == child.abspath:
+                    return True
+
+            return False
+
+        if self._hist.is_obj_id(item):
+            for node in self.objects:
+                if item == node.obj_id:
+                    return True
+            return False
 
         return False
 
@@ -302,6 +334,7 @@ class ResultsNode(BaseNode):
             self._show = set(properties)
 
     def _get_row(self, child) -> typing.Sequence[str]:
+        # pylint: disable=too-many-branches
         empty = ''
         row = []
 
@@ -377,4 +410,4 @@ def to_node(entry) -> PyosNode:
 
         return ObjectNode.from_path(entry)
 
-    raise TypeError("Unknown entry type '{}'".format(type(entry)))
+    raise ValueError("Unknown entry type: {}".format(entry))

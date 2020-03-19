@@ -7,10 +7,18 @@ import mincepy
 
 from .constants import DIR_KEY, NAME_KEY
 
+__all__ = ('PyosPath',)
+
 _DIRECTORY = None  # type: typing.Optional[PyosPath]
 
 
 class PyosPath:
+    """A path in Pyos.  Where possible the convention follows that of a PurePosixPath in pathlib.
+    The one major exception is that folders are represented with an explicit trailing '/' and
+    anything else is a file.
+
+    This is a 'pure' path in the pathlib sens in that it does not interact with the database at all
+    """
 
     def __init__(self, path='./'):
         if isinstance(path, PyosPath):
@@ -38,6 +46,10 @@ class PyosPath:
     @property
     def name(self):
         return self.parts[-1]
+
+    @property
+    def root(self) -> str:
+        return "/"
 
     def __hash__(self):
         return self._path.__hash__()
@@ -103,12 +115,13 @@ class PyosPath:
 
         # Now resolve any . and ..
         normed = os.path.normpath(str(to_norm))
+        path = PyosPath(normed)
 
         if self.is_dir():
             # Re-add back the final slash
-            normed = normed + '/'
+            return path.to_dir()
 
-        return PyosPath(normed)
+        return path
 
     def joinpath(self, *other):
         joined = self

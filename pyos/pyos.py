@@ -11,8 +11,7 @@ from .dirs import PyosPath
 from . import opts
 from . import sopts
 from . import utils
-from . import sopts
-from .sopts import *
+from .sopts import *  # pylint: disable=wildcard-import
 
 # pylint: disable=invalid-name
 
@@ -43,10 +42,11 @@ def ls(*args, _type: typing.Type = None) -> nodes.ResultsNode:
     parsed = utils.parse_args(*rest)
 
     results = nodes.ResultsNode()
-    if parsed:
+    if rest:
         for entry in parsed:
             if isinstance(entry, Exception):
                 raise entry
+
             results.append(nodes.to_node(entry))
     else:
         results.append(nodes.to_node(dirs.cwd()))
@@ -72,7 +72,7 @@ def ls(*args, _type: typing.Type = None) -> nodes.ResultsNode:
     return results
 
 
-def load(*obj_or_ids) -> typing.Iterable:
+def load(*obj_or_ids) -> typing.Union[typing.Iterable[typing.Any], typing.Any]:
     """Load one or more objects"""
     _options, rest = opts.separate_opts(*obj_or_ids)
     to_load = ls(-d, *rest)
@@ -190,8 +190,9 @@ def history(obj):
         print()
 
 
-def tree(*obj_or_ids):
-    options, rest = opts.separate_opts(*obj_or_ids)
+def tree(*paths):
+    """Get a tree representation of the given paths"""
+    options, rest = opts.separate_opts(*paths)
     to_tree = ls(-d, *rest)
     level = options.pop(sopts.L, -1)
     # Fully expand all directories
@@ -199,3 +200,21 @@ def tree(*obj_or_ids):
         dir_node.expand(level)
     to_tree.show(mode=nodes.TREE_VIEW)
     return to_tree
+
+
+def oid(*args):
+    """Get the object id for one or more live objects"""
+    _options, rest = opts.separate_opts(*args)
+    hist = mincepy.get_historian()
+
+    oids = []
+    for obj in rest:
+        try:
+            oids.append(hist.get_obj_id(obj))
+        except mincepy.NotFound:
+            oids.append(None)
+
+    if len(oids) == 1:
+        return oids[0]
+
+    return oids
