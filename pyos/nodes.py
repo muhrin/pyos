@@ -113,11 +113,12 @@ class DirectoryNode(PyosNode):
             else:
                 # This is an object that resides at some subdirectory so we know
                 # that there must exist a subdirectory
-                if directory not in directories_added:
-                    directories_added.add(directory)
 
-                    obj_dir = dirs.PyosPath(directory)
-                    path = (self._abspath / obj_dir.parts[len(self._abspath.parts)]).to_dir()
+                # Get the subdirectory relative to us
+                obj_dir = dirs.PyosPath(directory)
+                path = (self._abspath / obj_dir.parts[len(self._abspath.parts)]).to_dir()
+                if path not in directories_added:
+                    directories_added.add(path)
 
                     dir_node = DirectoryNode(path, parent=self)
                     if abs(child_expand_depth) > 0:

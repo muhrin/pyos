@@ -1,6 +1,6 @@
 import pytest
 
-from mincepy.testing import Car
+from mincepy.testing import Car, Person
 
 from pyos import pyos, nodes
 
@@ -85,3 +85,22 @@ def test_ls_minus_d():
 def test_ls_inexistent():
     with pytest.raises(ValueError):
         assert not pyos.ls('inexistent')
+
+
+def test_ls_lots():
+    paths = ['test/', 'b/', 'test/b/', 'my_dir/', 'my_dir/sub/', 'test/b/b_sub/']
+    num = len(paths)
+    for idx in range(20):
+        pyos.save(Car(), paths[idx % num])
+        pyos.save(Person('random', 35), paths[idx % num])
+
+    # Now save some in the root
+    for _ in range(2):
+        Car().save()
+        Person('person a', 23).save()
+
+    # We should have 3 paths and 4 objects
+    results = pyos.ls()
+    print(results)
+
+    assert len(results) == 7
