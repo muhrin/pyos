@@ -2,46 +2,18 @@ import datetime
 import inspect
 import typing
 
-import mincepy
-
 
 def pretty_type_string(obj_type: typing.Type) -> str:
     """Given an type will return a simple type string"""
     type_str = str(obj_type)
     if type_str.startswith('<class '):
-        return type_str[8:-2]
+        type_str = type_str[8:-2]
+
+    parts = type_str.split('.')
+    if len(parts) > 2:
+        return ".".join([parts[0], '', parts[-1]])
+
     return type_str
-
-
-def format_record(record: mincepy.DataRecord, user=False, ctime=False, version=False) -> list:
-    hist = mincepy.get_historian()
-    try:
-        type_str = pretty_type_string(hist.get_helper(record.type_id).TYPE)
-    except TypeError:
-        type_str = str(record.type_id)
-
-    data = []
-    data.append(type_str)
-
-    if user:
-        data.append(record.get_extra(mincepy.ExtraKeys.USER))
-
-    if version:
-        data.append(record.version)
-
-    if ctime:
-        data.append(pretty_datetime(record.creation_time))
-
-    try:
-        hist.get_obj(record.obj_id)
-        is_loaded = True
-    except mincepy.NotFound:
-        is_loaded = False
-
-    data.append(record.obj_id)
-    data.append('*' if is_loaded else '')
-
-    return data
 
 
 def obj_dict(obj):

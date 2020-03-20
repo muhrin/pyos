@@ -65,7 +65,10 @@ def ls(*args, _type: typing.Type = None) -> nodes.ResultsNode:
             results = new_results
 
     if options.pop(sopts.l):
-        results.show('loaded', 'type', 'creator', 'version', 'mtime', 'name', mode=nodes.TABLE_VIEW)
+        properties = ['loaded', 'type', 'creator', 'version', 'mtime', 'name']
+        if options.pop(sopts.p):
+            properties.append('str')
+        results.show(*properties, mode=nodes.TABLE_VIEW)
     else:
         results.show(mode=nodes.LIST_VIEW)
 

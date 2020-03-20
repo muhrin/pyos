@@ -204,6 +204,10 @@ class ObjectNode(PyosNode):
         return self._abspath
 
     @property
+    def obj(self) -> typing.Any:
+        return self._hist.load(self._obj_id)
+
+    @property
     def obj_id(self):
         return self._obj_id
 
@@ -323,6 +327,15 @@ class ResultsNode(BaseNode):
     def objects(self):
         return filter(lambda node: isinstance(node, ObjectNode), self.children)
 
+    @property
+    def view_mode(self) -> str:
+        return self._view_mode
+
+    @view_mode.setter
+    def view_mode(self, new_mode: str):
+        assert new_mode in (TREE_VIEW, LIST_VIEW, TABLE_VIEW)
+        self._view_mode = new_mode
+
     def append(self, node: PyosNode, display_name: str = None):
         node.parent = self
         display_name = display_name or node.name
@@ -373,7 +386,10 @@ class ResultsNode(BaseNode):
             row.append(getattr(child, 'name', empty))
 
         if 'str' in self._show:
-            row.append(str(child))
+            try:
+                row.append(str(getattr(child, 'obj', empty))[:30])
+            except (TypeError, mincepy.ObjectDeleted):
+                row.append(empty)
 
         if 'abspath' in self._show:
             row.append(str(getattr(child, 'abspath', empty)))
