@@ -30,6 +30,7 @@ setup(name='pyos',
           'mincepy>=0.10.4',
           'click',
           'tabulate',
+          'ipython',
       ],
       extras_require={
           'gui': ['mincepy[gui]'],
