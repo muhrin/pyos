@@ -23,6 +23,6 @@ before_script:
 script:
   - pytest --cov=pyos test
 
-after_success: coverage report
-
-
+after_success:
+  - coverage report
+  - codecov
