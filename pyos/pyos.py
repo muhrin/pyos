@@ -16,7 +16,7 @@ from .sopts import *  # pylint: disable=wildcard-import
 # pylint: disable=invalid-name
 
 __all__ = ('pwd', 'cd', 'ls', 'load', 'save', 'cat', 'locate', 'mv', 'meta', 'rm', 'find',
-           'history', 'tree') + sopts.__all__
+           'history', 'tree', 'oid') + sopts.__all__
 
 
 def pwd():
@@ -54,7 +54,7 @@ def ls(*args, _type: typing.Type = None) -> nodes.ResultsNode:
     if not options.pop(sopts.d):
         for entry in results:
             if isinstance(entry, nodes.DirectoryNode):
-                entry.expand()
+                entry.expand(populate_objects=l in options)
 
         if len(results) == 1 and isinstance(results[0], nodes.DirectoryNode):
             sole_dir = results[0]
@@ -65,7 +65,7 @@ def ls(*args, _type: typing.Type = None) -> nodes.ResultsNode:
             results = new_results
 
     if options.pop(sopts.l):
-        properties = ['loaded', 'type', 'creator', 'version', 'mtime', 'name']
+        properties = ['loaded', 'type', 'version', 'mtime', 'name']
         if options.pop(sopts.p):
             properties.append('str')
         results.show(*properties, mode=nodes.TABLE_VIEW)
@@ -145,11 +145,12 @@ def mv(*args):  # pylint: disable=invalid-name
         # If there is more than one thing to move then we assume that dest is a directory
         dest = dest.to_dir()
     dest = dest.resolve()
-    to_move = ls(*rest[:-1])
+    to_move = ls(-d, *rest)
     to_move.move(dest)
 
 
 def rm(*obj_or_ids):
+    """Remove objects"""
     _options, rest = opts.separate_opts(*obj_or_ids)
     to_delete = ls(-d, *rest)
     for node in to_delete:

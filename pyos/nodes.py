@@ -95,8 +95,15 @@ class DirectoryNode(PyosNode):
     def _invalidate_cache(self):
         self.children = []
 
-    def expand(self, depth=1):
-        """Populate the children with what is currently in the database"""
+    def expand(self, depth=1, populate_objects=False):
+        """Populate the children with what is currently in the database
+
+        :param depth: expand to the given depth, 0 mean no expansion, 1 means my child nodes, etc
+        :param populate_objects: if True objects will have their records fetched immediately (as
+            opposed to lazily when needed).  This gives a large speedup when the client knows that
+            the all or most of the details of the child objects will be needed as they can be
+            fetched in one call.
+        """
         self.children = []
         metas = self._hist.meta.find(queries.subdirs(str(self._abspath), 0, -1))
 
@@ -104,12 +111,15 @@ class DirectoryNode(PyosNode):
         dirstring = str(self._abspath)
         child_expand_depth = depth - 1
         directories_added = set()
+
+        obj_kwargs = []
         for meta in metas:
             directory = meta[constants.DIR_KEY]
 
             if directory == dirstring:
-                # This is an object _in_ this directory
-                ObjectNode(meta['obj_id'], meta=meta, parent=self)
+                # This is an object in _this_ directory and not further down the hierarchy
+                obj_kwargs.append(dict(obj_id=meta['obj_id'], meta=meta, parent=self))
+                # ObjectNode(meta['obj_id'], meta=meta, parent=self)
             else:
                 # This is an object that resides at some subdirectory so we know
                 # that there must exist a subdirectory
@@ -123,6 +133,16 @@ class DirectoryNode(PyosNode):
                     dir_node = DirectoryNode(path, parent=self)
                     if abs(child_expand_depth) > 0:
                         dir_node.expand(child_expand_depth)
+
+        if populate_objects:
+            # Gather all the object ids
+            obj_ids = [kwargs['obj_id'] for kwargs in obj_kwargs]
+            records = tuple(self._hist.archive.find(obj_id={'$in': obj_ids}))
+            for kwargs, record in zip(obj_kwargs, records):
+                kwargs['record'] = record
+
+        for kwargs in obj_kwargs:
+            ObjectNode(**kwargs)
 
     def delete(self):
         metas = self._hist.meta.find(queries.subdirs(str(self._abspath), 0, -1))
@@ -166,12 +186,7 @@ class ObjectNode(PyosNode):
         self._hist = mincepy.get_historian()
         self._obj_id = obj_id
 
-        # Set up the record
-        if record is None:
-            self._record = tuple(self._hist.archive.find(obj_id))[0]  # type: mincepy.DataRecord
-        else:
-            self._record = record
-        assert self._record.obj_id == obj_id
+        self._record = record  # This will be lazily loaded if None
 
         # Set up the meta
         self._meta = meta
@@ -190,6 +205,15 @@ class ObjectNode(PyosNode):
 
     def __contains__(self, item):
         return item == self.obj_id
+
+    @property
+    def record(self) -> mincepy.DataRecord:
+        if self._record is None:
+            # Lazily load
+            self._record = tuple(self._hist.archive.find(
+                self._obj_id))[0]  # type: mincepy.DataRecord
+
+        return self._record
 
     @property
     def loaded(self):
@@ -214,25 +238,25 @@ class ObjectNode(PyosNode):
     @property
     def type(self):
         try:
-            return self._hist.get_obj_type(self._record.type_id)
+            return self._hist.get_obj_type(self.record.type_id)
         except TypeError:
-            return self._record.type_id
+            return self.record.type_id
 
     @property
     def ctime(self):
-        return self._record.creation_time
+        return self.record.creation_time
 
     @property
     def version(self):
-        return self._record.version
+        return self.record.version
 
     @property
     def mtime(self):
-        return self._record.snapshot_time
+        return self.record.snapshot_time
 
     @property
     def creator(self):
-        return self._record.get_extra(mincepy.ExtraKeys.CREATED_BY)
+        return self.record.get_extra(mincepy.ExtraKeys.CREATED_BY)
 
     @property
     def meta(self) -> dict:
