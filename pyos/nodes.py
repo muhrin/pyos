@@ -137,9 +137,11 @@ class DirectoryNode(PyosNode):
         if populate_objects:
             # Gather all the object ids
             obj_ids = [kwargs['obj_id'] for kwargs in obj_kwargs]
-            records = tuple(self._hist.archive.find(obj_id={'$in': obj_ids}))
-            for kwargs, record in zip(obj_kwargs, records):
-                kwargs['record'] = record
+            records = {
+                record.obj_id: record for record in self._hist.archive.find(obj_id={'$in': obj_ids})
+            }
+            for kwargs in obj_kwargs:
+                kwargs['record'] = records[kwargs['obj_id']]
 
         for kwargs in obj_kwargs:
             ObjectNode(**kwargs)
@@ -183,9 +185,12 @@ class ObjectNode(PyosNode):
         return ObjectNode(obj_id, meta=meta)
 
     def __init__(self, obj_id, record: mincepy.DataRecord = None, meta=None, parent=None):
+        if record:
+            assert obj_id == record.obj_id, "Obj id and record don't match!"
+        if meta:
+            assert obj_id == meta['obj_id'], "Obj id and meta don't match!"
         self._hist = mincepy.get_historian()
         self._obj_id = obj_id
-
         self._record = record  # This will be lazily loaded if None
 
         # Set up the meta
