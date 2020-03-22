@@ -105,6 +105,9 @@ class DirectoryNode(PyosNode):
             fetched in one call.
         """
         self.children = []
+        if depth == 0:
+            return
+
         metas = self._hist.meta.find(queries.subdirs(str(self._abspath), 0, -1))
 
         # Get directories and object ids

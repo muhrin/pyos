@@ -33,16 +33,18 @@ def cd(path: dirs.PathSpec):
     dirs.cd(path)
 
 
-def ls(*args, _type: typing.Type = None) -> nodes.ResultsNode:
+@opts.flag(-l)
+@opts.flag(-d)
+@opts.flag(-p)
+def ls(options, *args, _type: typing.Type = None) -> nodes.ResultsNode:
     """List the contents of a directory
 
     :type: restrict listing to a particular type
     """
-    options, rest = opts.separate_opts(*args)
-    parsed = utils.parse_args(*rest)
+    parsed = utils.parse_args(*args)
 
     results = nodes.ResultsNode()
-    if rest:
+    if args:
         for entry in parsed:
             if isinstance(entry, Exception):
                 raise entry
@@ -194,10 +196,10 @@ def history(obj):
         print()
 
 
-def tree(*paths):
+@opts.option(sopts.L)
+def tree(options, *paths):
     """Get a tree representation of the given paths"""
-    options, rest = opts.separate_opts(*paths)
-    to_tree = ls(-d, *rest)
+    to_tree = ls(-d, *paths)
     level = options.pop(sopts.L, -1)
     # Fully expand all directories
     for dir_node in to_tree.directories:

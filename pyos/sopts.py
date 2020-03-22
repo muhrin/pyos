@@ -7,11 +7,11 @@ __all__ = 'l', 'L', 'p', 'd', 'mindepth', 'maxdepth'
 # pylint: disable=invalid-name
 
 # region Options
-l = opts.Flag('l')
-d = opts.Flag('d')
-p = opts.Flag('p')
-L = opts.ValueOp('L')
-maxdepth = opts.ValueOp('maxdepth')
-mindepth = opts.ValueOp('mindepth')
+l = opts.Option('l')
+d = opts.Option('d')
+p = opts.Option('p')
+L = opts.Option('L')
+maxdepth = opts.Option('maxdepth')
+mindepth = opts.Option('mindepth')
 
 # endregion
