@@ -1,3 +1,7 @@
+.. image:: docs/source/img/pyos.svg
+    :height: 128px
+    :alt: pyos
+
 .. image:: https://codecov.io/gh/muhrin/pyos/branch/develop/graph/badge.svg
     :target: https://codecov.io/gh/muhrin/pyos
     :alt: Coverage

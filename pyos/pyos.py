@@ -1,3 +1,4 @@
+import logging
 import pprint
 import typing
 
@@ -18,6 +19,8 @@ from . import version
 
 __all__ = ('pwd', 'cd', 'ls', 'load', 'save', 'cat', 'locate', 'mv', 'meta', 'rm', 'find',
            'history', 'tree', 'oid') + sopts.__all__
+
+logger = logging.getLogger(__name__)
 
 
 def pwd():
@@ -117,7 +120,8 @@ def save(*objs):
 def cat(*obj_or_ids):
     """Print the contents of one or more objects"""
     _options, rest = opts.separate_opts(*obj_or_ids)
-    to_cat = load(*rest)
+    to_load = ls(-d, *rest)
+    to_cat = load(to_load)
 
     for obj in to_cat:
         if isinstance(obj, Exception):
@@ -185,6 +189,8 @@ def meta(*obj_or_ids, **updates):
         lib.set_meta(*obj_ids, meta=updates)
     else:
         # In 'getting' mode
+        if updates:
+            logging.warning("Keywords supplied to meta without -s/-u flags: %s", updates)
         metas = lib.get_meta(*obj_ids)
         if len(metas) == 1:
             return metas[0]

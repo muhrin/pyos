@@ -3,6 +3,7 @@ from setuptools import setup
 
 __author__ = "Martin Uhrin"
 __license__ = "GPLv3"
+__contributors__ = "Sonia Collaud"
 
 about = {}
 with open('pyos/version.py') as f:
