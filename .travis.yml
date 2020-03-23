@@ -12,7 +12,8 @@ python:
 
 install:
   - pip install .[rmq,dev]
-  - pip install flake8
+  - pip install
+  - pip install codecov
 
 before_script:
   # stop the build if there are Python syntax errors or undefined names

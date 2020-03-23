@@ -45,3 +45,4 @@ As easy as:
     > ipython
 
     In [1]: from pyos.pyos import *
+    In [2]: ls()
