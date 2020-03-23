@@ -12,6 +12,7 @@ from . import opts
 from . import sopts
 from . import utils
 from .sopts import *  # pylint: disable=wildcard-import
+from . import version
 
 # pylint: disable=invalid-name
 
@@ -159,9 +160,11 @@ def rm(*obj_or_ids):
         node.delete()
 
 
+@opts.flag(-s, "Set the metadata")
+@opts.flag(-u, "Update the metadata")
 def meta(*obj_or_ids, **updates):
-    """Get or update the metadata on one or more objects"""
-    _options, rest = opts.separate_opts(*obj_or_ids)
+    """Get, set or update the metadata on one or more objects"""
+    options, rest = opts.separate_opts(*obj_or_ids)
     to_update = ls(-d, *rest)
     obj_ids = []
     for node in to_update:
@@ -170,9 +173,16 @@ def meta(*obj_or_ids, **updates):
         else:
             print("Can't set metadata on '{}'".format(node))
 
-    if updates:
-        # In 'setting' mode
+    if options.pop(-u, False):
+        # In 'update' mode
+        if not updates:
+            return None
         lib.update_meta(*obj_ids, meta=updates)
+    elif options.pop(-s, False):
+        # In 'setting' mode
+        if not updates:
+            return None
+        lib.set_meta(*obj_ids, meta=updates)
     else:
         # In 'getting' mode
         metas = lib.get_meta(*obj_ids)
@@ -224,3 +234,11 @@ def oid(*args):
         return oids[0]
 
     return oids
+
+
+def _mod() -> str:
+    """Get the message of the day string"""
+    return "Welcome to\n{}".format(version.BANNER)
+
+
+print(_mod())

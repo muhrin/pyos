@@ -51,9 +51,10 @@ class Option:
 
 class OptionSpec:
 
-    def __init__(self, option: Option, is_flag=True):
+    def __init__(self, option: Option, is_flag=True, help=''):  # pylint: disable=redefined-builtin
         self.option = option
         self.is_flag = is_flag
+        self.help = help
 
 
 class Options:
@@ -190,9 +191,9 @@ class CommandBuilder:
         return " ".join((self.command.name, str(self.options)))
 
 
-def option(opt: Option):
+def option(opt: Option, help=''):  # pylint: disable=redefined-builtin
     """Decorator for defining an option taken by a command function"""
-    spec = OptionSpec(opt, is_flag=False)
+    spec = OptionSpec(opt, is_flag=False, help=help)
 
     def attach(func):
         if isinstance(func, Command):
@@ -206,9 +207,9 @@ def option(opt: Option):
     return attach
 
 
-def flag(opt: Option):
+def flag(opt: Option, help=''):  # pylint: disable=redefined-builtin
     """Decorator for defining an option taken by a command function"""
-    spec = OptionSpec(opt, is_flag=True)
+    spec = OptionSpec(opt, is_flag=True, help=help)
 
     def attach(func):
         if isinstance(func, Command):

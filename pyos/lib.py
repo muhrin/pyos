@@ -8,6 +8,7 @@ from . import nodes
 from . import opts
 from . import sopts
 from . import queries
+from . import utils
 
 __all__ = 'init', 'reset'
 
@@ -22,34 +23,44 @@ def reset():
     dirs.reset()
 
 
-def get_meta(*obj_ids: typing.Iterable) -> typing.List[dict]:
+# region metadata
+
+
+def get_meta(*obj_or_identifier: typing.Iterable) -> typing.List[dict]:
     """Get the metadata for a bunch of objects"""
     hist = mincepy.get_historian()
     meta = []
-    for obj_id in obj_ids:
+    for obj_id in obj_or_identifier:
         meta.append(hist.meta.get(obj_id))
     return meta
 
 
-def update_meta(*obj_ids: typing.Iterable, meta: dict):
+def update_meta(*obj_or_identifier: typing.Iterable, meta: dict):
     """Update the metadata for a bunch of objects"""
     hist = mincepy.get_historian()
-    for obj_id in obj_ids:
+    for obj_id in obj_or_identifier:
         hist.meta.update(obj_id, meta)
 
 
-def set_meta(*obj_ids: typing.Iterable, meta: dict):
+def set_meta(*obj_or_identifier: typing.Iterable, meta: dict):
     """Set the metadata for a bunch of objects"""
     hist = mincepy.get_historian()
-    for obj_id in obj_ids:
-        hist.meta.set(obj_id, meta)
+    metas = hist.meta.get(*obj_or_identifier)
+
+    # Convert to a list because get() will give us a scalar if we pass a single object id
+    if len(obj_or_identifier) == 1:
+        metas = [metas]
+
+    # Preserve the internal keys
+    for obj_id, current_meta in zip(obj_or_identifier, metas):
+        new_meta = utils.new_meta(current_meta, meta)
+        hist.meta.set(obj_id, new_meta)
 
 
-def set_name(obj_id, name: str):
+def set_name(*obj_ids, name: str):
     """Set the name of the passed object(s)"""
-    hist = mincepy.get_historian()
     update = {NAME_KEY: name}
-    hist.meta.update(obj_id, update)
+    update_meta(*obj_ids, meta=update)
 
 
 def get_name(*obj_or_ids) -> typing.Sequence[typing.Optional[str]]:
@@ -58,6 +69,9 @@ def get_name(*obj_or_ids) -> typing.Sequence[typing.Optional[str]]:
     results = hist.meta.find({'obj_id': {'$in': obj_or_ids}})
     names = {meta['obj_id']: meta[NAME_KEY] for meta in results}
     return [names.get(obj_id, None) for obj_id in obj_or_ids]
+
+
+# endregion
 
 
 def save(objects: typing.Sequence, paths: typing.Sequence[dirs.PathSpec] = None):

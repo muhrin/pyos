@@ -2,7 +2,7 @@
 
 from . import opts
 
-__all__ = 'l', 'L', 'p', 'd', 'mindepth', 'maxdepth'
+__all__ = 'l', 'L', 'p', 'd', 'u', 's', 'mindepth', 'maxdepth'
 
 # pylint: disable=invalid-name
 
@@ -11,6 +11,8 @@ l = opts.Option('l')
 d = opts.Option('d')
 p = opts.Option('p')
 L = opts.Option('L')
+s = opts.Option('s')
+u = opts.Option('u')
 maxdepth = opts.Option('maxdepth')
 mindepth = opts.Option('mindepth')
 

@@ -2,6 +2,7 @@ import typing
 
 import mincepy
 
+from . import constants
 from . import dirs
 from . import nodes
 
@@ -41,3 +42,19 @@ def parse_args(*args) -> typing.Sequence:
                 raise TypeError("Unknown type '{}'".format(arg))
 
     return parsed
+
+
+def new_meta(orig: dict, new: dict) -> dict:
+    merged = new.copy()
+    if not orig:
+        return merged
+
+    for name in constants.KEYS:
+        if name in orig:
+            if name.startswith('_'):
+                # Always take internal, i.e. underscored, keys
+                merged[name] = orig[name]
+            else:
+                merged.setdefault(name, orig[name])
+
+    return merged
