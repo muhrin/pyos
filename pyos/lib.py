@@ -45,7 +45,7 @@ def update_meta(*obj_or_identifier: typing.Iterable, meta: dict):
 def set_meta(*obj_or_identifier: typing.Iterable, meta: dict):
     """Set the metadata for a bunch of objects"""
     hist = mincepy.get_historian()
-    metas = hist.meta.get(*obj_or_identifier)
+    metas = [hist.meta.get(value) for value in obj_or_identifier]
 
     # Convert to a list because get() will give us a scalar if we pass a single object id
     if len(obj_or_identifier) == 1:
