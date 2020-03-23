@@ -2,7 +2,7 @@
 from setuptools import setup
 
 __author__ = "Martin Uhrin"
-__license__ = "GPLv3 and MIT, see LICENSE file"
+__license__ = "GPLv3"
 
 about = {}
 with open('pyos/version.py') as f:
@@ -17,7 +17,6 @@ setup(name='pyos',
       author_email='martin.uhrin.10@ucl.ac.uk',
       license=__license__,
       classifiers=[
-          'License :: OSI Approved :: MIT License',
           'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
           'Programming Language :: Python :: 3.5',
           'Programming Language :: Python :: 3.6',
