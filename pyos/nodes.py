@@ -205,10 +205,9 @@ class ObjectNode(PyosNode):
         # Set up the meta
         self._meta = meta
         if self._meta is None:
-            try:
-                self._meta = self._hist.meta.get(obj_id)
-            except mincepy.NotFound:
-                pass
+            self._meta = self._hist.meta.get(obj_id)
+            self._meta['obj_id'] = obj_id
+
         assert self._meta['obj_id'] == obj_id
 
         # Set up the abspath
