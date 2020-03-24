@@ -5,8 +5,6 @@ import mincepy
 from .constants import NAME_KEY
 from . import dirs
 from . import nodes
-from . import opts
-from . import sopts
 from . import queries
 from . import utils
 
@@ -87,27 +85,57 @@ def save(objects: typing.Sequence, paths: typing.Sequence[dirs.PathSpec] = None)
     return mincepy.get_historian().save(*objects, with_meta=metas)
 
 
-def find(*args, **meta_filter) -> nodes.ResultsNode:
-    options, starting_point = opts.separate_opts(*args)
+def find(
+        *starting_point,
+        meta: dict = None,
+        state: dict = None,
+        type=None,  # pylint: disable=redefined-builtin
+        mindepth=0,
+        maxdepth=-1) -> nodes.ResultsNode:
+    """
+    Find objects matching the given criteria
 
-    min_depth = options.pop(sopts.mindepth, 0)
-    max_depth = options.pop(sopts.maxdepth, -1)
+    :param starting_point: the starting points for the search, if not supplied defaults to '/'
+    :param meta: filter criteria for the metadata
+    :param state: filter criteria for the object's saved state
+    :param type: restrict the search to this type (can be a tuple of types)
+    :param mindepth: the minimum depth from the starting point(s) to search in
+    :param maxdepth: the maximum depth from the starting point(s) to search in
+    :return: results node
+    """
+    if not starting_point:
+        starting_point = (dirs.PyosPath('/'),)
+    if meta is None:
+        meta = {}
+    if state is None:
+        state = {}
 
     if starting_point:
         spoints = [str(dirs.PyosPath(path).resolve()) for path in starting_point]
     else:
         spoints = [str(dirs.cwd())]
 
-    meta_filter = meta_filter or {}
-
-    meta_filter.update(
-        queries.or_(*(queries.subdirs(point, min_depth, max_depth) for point in spoints)))
+    # Add the directory search criteria to the meta search
+    meta.update(queries.or_(*(queries.subdirs(point, mindepth, maxdepth) for point in spoints)))
 
     hist = mincepy.get_historian()
-    metas = hist.meta.find(meta_filter)
+
+    # Find the metadata
+    metas = {}
+    for result in hist.meta.find(meta):
+        metas[result['obj_id']] = result
+
+    data = {}
+    if metas and (type is not None or state is not None):
+        # Further restrict the match
+        meta_filter = {'obj_id': queries.in_(*metas.keys())}
+        for entry in hist.find(obj_type=type, state=state, meta=meta_filter, as_objects=False):
+            data[entry.obj_id] = dict(record=entry, meta=metas[entry.obj_id])
 
     results = nodes.ResultsNode()
-    for meta in metas:
-        results.append(nodes.ObjectNode(meta['obj_id']))
-
+    for obj_id, entry in data.items():
+        node = nodes.ObjectNode(obj_id,
+                                record=entry.get('record', None),
+                                meta=entry.get('meta', None))
+        results.append(node)
     return results

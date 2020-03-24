@@ -200,8 +200,22 @@ def meta(*obj_or_ids, **updates):
     return None
 
 
-def find(*args, **meta_filter):
-    return lib.find(*args, **meta_filter)
+def find(*starting_point,
+         meta: dict = None,
+         state: dict = None,
+         type=None,
+         mindepth=0,
+         maxdepth=-1) -> nodes.ResultsNode:
+    options, spoints = opts.separate_opts(*starting_point)
+    if not spoints:
+        spoints = (dirs.cwd(),)
+
+    return lib.find(*spoints,
+                    meta=meta,
+                    state=state,
+                    type=type,
+                    mindepth=mindepth,
+                    maxdepth=maxdepth)
 
 
 def history(obj):

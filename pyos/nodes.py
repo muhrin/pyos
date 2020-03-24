@@ -84,6 +84,12 @@ class DirectoryNode(PyosNode):
 
         return False
 
+    def __copy__(self):
+        """Create a copy with no parent"""
+        dir_node = DirectoryNode(self.abspath)
+        dir_node.children = [child.copy() for child in self.children]
+        return dir_node
+
     @property
     def directories(self):
         return filter(lambda node: isinstance(node, DirectoryNode), self.children)
@@ -203,8 +209,7 @@ class ObjectNode(PyosNode):
                 self._meta = self._hist.meta.get(obj_id)
             except mincepy.NotFound:
                 pass
-        else:
-            assert self._meta['obj_id'] == obj_id
+        assert self._meta['obj_id'] == obj_id
 
         # Set up the abspath
         self._abspath = dirs.get_abspath(obj_id, self._meta)
@@ -213,6 +218,10 @@ class ObjectNode(PyosNode):
 
     def __contains__(self, item):
         return item == self.obj_id
+
+    def __copy__(self):
+        """Make a copy with no parent"""
+        return ObjectNode(self._obj_id, meta=self._meta, record=self._record)
 
     @property
     def record(self) -> mincepy.DataRecord:
@@ -428,7 +437,7 @@ class ResultsNode(BaseNode):
 
         return row
 
-    def _get_table(self, entry):
+    def _get_table(self, entry) -> list:
         table = []
 
         for child in entry:
@@ -437,6 +446,7 @@ class ResultsNode(BaseNode):
         return table
 
     def _deeply_nested(self) -> bool:
+        """Returns True if we have any nodes that themselves have children"""
         for directory in self.directories:
             if len(directory) > 0:
                 return True
@@ -450,6 +460,8 @@ def to_node(entry) -> PyosNode:
     2. A directory path -> DirectoryNode
     3. An object path -> ObjectNode
     """
+    if isinstance(entry, PyosNode):
+        return entry
     hist = mincepy.get_historian()
     if hist.is_obj_id(entry):
         return ObjectNode(entry)

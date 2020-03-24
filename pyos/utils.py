@@ -1,3 +1,4 @@
+import copy
 import typing
 
 import mincepy
@@ -14,9 +15,9 @@ def parse_args(*args) -> typing.Sequence:
         if arg is None:
             parsed.append(None)
         elif isinstance(arg, nodes.ObjectNode):
-            parsed.append(arg.obj_id)
+            parsed.append(copy.copy(arg))
         elif isinstance(arg, nodes.DirectoryNode):
-            parsed.append(arg.abspath)
+            parsed.append(copy.copy(arg))
         elif isinstance(arg, nodes.ResultsNode):
             parsed.extend(parse_args(*arg.children))
         elif isinstance(arg, dirs.PyosPath):

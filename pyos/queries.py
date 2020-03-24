@@ -19,6 +19,10 @@ def unset_(*keys: Iterable[str]):
     return {'$unset': {key: '' for key in keys}}
 
 
+def in_(*args):
+    return {'$in': args}
+
+
 def subdirs(root: str, start_depth=1, end_depth=1) -> dict:
     """Get a query string that will look for subdirectories of root optionally specifying the
     start and end depths
