@@ -252,11 +252,15 @@ class ObjectNode(PyosNode):
         return self._obj_id
 
     @property
+    def type_id(self):
+        return self.record.type_id
+
+    @property
     def type(self):
         try:
             return self._hist.get_obj_type(self.record.type_id)
         except TypeError:
-            return self.record.type_id
+            return self.type_id
 
     @property
     def ctime(self):

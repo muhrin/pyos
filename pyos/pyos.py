@@ -40,17 +40,17 @@ def cd(path: dirs.PathSpec):
 @opts.flag(-l)
 @opts.flag(-d)
 @opts.flag(-p)
-def ls(*args, _type: typing.Type = None) -> nodes.ResultsNode:
+def ls(*args) -> nodes.ResultsNode:
     """List the contents of a directory
 
     :type: restrict listing to a particular type
     """
     options = args[0]
-    args = args[1:]
-    parsed = utils.parse_args(*args)
+    rest = list(args[1:])
+    parsed = utils.parse_args(*rest)
 
     results = nodes.ResultsNode()
-    if args:
+    if rest:
         for entry in parsed:
             if isinstance(entry, Exception):
                 raise entry
