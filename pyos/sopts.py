@@ -2,12 +2,13 @@
 
 from . import opts
 
-__all__ = 'l', 'L', 'p', 'd', 'u', 's'
+__all__ = 'l', 'L', 'n', 'p', 'd', 'u', 's'
 
 # pylint: disable=invalid-name
 
 # region Options
 l = opts.Option('l')
+n = opts.Option('n')
 d = opts.Option('d')
 p = opts.Option('p')
 L = opts.Option('L')

@@ -86,3 +86,16 @@ def test_mv_overwrite():
     car2 = Car()
     car2.save()
     pyos.mv(car2, 'my_car')
+
+
+def test_mv_no_clobber():
+    """Test moving with no clobber"""
+    car1 = Car()
+    pyos.save(car1, 'my_car')
+
+    car2 = Car()
+    pyos.save(car2, 'my_car2')
+
+    assert len(pyos.ls()) == 2
+    pyos.mv(-pyos.n, car2, 'my_car')
+    assert len(pyos.ls()) == 2  # Still 2
