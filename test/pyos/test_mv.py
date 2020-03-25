@@ -76,3 +76,13 @@ def test_mv_remote():
     contents = pyos.ls('/a/different/path/')
     assert len(contents) == 1
     assert contents[0].obj_id == car.obj_id
+
+
+def test_mv_overwrite():
+    """Test the moving handles overwriting an existing name correctly"""
+    car1 = Car()
+    pyos.save(car1, 'my_car')
+
+    car2 = Car()
+    car2.save()
+    pyos.mv(car2, 'my_car')

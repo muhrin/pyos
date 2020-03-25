@@ -2,7 +2,7 @@ import typing
 
 import mincepy
 
-from .constants import NAME_KEY
+from .constants import NAME_KEY, DIR_KEY
 from . import dirs
 from . import nodes
 from . import queries
@@ -14,6 +14,12 @@ from .dirs import path_to_meta_dict
 
 
 def init():
+    mincepy.get_historian().meta.create_index([
+        (NAME_KEY, mincepy.ASCENDING),
+        (DIR_KEY, mincepy.ASCENDING),
+    ],
+                                              unique=True,
+                                              where_exist=True)
     dirs.init()
 
 

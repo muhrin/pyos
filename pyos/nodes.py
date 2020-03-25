@@ -37,10 +37,10 @@ class BaseNode(Sequence, anytree.NodeMixin, metaclass=ABCMeta):
         for child in self.children:
             child.delete()
 
-    def move(self, where: dirs.PyosPath):
+    def move(self, where: dirs.PyosPath, overwrite=False):
         """Move this object (with any descendents) to the given path"""
         for child in self.children:
-            child.move(where)
+            child.move(where, overwrite)
 
 
 class PyosNode(BaseNode):
@@ -162,7 +162,7 @@ class DirectoryNode(PyosNode):
             self._hist.delete(obj)
         self._invalidate_cache()
 
-    def move(self, where: dirs.PyosPath):
+    def move(self, where: dirs.PyosPath, overwrite=False):
         assert where.is_dir(), "Can't move a directory to a file"
         where = where.resolve()
         self.expand(1)
@@ -281,9 +281,24 @@ class ObjectNode(PyosNode):
     def delete(self):
         self._hist.delete(self._hist.load_one(self._obj_id))
 
-    def move(self, where: dirs.PyosPath):
+    def move(self, where: dirs.PyosPath, overwrite=False):
         meta_update = dirs.path_to_meta_dict(where)
-        self._hist.meta.update(self._obj_id, meta_update)
+        try:
+            self._hist.meta.update(self._obj_id, meta_update)
+        except mincepy.DuplicateKeyError:
+            if overwrite:
+                # Delete the current one
+                try:
+                    results = tuple(self._hist.meta.find(meta_update))
+                    to_delete = results[0]['obj_id']
+                except IndexError:
+                    # Give up
+                    return
+                else:
+                    self._hist.delete(to_delete)
+
+                # One more time...
+                self._hist.meta.update(self._obj_id, meta_update)
 
 
 LIST_VIEW = 'list'

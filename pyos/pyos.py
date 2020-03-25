@@ -40,11 +40,13 @@ def cd(path: dirs.PathSpec):
 @opts.flag(-l)
 @opts.flag(-d)
 @opts.flag(-p)
-def ls(options, *args, _type: typing.Type = None) -> nodes.ResultsNode:
+def ls(*args, _type: typing.Type = None) -> nodes.ResultsNode:
     """List the contents of a directory
 
     :type: restrict listing to a particular type
     """
+    options = args[0]
+    args = args[1:]
     parsed = utils.parse_args(*args)
 
     results = nodes.ResultsNode()
@@ -153,7 +155,7 @@ def mv(*args):  # pylint: disable=invalid-name
         dest = dest.to_dir()
     dest = dest.resolve()
     to_move = ls(-d, *rest)
-    to_move.move(dest)
+    to_move.move(dest, overwrite=True)
 
 
 def rm(*obj_or_ids):
@@ -200,13 +202,14 @@ def meta(*obj_or_ids, **updates):
     return None
 
 
-def find(*starting_point,
-         meta: dict = None,
-         state: dict = None,
-         type=None,
-         mindepth=0,
-         maxdepth=-1) -> nodes.ResultsNode:
-    options, spoints = opts.separate_opts(*starting_point)
+def find(
+        *starting_point,
+        meta: dict = None,  # pylint: disable=redefined-outer-name
+        state: dict = None,
+        type=None,  # pylint: disable=redefined-builtin
+        mindepth=0,
+        maxdepth=-1) -> nodes.ResultsNode:
+    _options, spoints = opts.separate_opts(*starting_point)
     if not spoints:
         spoints = (dirs.cwd(),)
 
