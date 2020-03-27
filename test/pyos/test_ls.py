@@ -104,3 +104,13 @@ def test_ls_lots():
     print(results)
 
     assert len(results) == 7
+
+
+def test_ls_minus_l():
+    pyos.save(Car())
+    pyos.save(Car())
+    pyos.save(Car(), 'garage/')
+    pyos.save(Car(), 'garage/')
+
+    assert len(pyos.ls(-pyos.l)) == 3
+    assert len(pyos.ls(-pyos.l, 'garage/')) == 2

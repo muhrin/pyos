@@ -128,7 +128,6 @@ class DirectoryNode(PyosNode):
             if directory == dirstring:
                 # This is an object in _this_ directory and not further down the hierarchy
                 obj_kwargs.append(dict(obj_id=meta['obj_id'], meta=meta, parent=self))
-                # ObjectNode(meta['obj_id'], meta=meta, parent=self)
             else:
                 # This is an object that resides at some subdirectory so we know
                 # that there must exist a subdirectory
@@ -146,9 +145,7 @@ class DirectoryNode(PyosNode):
         if populate_objects:
             # Gather all the object ids
             obj_ids = [kwargs['obj_id'] for kwargs in obj_kwargs]
-            records = {
-                record.obj_id: record for record in self._hist.archive.find(obj_id={'$in': obj_ids})
-            }
+            records = {record.obj_id: record for record in self._hist.archive.find(obj_id=obj_ids)}
             for kwargs in obj_kwargs:
                 kwargs['record'] = records[kwargs['obj_id']]
 
