@@ -1,6 +1,5 @@
-.. image:: docs/source/img/pyos.svg
-    :height: 128px
-    :alt: pyos
+pyOS
+====
 
 .. image:: https://codecov.io/gh/muhrin/pyos/branch/develop/graph/badge.svg
     :target: https://codecov.io/gh/muhrin/pyos
@@ -22,9 +21,6 @@
 
 .. image:: https://img.shields.io/pypi/l/pyos.svg
     :target: https://pypi.python.org/pypi/pyos/
-
-pyOS
-====
 
 A fresh way to interact with your python objects as though they were files on your filesystem.
 

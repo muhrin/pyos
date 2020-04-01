@@ -14,7 +14,8 @@ while true; do
 done
 
 
-sed -i "1 s/__version__* =.*/__version__ = \"${version}\"/" $VERSION_FILE
+ver_info=`python -c "print(tuple(int(entry) for entry in '$version'.split('.')))"`
+sed -i "/^version_info/c version_info = ${ver_info}" $VERSION_FILE
 
 current_branch=`git rev-parse --abbrev-ref HEAD`
 
