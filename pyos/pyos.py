@@ -91,7 +91,7 @@ def load(*obj_or_ids) -> typing.Union[typing.Iterable[typing.Any], typing.Any]:
     loaded = []
     for node in to_load:
         try:
-            loaded.append(mincepy.load(node.obj_id))
+            loaded.append(node.obj)
         except Exception as exc:  # pylint: disable=broad-except
             loaded.append(exc)
 
