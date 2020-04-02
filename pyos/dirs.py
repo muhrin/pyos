@@ -3,6 +3,7 @@ import contextlib
 import getpass
 import os
 import typing
+from typing import Union, Sequence
 import uuid
 
 import mincepy
@@ -36,17 +37,38 @@ class PyosPath(mincepy.BaseSavableObject):
     @property
     def parts(self) -> typing.Tuple[str]:
         parts = list(self._path.split('/'))
+        for idx in range(len(parts) - 1):
+            parts[idx] += '/'
         if self.is_dir():
             parts.pop()
-            parts[-1] = parts[-1] + '/'
-            if self.is_absolute():
-                parts[0] = '/'
 
         return tuple(parts)
 
     @property
     def parent(self):
-        return PyosPath("/".join(self.parts[:-1]) + '/')
+        parts = self.parts
+
+        if self.is_absolute():
+            if len(parts) == 1:
+                return PyosPath(self.root)
+
+            return PyosPath(''.join(parts[:-1]))
+
+        # Relative path
+        if len(parts) == 1:
+            return PyosPath()
+
+        return PyosPath(''.join(parts[:-1]))
+
+    @property
+    def parents(self) -> Sequence:
+        """Get a sequence of paths that are the parents of this path"""
+        current = self.parent
+        parents = [current]
+        while current.parent != parents[-1]:
+            parents.append(current.parent)
+            current = parents[-1]
+        return parents
 
     @property
     def name(self):
@@ -293,7 +315,10 @@ def path_to_meta_dict(path: PathSpec):
 
 
 @contextlib.contextmanager
-def working_path(path: PyosPath):
+def working_path(path: Union[str, PyosPath]):
+    if isinstance(path, str):
+        path = PyosPath(path)
+
     orig = cwd()
     cd(path)
     try:

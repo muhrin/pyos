@@ -1,5 +1,3 @@
-import pytest
-
 from mincepy.testing import Car, Person
 
 from pyos import pyos, nodes
@@ -82,11 +80,6 @@ def test_ls_minus_d():
     assert results[0].abspath == pyos.pwd()
 
 
-def test_ls_inexistent():
-    with pytest.raises(ValueError):
-        assert not pyos.ls('inexistent')
-
-
 def test_ls_lots():
     paths = ['test/', 'b/', 'test/b/', 'my_dir/', 'my_dir/sub/', 'test/b/b_sub/']
     num = len(paths)
@@ -101,7 +94,6 @@ def test_ls_lots():
 
     # We should have 3 paths and 4 objects
     results = pyos.ls()
-    print(results)
 
     assert len(results) == 7
 
@@ -114,3 +106,8 @@ def test_ls_minus_l():
 
     assert len(pyos.ls(-pyos.l)) == 3
     assert len(pyos.ls(-pyos.l, 'garage/')) == 2
+
+
+def test_inexistent():
+    """This used to raise but shouldn't do make sure it's possible"""
+    assert len(pyos.ls('not_there')) == 0

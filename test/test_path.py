@@ -25,3 +25,43 @@ def test_saving_path():
 
     loaded = pyos.load(obj_id)
     assert str(loaded) == path_str
+
+
+def test_parents_file():
+    """Test that parents works for files"""
+    path = dirs.PyosPath('tmp/test/sub/a')
+    assert path.parents == [
+        pyos.PyosPath('tmp/test/sub/'),
+        pyos.PyosPath('tmp/test/'),
+        pyos.PyosPath('tmp/'),
+        pyos.PyosPath('./')
+    ]
+
+    # Test absolute
+    path = dirs.PyosPath('/tmp/test/sub/a')
+    assert path.parents == [
+        pyos.PyosPath('/tmp/test/sub/'),
+        pyos.PyosPath('/tmp/test/'),
+        pyos.PyosPath('/tmp/'),
+        pyos.PyosPath('/')
+    ]
+
+
+def test_parents_dir():
+    """Test that parents works for directories"""
+    path = dirs.PyosPath('tmp/test/sub/a/')
+    assert path.parents == [
+        pyos.PyosPath('tmp/test/sub/'),
+        pyos.PyosPath('tmp/test/'),
+        pyos.PyosPath('tmp/'),
+        pyos.PyosPath('./')
+    ]
+
+    # Test absolute
+    path = dirs.PyosPath('/tmp/test/sub/a')
+    assert path.parents == [
+        pyos.PyosPath('/tmp/test/sub/'),
+        pyos.PyosPath('/tmp/test/'),
+        pyos.PyosPath('/tmp/'),
+        pyos.PyosPath('/')
+    ]

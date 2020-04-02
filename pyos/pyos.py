@@ -55,7 +55,10 @@ def ls(*args) -> nodes.ResultsNode:
             if isinstance(entry, Exception):
                 raise entry
 
-            results.append(nodes.to_node(entry))
+            try:
+                results.append(nodes.to_node(entry))
+            except mincepy.NotFound as exc:
+                logger.info(str(exc))
     else:
         results.append(nodes.to_node(dirs.cwd()))
 
@@ -114,9 +117,10 @@ def save(*objs):
             # more than one with the same filename in the same folder!
             dest = dest.to_dir()
 
-        return lib.save(objs, [dest] * len(objs))
+        save_args = tuple((obj, dest) for obj in objs)
+        return lib.save_many(save_args)
 
-    return lib.save(objs)
+    return lib.save_many(objs)
 
 
 def cat(*obj_or_ids):

@@ -55,7 +55,74 @@ class PyosNode(BaseNode):
         return self._abspath
 
 
-class DirectoryNode(PyosNode):
+class ContainerNode(BaseNode):
+    """A node that contains children that can be either directory nodes or object nodes"""
+
+    def __contains__(self, item):
+        if isinstance(item, dirs.PyosPath):
+            path = item
+            if path.is_absolute():
+                if path.is_dir():
+                    # It's a directory
+                    for node in self.directories:
+                        if path == node.abspath:
+                            return True
+                else:
+                    # It's a filename
+                    for node in self.objects:
+                        if path == node.abspath:
+                            return True
+
+                # Always check within directories
+                for node in self.directories:
+                    if path in node:
+                        return True
+            else:
+                # It's relative
+                parts = path.parts
+                if len(parts) > 1:
+                    if path.is_dir():
+                        subpath = dirs.PyosPath("".join(parts[1:]))
+                    else:
+                        subpath = dirs.PyosPath("".join(parts[1:]))
+
+                    # Check subdirs
+                    for node in self.directories:
+                        if node.abspath.name == parts[0] and subpath in node:
+                            return True
+                else:
+                    if path.is_dir():
+                        # It's a directory
+                        for node in self.directories:
+                            if node.abspath.name == parts[0]:
+                                return True
+                    else:
+                        # It's a filename
+                        for obj in self.objects:
+                            if obj.abspath.name == parts[0]:
+                                return True
+
+            return False
+
+        if self._hist.is_obj_id(item):
+            for node in self.objects:
+                if item == node.obj_id:
+                    return True
+
+            return False
+
+        return False
+
+    @property
+    def directories(self):
+        return filter(lambda node: isinstance(node, DirectoryNode), self.children)
+
+    @property
+    def objects(self):
+        return filter(lambda node: isinstance(node, ObjectNode), self.children)
+
+
+class DirectoryNode(ContainerNode, PyosNode):
 
     def __init__(self, pathname: dirs.PyosPath, parent=None):
         assert pathname.is_dir(), "Must supply a directory path"
@@ -67,36 +134,11 @@ class DirectoryNode(PyosNode):
             rep.append("%s%s" % (pre, node.name))
         return "\n".join(rep)
 
-    def __contains__(self, item):
-        if isinstance(item, dirs.PyosPath):
-            path = item.resolve()
-            for child in self.children:
-                if path == child.abspath:
-                    return True
-
-            return False
-
-        if self._hist.is_obj_id(item):
-            for node in self.objects:
-                if item == node.obj_id:
-                    return True
-            return False
-
-        return False
-
     def __copy__(self):
         """Create a copy with no parent"""
         dir_node = DirectoryNode(self.abspath)
         dir_node.children = [child.copy() for child in self.children]
         return dir_node
-
-    @property
-    def directories(self):
-        return filter(lambda node: isinstance(node, DirectoryNode), self.children)
-
-    @property
-    def objects(self):
-        return filter(lambda node: isinstance(node, ObjectNode), self.children)
 
     def _invalidate_cache(self):
         self.children = []
@@ -183,7 +225,7 @@ class ObjectNode(PyosNode):
                 hist.meta.find(
                     queries.and_(queries.dirmatch(path.parent), {constants.NAME_KEY: path.name})))
             if not results:
-                raise ValueError("Object not found: {}".format(path))
+                raise mincepy.NotFound(path)
 
             meta = results[0]
             obj_id = meta['obj_id']
@@ -213,7 +255,8 @@ class ObjectNode(PyosNode):
         super().__init__(self._abspath, parent)
 
     def __contains__(self, item):
-        return item == self.obj_id
+        """Object nodes have no children and so do not contain anything"""
+        return False
 
     def __copy__(self):
         """Make a copy with no parent"""
@@ -307,30 +350,13 @@ TREE_VIEW = 'tree'
 TABLE_VIEW = 'table'
 
 
-class ResultsNode(BaseNode):
+class ResultsNode(ContainerNode):
     VIEW_PROPERTIES = ('loaded', 'type', 'creator', 'version', 'ctime', 'mtime', 'name', 'str')
 
     def __init__(self, name='results', parent=None):
         super().__init__(name, parent)
         self._view_mode = TABLE_VIEW
         self._show = {'name'}
-
-    def __contains__(self, item):
-        if isinstance(item, dirs.PyosPath):
-            path = item.resolve()
-            for child in self.children:
-                if path == child.abspath:
-                    return True
-
-            return False
-
-        if self._hist.is_obj_id(item):
-            for node in self.objects:
-                if item == node.obj_id:
-                    return True
-            return False
-
-        return False
 
     def __repr__(self):
         if self._view_mode == TREE_VIEW:
@@ -374,14 +400,6 @@ class ResultsNode(BaseNode):
             return columnize.columnize(repr_list, displaywidth=100)
 
         return super().__repr__()
-
-    @property
-    def directories(self):
-        return filter(lambda node: isinstance(node, DirectoryNode), self.children)
-
-    @property
-    def objects(self):
-        return filter(lambda node: isinstance(node, ObjectNode), self.children)
 
     @property
     def view_mode(self) -> str:

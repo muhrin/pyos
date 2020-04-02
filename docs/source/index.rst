@@ -7,7 +7,7 @@
 
 
 Welcome to pyOS's documentation!
-===================================
+================================
 
 .. image:: https://codecov.io/gh/muhrin/pyos/branch/develop/graph/badge.svg
     :target: https://codecov.io/gh/muhrin/pyos

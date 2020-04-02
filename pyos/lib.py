@@ -1,4 +1,4 @@
-import typing
+from typing import Sequence, Iterable, Any, List, Optional, Tuple
 
 import mincepy
 
@@ -30,7 +30,7 @@ def reset():
 # region metadata
 
 
-def get_meta(*obj_or_identifier: typing.Iterable) -> typing.List[dict]:
+def get_meta(*obj_or_identifier: Iterable) -> List[dict]:
     """Get the metadata for a bunch of objects"""
     hist = mincepy.get_historian()
     meta = []
@@ -39,14 +39,14 @@ def get_meta(*obj_or_identifier: typing.Iterable) -> typing.List[dict]:
     return meta
 
 
-def update_meta(*obj_or_identifier: typing.Iterable, meta: dict):
+def update_meta(*obj_or_identifier: Iterable, meta: dict):
     """Update the metadata for a bunch of objects"""
     hist = mincepy.get_historian()
     for obj_id in obj_or_identifier:
         hist.meta.update(obj_id, meta)
 
 
-def set_meta(*obj_or_identifier: typing.Iterable, meta: dict):
+def set_meta(*obj_or_identifier: Iterable, meta: dict):
     """Set the metadata for a bunch of objects"""
     hist = mincepy.get_historian()
     metas = [hist.meta.get(value) for value in obj_or_identifier]
@@ -67,7 +67,7 @@ def set_name(*obj_ids, name: str):
     update_meta(*obj_ids, meta=update)
 
 
-def get_name(*obj_or_ids) -> typing.Sequence[typing.Optional[str]]:
+def get_name(*obj_or_ids) -> Sequence[Optional[str]]:
     """Get the name of the passed objects(s)"""
     hist = mincepy.get_historian()
     results = hist.meta.find({'obj_id': {'$in': obj_or_ids}})
@@ -78,14 +78,49 @@ def get_name(*obj_or_ids) -> typing.Sequence[typing.Optional[str]]:
 # endregion
 
 
-def save(objects: typing.Sequence, paths: typing.Sequence[dirs.PathSpec] = None):
-    if paths is None:
-        metas = [None] * len(objects)
-    else:
-        assert len(objects) == len(paths), "Must supply equal number of objects and paths"
-        metas = [path_to_meta_dict(path) for path in paths]
+def save_one(obj, path: dirs.PathSpec = None, overwrite=False):
+    """Save one object to a the given path.  The path can be a filename or a directory or a filename
+    in a directory
 
-    if len(objects) == 1:
+    :param obj: the object to save
+    :param path: the optional path to save it to
+    :param overwrite: overwrite if there is already an object at that path
+    """
+    meta = path_to_meta_dict(path)
+    try:
+        return mincepy.get_historian().save(obj, with_meta=meta)
+    except mincepy.DuplicateKeyError:
+        if overwrite:
+            nodes.to_node(path).delete()
+            # Try again
+            return mincepy.get_historian().save(obj, with_meta=meta)
+
+        raise
+
+
+def save_many(to_save: Iterable[Tuple[Any, dirs.PathSpec]]):
+    """
+    Save many objects, expects an iterable where each entry is an object to save or a sequence of
+    length 2 containing the object and a path of where to save it.
+
+    :param to_save: the iterable able objects to save
+    """
+
+    objects = []
+    metas = []
+    for entry in to_save:
+        if isinstance(entry, Sequence):
+            if len(entry) > 2:
+                raise ValueError("Can only pass sequences of at most length 2")
+            objects.append(entry[0])
+            metas.append(path_to_meta_dict(entry[1]))
+        else:
+            # Assume it's just the object
+            objects.append(entry)
+            metas.append(None)
+
+    if len(metas) == 1:
+        # Annoying hack to be compatible with mincepy syntax
         metas = metas[0]
 
     return mincepy.get_historian().save(*objects, with_meta=metas)
