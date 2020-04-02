@@ -27,7 +27,7 @@ setup(name='pyos',
       install_requires=[
           'anytree',
           'columnize',
-          'mincepy>=0.10.10',
+          'mincepy>=0.10.11',
           'click',
           'tabulate',
           'ipython',

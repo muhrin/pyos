@@ -81,10 +81,7 @@ class ContainerNode(BaseNode):
                 # It's relative
                 parts = path.parts
                 if len(parts) > 1:
-                    if path.is_dir():
-                        subpath = dirs.PyosPath("".join(parts[1:]))
-                    else:
-                        subpath = dirs.PyosPath("".join(parts[1:]))
+                    subpath = dirs.PyosPath("".join(parts[1:]))
 
                     # Check subdirs
                     for node in self.directories:
@@ -195,10 +192,9 @@ class DirectoryNode(ContainerNode, PyosNode):
             ObjectNode(**kwargs)
 
     def delete(self):
-        metas = self._hist.meta.find(queries.subdirs(str(self._abspath), 0, -1))
-        objs = self._hist.load(meta['obj_id'] for meta in metas)
-        for obj in objs:
-            self._hist.delete(obj)
+        with self._hist.transaction():
+            for meta in self._hist.meta.find(queries.subdirs(str(self._abspath), 0, -1)):
+                self._hist.delete(meta['obj_id'])
         self._invalidate_cache()
 
     def move(self, where: dirs.PyosPath, overwrite=False):
