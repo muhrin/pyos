@@ -10,12 +10,12 @@ import mincepy
 
 from .constants import DIR_KEY, NAME_KEY
 
-__all__ = 'PyosPath', 'working_path'
+__all__ = 'PyosPath', 'PurePyosPath', 'working_path'
 
 _DIRECTORY = None  # type: typing.Optional[PyosPath]
 
 
-class PyosPath(mincepy.BaseSavableObject):
+class PurePyosPath(mincepy.BaseSavableObject):
     """A path in Pyos.  Where possible the convention follows that of a PurePosixPath in pathlib.
     The one major exception is that folders are represented with an explicit trailing '/' and
     anything else is a file.
@@ -23,7 +23,7 @@ class PyosPath(mincepy.BaseSavableObject):
     This is a 'pure' path in the pathlib sens in that it does not interact with the database at all
     """
     ATTRS = ('_path',)
-    TYPE_ID = uuid.UUID('5eac541e-848c-43aa-818d-50cf8a2b8507')
+    TYPE_ID = uuid.UUID('618ee796-2d0f-41b1-b7be-e0f6a3de1291')
 
     def __init__(self, path='./'):
         super().__init__()
@@ -50,15 +50,15 @@ class PyosPath(mincepy.BaseSavableObject):
 
         if self.is_absolute():
             if len(parts) == 1:
-                return PyosPath(self.root)
+                return self.__class__(self.root)
 
-            return PyosPath(''.join(parts[:-1]))
+            return self.__class__(''.join(parts[:-1]))
 
         # Relative path
         if len(parts) == 1:
-            return PyosPath()
+            return self.__class__()
 
-        return PyosPath(''.join(parts[:-1]))
+        return self.__class__(''.join(parts[:-1]))
 
     @property
     def parents(self) -> Sequence:
@@ -88,7 +88,7 @@ class PyosPath(mincepy.BaseSavableObject):
         return self._path == other._path
 
     def __repr__(self):
-        return "PyosPath('{}')".format(self._path)
+        return "self.__class__('{}')".format(self._path)
 
     def __str__(self):
         return self._path
@@ -96,7 +96,7 @@ class PyosPath(mincepy.BaseSavableObject):
     def __truediv__(self, other):
         if not isinstance(other, PyosPath):
             if isinstance(other, str):
-                other = PyosPath(other)
+                other = self.__class__(other)
             else:
                 raise TypeError("Cannot join a path with a '{}'".format(type(other)))
 
@@ -106,7 +106,7 @@ class PyosPath(mincepy.BaseSavableObject):
         if other.is_absolute():
             return other
 
-        return PyosPath(str(self) + str(other))
+        return self.__class__(str(self) + str(other))
 
     def is_file(self) -> bool:
         return not self.is_dir()
@@ -123,7 +123,7 @@ class PyosPath(mincepy.BaseSavableObject):
         if self.is_dir():
             return self
 
-        return PyosPath(str(self) + '/')
+        return self.__class__(str(self) + '/')
 
     def to_file(self):
         """If this path is a directory then a file with the same name (and path) will be returned.
@@ -131,7 +131,7 @@ class PyosPath(mincepy.BaseSavableObject):
         if self.is_file():
             return self
 
-        return PyosPath(str(self)[:-1])
+        return self.__class__(str(self)[:-1])
 
     def resolve(self):
         """Make the path absolute eliminating any . and .. that occur in the path"""
@@ -142,7 +142,7 @@ class PyosPath(mincepy.BaseSavableObject):
 
         # Now resolve any . and ..
         normed = os.path.normpath(str(to_norm))
-        path = PyosPath(normed)
+        path = self.__class__(normed)
 
         if self.is_dir():
             # Re-add back the final slash
@@ -155,6 +155,23 @@ class PyosPath(mincepy.BaseSavableObject):
         for entry in other:
             joined = joined / entry
         return joined
+
+
+class PyosPath(PurePyosPath):
+    """A path in Pyos.  Where possible the convention follows that of a PurePosixPath in pathlib.
+    The one major exception is that folders are represented with an explicit trailing '/' and
+    anything else is a file."""
+    TYPE_ID = uuid.UUID('5eac541e-848c-43aa-818d-50cf8a2b8507')
+
+    def exists(self) -> bool:
+        """Test whether a path point exists"""
+        hist = mincepy.get_historian()
+        try:
+            # Try to see if we have any hits
+            next(hist.meta.find(path_to_meta_dict(self)))
+            return True
+        except StopIteration:
+            return False
 
 
 # The types that can be used to specify a path in PyOs

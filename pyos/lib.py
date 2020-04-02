@@ -177,3 +177,12 @@ def find(
                                 meta=entry.get('meta', None))
         results.append(node)
     return results
+
+
+def exists(path: dirs.PathSpec) -> bool:
+    """Test whether a path exists
+
+    :param path: the path to test for
+    :return: True if exists, False otherwise
+    """
+    return dirs.PyosPath(path).exists()

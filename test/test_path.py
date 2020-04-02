@@ -1,3 +1,5 @@
+import mincepy.testing
+
 from pyos import pyos
 from pyos import dirs
 
@@ -65,3 +67,19 @@ def test_parents_dir():
         pyos.PyosPath('/tmp/'),
         pyos.PyosPath('/')
     ]
+
+
+def test_exists_object():
+    car = mincepy.testing.Car()
+    pyos.lib.save_one(car, 'my_car')
+
+    assert dirs.PyosPath('my_car').exists()
+    assert not dirs.PyosPath('not_my_car').exists()
+
+
+def test_exists_path():
+    car = mincepy.testing.Car()
+    pyos.lib.save_one(car, 'folder/my_car')
+
+    assert dirs.PyosPath('folder/').exists()
+    assert not dirs.PyosPath('other_folder/').exists()
