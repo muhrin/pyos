@@ -104,8 +104,11 @@ def load(*obj_or_ids) -> typing.Union[typing.Iterable[typing.Any], typing.Any]:
     return loaded
 
 
-def save(*objs):
+@opts.flag(-f, help="Force - overwrite files with the same name")
+def save(*args):
     """Save one or more objects"""
+    options = args[0]
+    objs = args[1:]
 
     if len(objs) > 1 and isinstance(objs[-1], (str, dirs.PyosPath)):
         # Extract the destination
@@ -118,9 +121,14 @@ def save(*objs):
             dest = dest.to_dir()
 
         save_args = tuple((obj, dest) for obj in objs)
-        return lib.save_many(save_args)
+        saved = lib.save_many(save_args, overwrite=-f in options)
+    else:
+        saved = lib.save_many(objs, overwrite=-f in options)
 
-    return lib.save_many(objs)
+    if len(objs) == 1:
+        return saved[0]
+
+    return saved
 
 
 def cat(*obj_or_ids):

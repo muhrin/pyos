@@ -101,32 +101,26 @@ def save_one(obj, path: dirs.PathSpec = None, overwrite=False):
         raise
 
 
-def save_many(to_save: Iterable[Tuple[Any, dirs.PathSpec]]):
+def save_many(to_save: Iterable[Tuple[Any, dirs.PathSpec]], overwrite=False):
     """
     Save many objects, expects an iterable where each entry is an object to save or a sequence of
     length 2 containing the object and a path of where to save it.
 
     :param to_save: the iterable able objects to save
     """
-
-    objects = []
-    metas = []
+    obj_ids = []
     for entry in to_save:
+        path = None
         if isinstance(entry, Sequence):
             if len(entry) > 2:
                 raise ValueError("Can only pass sequences of at most length 2")
-            objects.append(entry[0])
-            metas.append(path_to_meta_dict(entry[1]))
+            obj, path = entry[0], entry[1]
         else:
             # Assume it's just the object
-            objects.append(entry)
-            metas.append(None)
+            obj = entry
+        obj_ids.append(save_one(obj, path, overwrite))
 
-    if len(metas) == 1:
-        # Annoying hack to be compatible with mincepy syntax
-        metas = metas[0]
-
-    return mincepy.get_historian().save(*objects, with_meta=metas)
+    return obj_ids
 
 
 def find(

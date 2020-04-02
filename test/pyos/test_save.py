@@ -34,8 +34,12 @@ def test_save_to_dir():
 
 def test_save_same_name():
     car = Car()
-    pyos.save(car, 'my_car')
+    car_id = pyos.save(car, 'my_car')
     car2 = Car()
     with pytest.raises(mincepy.DuplicateKeyError):
         # For now this raises but this may change in the future
         pyos.save(car2, 'my_car')
+
+    # Now test the force flags
+    car2_id = pyos.save(-pyos.f, car2, 'my_car')
+    assert car_id != car2_id
