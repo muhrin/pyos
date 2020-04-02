@@ -86,6 +86,9 @@ def save_one(obj, path: dirs.PathSpec = None, overwrite=False):
     :param path: the optional path to save it to
     :param overwrite: overwrite if there is already an object at that path
     """
+    if isinstance(path, str):
+        path = dirs.PyosPath(path)
+
     meta = path_to_meta_dict(path)
     try:
         return mincepy.get_historian().save(obj, with_meta=meta)

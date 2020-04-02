@@ -9,8 +9,12 @@ def test_obj_in_directory():
     home = pyos.pyos.pwd()
     address_book = pyos.PyosPath('address_book/').resolve()
     with pyos.working_path(address_book):
-        person_id = Person('martin', 34).save()
+        person_id = pyos.lib.save_one(Person('martin', 34), 'martin')
         assert pyos.pyos.pwd() == home / address_book
+
+    home_node = pyos.nodes.DirectoryNode(home)
+    home_node.expand(depth=-1)
+    assert pyos.PyosPath('address_book/martin') in home_node
 
     dir_node = pyos.nodes.DirectoryNode(address_book)
     dir_node.expand()
