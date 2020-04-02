@@ -333,9 +333,7 @@ def path_to_meta_dict(path: PathSpec):
 
 @contextlib.contextmanager
 def working_path(path: Union[str, PyosPath]):
-    if isinstance(path, str):
-        path = PyosPath(path)
-
+    path = PyosPath(path)
     orig = cwd()
     cd(path)
     try:
