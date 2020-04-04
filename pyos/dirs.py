@@ -10,7 +10,7 @@ import mincepy
 
 from .constants import DIR_KEY, NAME_KEY
 
-__all__ = 'PyosPath', 'PurePyosPath', 'working_path'
+__all__ = 'PyosPath', 'PurePyosPath', 'PathSpec', 'working_path'
 
 _DIRECTORY = None  # type: typing.Optional[PyosPath]
 

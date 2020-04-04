@@ -1,6 +1,6 @@
 import pyos
-import pyos.pyos
-from . import representers
+from .ls import ls
+from . import flags
 
 
 def cat(*obj_or_ids, representer=None):
@@ -8,10 +8,10 @@ def cat(*obj_or_ids, representer=None):
     A representer can optionally be passed in which should take the passed object and convert it to
     a string.
     """
-    _options, rest = pyos.pyos.opts.separate_opts(*obj_or_ids)
-    to_load = pyos.pyos.ls(-pyos.pyos.d, *rest)
+    _options, rest = pyos.opts.separate_opts(*obj_or_ids)
+    to_load = ls(-flags.d, *rest)
 
-    representer = representer or representers.get_default()
+    representer = representer or pyos.representers.get_default()
 
     def iterator():
         for node in to_load:

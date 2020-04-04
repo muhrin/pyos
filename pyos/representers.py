@@ -1,4 +1,7 @@
+"""Module for representers which are used to convert objects into strings"""
+
 import functools
+import io
 import os
 import pprint
 from typing import Sequence
@@ -10,7 +13,7 @@ try:
 except ImportError:
     pass
 
-import pyos.fmt
+from . import fmt
 
 __all__ = 'get_default', 'set_default', 'dict_representer', 'make_custom_pyprnt', 'prnt'
 
@@ -41,7 +44,7 @@ def dict_representer(obj):
         if isinstance(obj, mincepy.File):
             return obj.read_text()
 
-        return pprint.pformat(pyos.fmt.obj_dict(obj))
+        return pprint.pformat(fmt.obj_dict(obj))
     except Exception as exc:  # pylint: disable=broad-except
         return str(exc)
 
@@ -66,7 +69,10 @@ def prnt(obj, custom_prnt=None):
     See https://github.com/kevink1103/pyprnt for details of pyprnt"""
     to_prnt = to_simple_repr(obj)
     custom_prnt = custom_prnt or _terminal_width_prnt
-    return custom_prnt(to_prnt, output=True)
+
+    buffer = io.StringIO()
+    custom_prnt(to_prnt, output=False, file=buffer)
+    return buffer.getvalue()
 
 
 def to_simple_repr(obj):
@@ -80,4 +86,4 @@ def to_simple_repr(obj):
     if isinstance(obj, Exception):
         return "{}: {}".format(obj.__class__.__name__, obj)
 
-    return pyos.fmt.obj_dict(obj)
+    return fmt.obj_dict(obj)

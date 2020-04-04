@@ -1,11 +1,11 @@
 from mincepy.testing import Car
 
-from pyos import pyos
+from pyos import cmd
 
 
 def test_locate():
     car = Car()
     car.save()
-    cwd = pyos.pwd()
+    cwd = cmd.pwd()
 
-    assert str(pyos.locate(car)[0].abspath).startswith(str(cwd))
+    assert str(cmd.locate(car)[0].abspath).startswith(str(cwd))

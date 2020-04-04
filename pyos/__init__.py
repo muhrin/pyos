@@ -6,9 +6,10 @@ from .version import *
 from .lib import *
 from . import fmt
 from . import lib
-from . import pyos
+from . import opts
+from . import representers
 
-ADDITIONAL = ('fmt',)
+ADDITIONAL = 'fmt', 'lib', 'opts', 'representers'
 
 __all__ = (dirs.__all__ + version.__all__ + constants.__all__ + nodes.__all__ + lib.__all__ +
            utils.__all__ + ADDITIONAL)

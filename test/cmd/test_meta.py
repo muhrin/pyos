@@ -1,6 +1,6 @@
 from mincepy.testing import Car
 
-from pyos import pyos
+from pyos import cmd
 
 
 def dict_in(where: dict, what: dict):
@@ -15,11 +15,11 @@ def test_meta_basic():
     car = Car()
     car.save()
 
-    pyos.meta(-pyos.s, car, fast=True, colour='blue')
-    assert dict_in(pyos.meta(car), {'fast': True, 'colour': 'blue'})
+    cmd.meta(-cmd.s, car, fast=True, colour='blue')
+    assert dict_in(cmd.meta(car), {'fast': True, 'colour': 'blue'})
 
-    pyos.meta(-pyos.u, car, fast=False)
-    assert dict_in(pyos.meta(car), {'fast': False, 'colour': 'blue'})
+    cmd.meta(-cmd.u, car, fast=False)
+    assert dict_in(cmd.meta(car), {'fast': False, 'colour': 'blue'})
 
 
 def test_meta_update_upsert():
@@ -28,10 +28,10 @@ def test_meta_update_upsert():
     car = Car()
     car.save()
 
-    orig = pyos.meta(car)
+    orig = cmd.meta(car)
 
-    pyos.meta(-pyos.u, car, fast=True, colour='blue')
-    assert dict_in(pyos.meta(car), {'fast': True, 'colour': 'blue'})
+    cmd.meta(-cmd.u, car, fast=True, colour='blue')
+    assert dict_in(cmd.meta(car), {'fast': True, 'colour': 'blue'})
 
 
 def test_meta_many():
@@ -40,6 +40,6 @@ def test_meta_many():
 
     new_meta = {'fast': True, 'colour': 'blue'}
 
-    pyos.meta(-pyos.s, car1, car2, fast=True, colour='blue')
-    assert dict_in(pyos.meta(car1), new_meta)
-    assert dict_in(pyos.meta(car2), new_meta)
+    cmd.meta(-cmd.s, car1, car2, fast=True, colour='blue')
+    assert dict_in(cmd.meta(car1), new_meta)
+    assert dict_in(cmd.meta(car2), new_meta)

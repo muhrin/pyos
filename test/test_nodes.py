@@ -5,15 +5,15 @@ import mincepy
 from mincepy.testing import Person
 
 import pyos
-import pyos.nodes
+from pyos import cmd
 
 
 def test_obj_in_directory():
-    home = pyos.pyos.pwd()
+    home = cmd.pwd()
     address_book = pyos.PyosPath('address_book/').resolve()
     with pyos.working_path(address_book):
         person_id = pyos.lib.save_one(Person('martin', 34), 'martin')
-        assert pyos.pyos.pwd() == home / address_book
+        assert cmd.pwd() == home / address_book
 
     home_node = pyos.nodes.DirectoryNode(home)
     home_node.expand(depth=-1)
@@ -26,10 +26,10 @@ def test_obj_in_directory():
 
 
 def test_dir_in_directory():
-    home = pyos.pyos.pwd()
+    home = cmd.pwd()
     address_book = pyos.PyosPath('address_book/').resolve()
     with pyos.working_path(address_book):
-        person_id = pyos.pyos.save(Person('martin', 34), 'martin')
+        person_id = cmd.save(Person('martin', 34), 'martin')
 
     home_node = pyos.nodes.DirectoryNode(home)
     home_node.expand(depth=-1)
@@ -46,8 +46,8 @@ def test_dir_delete(historian: mincepy.Historian):
     """Test deleting directory (and all contents)"""
     address_book = pyos.PyosPath('address_book/').resolve()
     with pyos.working_path(address_book):
-        martin_id = pyos.pyos.save(Person('martin', 34), 'martin')
-        sonia_id = pyos.pyos.save(Person('sonia', 31), 'sub/sonia')
+        martin_id = cmd.save(Person('martin', 34), 'martin')
+        sonia_id = cmd.save(Person('sonia', 31), 'sub/sonia')
 
     address_book_node = pyos.nodes.DirectoryNode(address_book)
     assert address_book.exists()
