@@ -1,19 +1,19 @@
 import logging
-import pprint
 import typing
 
 import mincepy
 
 from . import dirs
-from . import fmt
 from . import lib
 from . import nodes
 from .dirs import PyosPath
 from . import opts
 from . import sopts
-from . import utils
 from .sopts import *  # pylint: disable=wildcard-import
+from . import utils
 from . import version
+
+from .interactive.cat import cat
 
 # pylint: disable=invalid-name
 
@@ -98,7 +98,7 @@ def load(*obj_or_ids) -> typing.Union[typing.Iterable[typing.Any], typing.Any]:
         except Exception as exc:  # pylint: disable=broad-except
             loaded.append(exc)
 
-    if len(loaded) == 1:
+    if len(to_load) == 1:
         return loaded[0]
 
     return loaded
@@ -129,22 +129,6 @@ def save(*args):
         return saved[0]
 
     return saved
-
-
-def cat(*obj_or_ids):
-    """Print the contents of one or more objects"""
-    _options, rest = opts.separate_opts(*obj_or_ids)
-    to_load = ls(-d, *rest)
-    to_cat = load(to_load)
-
-    for obj in to_cat:
-        if isinstance(obj, Exception):
-            print(obj)
-        else:
-            if isinstance(obj, mincepy.File):
-                print(obj.read_text())
-            else:
-                pprint.pprint(fmt.obj_dict(obj))
 
 
 def locate(*obj_or_ids) -> nodes.ResultsNode:

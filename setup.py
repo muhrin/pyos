@@ -31,6 +31,7 @@ setup(name='pyos',
           'click',
           'tabulate',
           'ipython',
+          'pyprnt',
       ],
       extras_require={
           'gui': ['mincepy[gui]'],

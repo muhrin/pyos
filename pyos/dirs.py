@@ -88,7 +88,7 @@ class PurePyosPath(mincepy.BaseSavableObject):
         return self._path == other._path
 
     def __repr__(self):
-        return "self.__class__('{}')".format(self._path)
+        return "{}('{}')".format(self.__class__.name, self._path)
 
     def __str__(self):
         return self._path
