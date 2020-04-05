@@ -12,7 +12,7 @@ try:
 except ImportError:
     pass
 
-from . import fmt
+import pyos
 from . import utils
 
 __all__ = 'get_default', 'set_default', 'dict_representer', 'make_custom_pyprnt', 'prnt'
@@ -44,7 +44,7 @@ def dict_representer(obj):
         if isinstance(obj, mincepy.File):
             return obj.read_text()
 
-        return pprint.pformat(fmt.obj_dict(obj))
+        return pprint.pformat(pyos.fmt.obj_dict(obj))
     except Exception as exc:  # pylint: disable=broad-except
         return str(exc)
 
@@ -82,4 +82,4 @@ def to_simple_repr(obj):
     if isinstance(obj, Exception):
         return "{}: {}".format(obj.__class__.__name__, obj)
 
-    return fmt.obj_dict(obj)
+    return pyos.fmt.obj_dict(obj)

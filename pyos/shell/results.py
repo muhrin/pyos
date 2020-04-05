@@ -1,10 +1,11 @@
 """Module that contains classes used to provide results to the user"""
+import collections
 import collections.abc
 from typing import Iterable, Callable
 
-from . import representers
+from pyos.shell import representers
 
-__all__ = 'CachingResults', 'ResultsDict'
+__all__ = 'CachingResults', 'ResultsDict', 'ResultsString'
 
 
 class CachingResults(collections.abc.Sequence):
@@ -88,3 +89,14 @@ class ResultsDict(collections.abc.Mapping):
 
     def __repr__(self):
         return self._representer(self)
+
+
+class ResultsString(collections.UserString):
+    """A string that overwrites the __repr__ method"""
+
+    def __init__(self, result: str, representer=None):
+        super().__init__(result)
+        self._representer = representer or representers.get_default()
+
+    def __repr__(self):
+        return self._representer(self.data)

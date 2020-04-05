@@ -1,11 +1,10 @@
 """The move command"""
 
 import pyos
-from .ls import ls
-from . import flags
+from pyos import pysh
 
 
-@pyos.opts.flag(flags.n, help="No clobber - don't overwrite if the same filename exists")
+@pyos.shell.flag(pysh.n, help="No clobber - don't overwrite if the same filename exists")
 def mv(*args):  # pylint: disable=invalid-name
     """Take one or more files or directories with the final parameter being interpreted as
      destination"""
@@ -17,5 +16,5 @@ def mv(*args):  # pylint: disable=invalid-name
         # If there is more than one thing to move then we assume that dest is a directory
         dest = dest.to_dir()
     dest = dest.resolve()
-    to_move = ls(-flags.d, *rest)
-    to_move.move(dest, overwrite=not options.pop(flags.n))
+    to_move = pysh.ls(-pysh.d, *rest)
+    to_move.move(dest, overwrite=not options.pop(pysh.n))

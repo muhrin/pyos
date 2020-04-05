@@ -16,8 +16,5 @@ from .rm import rm
 from .save import save
 from .tree import tree
 
-# Rest
-from .flags import *
-
 __all__ = ('cat', 'cd', 'find', 'history', 'load', 'ls', 'locate', 'meta', 'mv', 'oid', 'pwd', 'rm',
-           'save', 'tree') + flags.__all__
+           'save', 'tree')

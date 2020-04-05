@@ -8,14 +8,18 @@ import tabulate
 
 import mincepy
 
-from . import constants
-from . import fmt
-from . import dirs
-from . import queries
-from . import utils
+import pyos
+from . import paths
 
-__all__ = 'DirectoryNode', 'ObjectNode', 'ResultsNode', 'to_node', 'TABLE_VIEW', 'LIST_VIEW', \
-          'TREE_VIEW'
+__all__ = (
+    'DirectoryNode',
+    'ObjectNode',
+    'ResultsNode',
+    'to_node',
+    'TABLE_VIEW',
+    'LIST_VIEW',
+    'TREE_VIEW',
+)
 
 
 class BaseNode(Sequence, anytree.NodeMixin, metaclass=ABCMeta):
@@ -41,7 +45,7 @@ class BaseNode(Sequence, anytree.NodeMixin, metaclass=ABCMeta):
         for child in self.children:
             child.delete()
 
-    def move(self, where: dirs.PyosPath, overwrite=False):
+    def move(self, where: paths.PyosPath, overwrite=False):
         """Move this object (with any descendents) to the given path"""
         for child in self.children:
             child.move(where, overwrite)
@@ -50,12 +54,12 @@ class BaseNode(Sequence, anytree.NodeMixin, metaclass=ABCMeta):
 class PyosNode(BaseNode):
     """Base node for representing an object in the virtual filesystem"""
 
-    def __init__(self, abspath: dirs.PyosPath, parent=None):
+    def __init__(self, abspath: paths.PyosPath, parent=None):
         super().__init__(abspath.name, parent)
         self._abspath = abspath
 
     @property
-    def abspath(self) -> dirs.PyosPath:
+    def abspath(self) -> paths.PyosPath:
         return self._abspath
 
 
@@ -63,7 +67,7 @@ class ContainerNode(BaseNode):
     """A node that contains children that can be either directory nodes or object nodes"""
 
     def __contains__(self, item):
-        if isinstance(item, dirs.PyosPath):
+        if isinstance(item, paths.PyosPath):
             path = item
             if path.is_absolute():
                 if path.is_dir():
@@ -85,7 +89,7 @@ class ContainerNode(BaseNode):
                 # It's relative
                 parts = path.parts
                 if len(parts) > 1:
-                    subpath = dirs.PyosPath("".join(parts[1:]))
+                    subpath = paths.PyosPath("".join(parts[1:]))
 
                     # Check subdirs
                     for node in self.directories:
@@ -125,7 +129,7 @@ class ContainerNode(BaseNode):
 
 class DirectoryNode(ContainerNode, PyosNode):
 
-    def __init__(self, pathname: dirs.PyosPath, parent=None):
+    def __init__(self, pathname: paths.PyosPath, parent=None):
         assert pathname.is_dir(), "Must supply a directory path"
         super().__init__(pathname.resolve(), parent)
 
@@ -157,7 +161,7 @@ class DirectoryNode(ContainerNode, PyosNode):
         if depth == 0:
             return
 
-        metas = self._hist.meta.find(queries.subdirs(str(self._abspath), 0, -1))
+        metas = self._hist.meta.find(pyos.db.queries.subdirs(str(self._abspath), 0, -1))
 
         # Get directories and object ids
         dirstring = str(self._abspath)
@@ -166,7 +170,7 @@ class DirectoryNode(ContainerNode, PyosNode):
 
         obj_kwargs = []
         for meta in metas:
-            directory = meta[constants.DIR_KEY]
+            directory = meta[pyos.db.DIR_KEY]
 
             if directory == dirstring:
                 # This is an object in _this_ directory and not further down the hierarchy
@@ -176,7 +180,7 @@ class DirectoryNode(ContainerNode, PyosNode):
                 # that there must exist a subdirectory
 
                 # Get the subdirectory relative to us
-                obj_dir = dirs.PyosPath(directory)
+                obj_dir = paths.PyosPath(directory)
                 path = (self._abspath / obj_dir.parts[len(self._abspath.parts)]).to_dir()
                 if path not in directories_added:
                     directories_added.add(path)
@@ -197,11 +201,11 @@ class DirectoryNode(ContainerNode, PyosNode):
 
     def delete(self):
         with self._hist.transaction():
-            for meta in self._hist.meta.find(queries.subdirs(str(self._abspath), 0, -1)):
+            for meta in self._hist.meta.find(pyos.db.queries.subdirs(str(self._abspath), 0, -1)):
                 self._hist.delete(meta['obj_id'])
         self._invalidate_cache()
 
-    def move(self, where: dirs.PyosPath, overwrite=False):
+    def move(self, where: paths.PyosPath, overwrite=False):
         assert where.is_dir(), "Can't move a directory to a file"
         where = where.resolve()
         self.expand(1)
@@ -212,7 +216,7 @@ class DirectoryNode(ContainerNode, PyosNode):
 class ObjectNode(PyosNode):
 
     @classmethod
-    def from_path(cls, path: dirs.PyosPath):
+    def from_path(cls, path: paths.PyosPath):
         assert path.is_file()
         path = path.resolve()
         # Let's find the object id
@@ -223,7 +227,8 @@ class ObjectNode(PyosNode):
         except mincepy.NotFound:
             results = tuple(
                 hist.meta.find(
-                    queries.and_(queries.dirmatch(path.parent), {constants.NAME_KEY: path.name})))
+                    pyos.db.queries.and_(pyos.db.queries.dirmatch(path.parent),
+                                         {pyos.db.NAME_KEY: path.name})))
             if not results:
                 raise mincepy.NotFound(path)
 
@@ -250,7 +255,7 @@ class ObjectNode(PyosNode):
         assert self._meta['obj_id'] == obj_id
 
         # Set up the abspath
-        self._abspath = dirs.get_abspath(obj_id, self._meta)
+        self._abspath = paths.get_abspath(obj_id, self._meta)
 
         super().__init__(self._abspath, parent)
 
@@ -280,7 +285,7 @@ class ObjectNode(PyosNode):
             return False
 
     @property
-    def abspath(self) -> dirs.PyosPath:
+    def abspath(self) -> paths.PyosPath:
         return self._abspath
 
     @property
@@ -325,8 +330,8 @@ class ObjectNode(PyosNode):
     def delete(self):
         self._hist.delete(self._hist.load_one(self._obj_id))
 
-    def move(self, where: dirs.PyosPath, overwrite=False):
-        meta_update = dirs.path_to_meta_dict(where)
+    def move(self, where: paths.PyosPath, overwrite=False):
+        meta_update = paths.path_to_meta_dict(where)
         try:
             self._hist.meta.update(self._obj_id, meta_update)
         except mincepy.DuplicateKeyError:
@@ -397,7 +402,7 @@ class ResultsNode(ContainerNode):
             for child in self:
                 repr_list.append("-".join(self._get_row(child)))
 
-            return columnize.columnize(repr_list, displaywidth=utils.get_terminal_width())
+            return columnize.columnize(repr_list, displaywidth=pyos.shell.get_terminal_width())
 
         return super().__repr__()
 
@@ -434,7 +439,7 @@ class ResultsNode(ContainerNode):
 
         if 'type' in self._show:
             try:
-                row.append(fmt.pretty_type_string(child.type))
+                row.append(pyos.fmt.pretty_type_string(child.type))
             except AttributeError:
                 row.append('directory')
 
@@ -446,13 +451,13 @@ class ResultsNode(ContainerNode):
 
         if 'ctime' in self._show:
             try:
-                row.append(fmt.pretty_datetime(child.ctime))
+                row.append(pyos.fmt.pretty_datetime(child.ctime))
             except AttributeError:
                 row.append(empty)
 
         if 'mtime' in self._show:
             try:
-                row.append(fmt.pretty_datetime(child.mtime))
+                row.append(pyos.fmt.pretty_datetime(child.mtime))
             except AttributeError:
                 row.append(empty)
 
@@ -498,7 +503,7 @@ def to_node(entry) -> PyosNode:
     hist = mincepy.get_historian()
     if hist.is_obj_id(entry):
         return ObjectNode(entry)
-    if isinstance(entry, dirs.PyosPath):
+    if isinstance(entry, paths.PyosPath):
         if entry.is_dir():
             return DirectoryNode(entry)
 

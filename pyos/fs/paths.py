@@ -8,9 +8,10 @@ import uuid
 
 import mincepy
 
-from .constants import DIR_KEY, NAME_KEY
+from pyos.db.constants import DIR_KEY, NAME_KEY
 
-__all__ = 'PyosPath', 'PurePyosPath', 'PathSpec', 'working_path'
+__all__ = 'PyosPath', 'PurePyosPath', 'PathSpec', 'working_path', 'init', 'reset', \
+          'path_to_meta_dict', 'cd', 'cwd'
 
 _DIRECTORY = None  # type: typing.Optional[PyosPath]
 

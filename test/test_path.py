@@ -1,7 +1,7 @@
 import mincepy.testing
 
 import pyos
-from pyos import cmds
+from pyos.pysh import cmds
 
 
 def test_reaching_root():
@@ -71,7 +71,7 @@ def test_parents_dir():
 
 def test_exists_object():
     car = mincepy.testing.Car()
-    pyos.lib.save_one(car, 'my_car')
+    pyos.db.lib.save_one(car, 'my_car')
 
     assert pyos.PyosPath('my_car').exists()
     assert not pyos.PyosPath('not_my_car').exists()
@@ -79,7 +79,7 @@ def test_exists_object():
 
 def test_exists_path():
     car = mincepy.testing.Car()
-    pyos.lib.save_one(car, 'folder/my_car')
+    pyos.db.lib.save_one(car, 'folder/my_car')
 
     assert pyos.PyosPath('folder/').exists()
     assert not pyos.PyosPath('other_folder/').exists()

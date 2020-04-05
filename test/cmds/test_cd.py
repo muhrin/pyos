@@ -1,7 +1,7 @@
 """Tests for the change directory command"""
 
 import pyos
-from pyos import cmds
+from pyos.pysh import cmds
 
 
 def test_cd_simple():

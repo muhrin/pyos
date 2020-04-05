@@ -1,4 +1,7 @@
-from . import cmds
-from .cmds import *  # pylint: disable=unused-wildcard-import, wildcard-import
+from . import db
+from .pysh import *
+from . import pysh
 
-__all__ = cmds.__all__
+__all__ = pysh.__all__
+
+db.init()

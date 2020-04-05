@@ -1,13 +1,12 @@
 """The remove command"""
 
 import pyos
-from .ls import ls
-from . import flags
+from pyos import pysh
 
 
 def rm(*obj_or_ids):  # pylint: disable=invalid-name
     """Remove objects"""
-    _options, rest = pyos.opts.separate_opts(*obj_or_ids)
-    to_delete = ls(-flags.d, *rest)
+    _options, rest = pyos.shell.separate_opts(*obj_or_ids)
+    to_delete = pysh.ls(-pysh.d, *rest)
     for node in to_delete:
         node.delete()

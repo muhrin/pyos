@@ -1,14 +1,19 @@
 import copy
-from typing import Sequence
 import os
+from typing import Sequence
 
 import mincepy
 
-from . import constants
-from . import dirs
-from . import nodes
+import pyos
 
-__all__ = tuple()
+__all__ = 'get_terminal_width', 'parse_args'
+
+
+def get_terminal_width() -> int:
+    try:
+        return os.get_terminal_size().columns
+    except OSError:
+        return 100
 
 
 def parse_args(*args) -> Sequence:
@@ -17,13 +22,13 @@ def parse_args(*args) -> Sequence:
     for arg in args:
         if arg is None:
             parsed.append(None)
-        elif isinstance(arg, nodes.ObjectNode):
+        elif isinstance(arg, pyos.fs.ObjectNode):
             parsed.append(copy.copy(arg))
-        elif isinstance(arg, nodes.DirectoryNode):
+        elif isinstance(arg, pyos.fs.DirectoryNode):
             parsed.append(copy.copy(arg))
-        elif isinstance(arg, nodes.ResultsNode):
+        elif isinstance(arg, pyos.fs.ResultsNode):
             parsed.extend(parse_args(*arg.children))
-        elif isinstance(arg, dirs.PyosPath):
+        elif isinstance(arg, pyos.PyosPath):
             parsed.append(arg)
         elif hist.is_obj_id(arg):
             parsed.append(arg)
@@ -41,31 +46,8 @@ def parse_args(*args) -> Sequence:
                 parsed.append(obj_id)
             elif isinstance(arg, str):
                 # Assume it's a path
-                parsed.append(dirs.PyosPath(arg))
+                parsed.append(pyos.PyosPath(arg))
             else:
                 raise TypeError("Unknown type '{}'".format(arg))
 
     return parsed
-
-
-def new_meta(orig: dict, new: dict) -> dict:
-    merged = new.copy()
-    if not orig:
-        return merged
-
-    for name in constants.KEYS:
-        if name in orig:
-            if name.startswith('_'):
-                # Always take internal, i.e. underscored, keys
-                merged[name] = orig[name]
-            else:
-                merged.setdefault(name, orig[name])
-
-    return merged
-
-
-def get_terminal_width() -> int:
-    try:
-        return os.get_terminal_size().columns
-    except OSError:
-        return 100

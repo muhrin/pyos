@@ -1,17 +1,16 @@
 from typing import Union, Iterable, Any
 
-import pyos
-from .ls import ls
-from . import flags
+from pyos import pysh
+from pyos.shell import opts
 
 
 def load(*obj_or_ids) -> Union[Iterable[Any], Any]:
     """Load one or more objects"""
-    _options, rest = pyos.opts.separate_opts(*obj_or_ids)
+    _options, rest = opts.separate_opts(*obj_or_ids)
     if not rest:
         return None
 
-    to_load = ls(-flags.d, *rest)
+    to_load = pysh.ls(-pysh.d, *rest)
 
     loaded = []
     for node in to_load:

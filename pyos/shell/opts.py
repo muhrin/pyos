@@ -1,4 +1,4 @@
-__all__ = 'Option', 'Options', 'separate_opts', 'option'
+__all__ = 'Option', 'Options', 'separate_opts', 'option', 'flag'
 
 
 class Option:
@@ -51,8 +51,8 @@ class Option:
 
 class OptionSpec:
 
-    def __init__(self, option: Option, is_flag=True, help=''):  # pylint: disable=redefined-builtin
-        self.option = option
+    def __init__(self, opt: Option, is_flag=True, help=''):  # pylint: disable=redefined-builtin
+        self.option = opt
         self.is_flag = is_flag
         self.help = help
 

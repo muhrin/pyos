@@ -1,12 +1,12 @@
 import pytest
 
-from mincepy.testing import mongodb_archive, historian
+from mincepy.testing import historian, mongodb_archive
 
 import pyos
 
 
 @pytest.fixture(autouse=True)
 def lib(historian):
-    pyos.lib.init()
-    yield pyos.lib
-    pyos.lib.reset()
+    pyos.db.lib.init()
+    yield pyos.db.lib
+    pyos.db.lib.reset()

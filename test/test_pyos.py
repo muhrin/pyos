@@ -1,6 +1,6 @@
 from mincepy.testing import Car
 
-from pyos import cmds
+from pyos.pysh import cmds
 
 
 def test_locate():

@@ -1,7 +1,7 @@
 from mincepy.testing import Car
 
 import pyos
-from pyos import cmds
+from pyos.pysh import cmds
 
 
 def test_load_single():

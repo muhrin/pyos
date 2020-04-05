@@ -1,9 +1,7 @@
 import mincepy
 
 import pyos
-import pyos.nodes
-from .ls import ls
-from . import flags
+from pyos import pysh
 
 
 def cat(*obj_or_ids, representer=None):
@@ -15,32 +13,33 @@ def cat(*obj_or_ids, representer=None):
         return None
 
     hist = mincepy.get_historian()
-    _options, rest = pyos.opts.separate_opts(*obj_or_ids)
+    _options, rest = pyos.shell.separate_opts(*obj_or_ids)
     to_cat = []
 
     for entry in rest:
-        if isinstance(entry, (str, pyos.PyosPath, pyos.nodes.BaseNode, hist.archive.get_id_type())):
-            to_cat.extend(ls(-flags.d, entry))
+        if isinstance(entry,
+                      (str, pyos.PyosPath, pyos.fs.nodes.BaseNode, hist.archive.get_id_type())):
+            to_cat.extend(pysh.ls(-pysh.d, entry))
         else:
             to_cat.append(entry)
 
-    representer = representer or pyos.representers.get_default()
+    representer = representer or pyos.shell.get_default()
 
     def iterator():
         for node in to_cat:
             try:
-                if isinstance(node, pyos.DirectoryNode):
+                if isinstance(node, pyos.fs.DirectoryNode):
                     yield "cat: {}: Is a directory".format(node.abspath.name)
-                elif isinstance(node, pyos.ObjectNode):
+                elif isinstance(node, pyos.fs.ObjectNode):
                     yield representer(node.obj)
                 else:
                     yield representer(node)
             except Exception as exc:  # pylint: disable=broad-except
                 yield representer(exc)
 
-    results = pyos.CachingResults(iterator(), representer=str)
+    results = pyos.shell.CachingResults(iterator(), representer=str)
 
     if len(to_cat) == 1:
-        return results[0]
+        return pyos.shell.ResultsString(results[0])
 
     return results
