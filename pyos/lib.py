@@ -30,13 +30,17 @@ def reset():
 # region metadata
 
 
-def get_meta(*obj_or_identifier: Iterable) -> List[dict]:
+def get_meta(*obj_or_identifier: Iterable):
     """Get the metadata for a bunch of objects"""
     hist = mincepy.get_historian()
-    meta = []
+    results = {
+        meta['obj_id']: meta for meta in hist.meta.find({'obj_id': {
+            '$in': obj_or_identifier
+        }})
+    }
+
     for obj_id in obj_or_identifier:
-        meta.append(hist.meta.get(obj_id))
-    return meta
+        yield results.get(obj_id, None)
 
 
 def update_meta(*obj_or_identifier: Iterable, meta: dict):

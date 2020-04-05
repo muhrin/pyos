@@ -8,6 +8,9 @@ from .. import opts
 def oid(*args):
     """Get the object id for one or more live objects"""
     _options, rest = opts.separate_opts(*args)
+    if not rest:
+        return None
+
     hist = mincepy.get_historian()
 
     oids = []

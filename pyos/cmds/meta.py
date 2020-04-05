@@ -14,6 +14,9 @@ logger = logging.getLogger(__name__)
 def meta(*obj_or_ids, **updates):
     """Get, set or update the metadata on one or more objects"""
     options, rest = pyos.opts.separate_opts(*obj_or_ids)
+    if not rest:
+        return None
+
     to_update = ls(flags.d, *rest)
     obj_ids = []
     for node in to_update:
@@ -36,10 +39,11 @@ def meta(*obj_or_ids, **updates):
         # In 'getting' mode
         if updates:
             logging.warning("Keywords supplied to meta without -s/-u flags: %s", updates)
-        metas = pyos.lib.get_meta(*obj_ids)
-        if len(metas) == 1:
-            return metas[0]
 
-        return metas
+        if len(obj_ids) == 1:
+            # Special case for a single parameter
+            return pyos.ResultsDict(next(pyos.lib.get_meta(*obj_ids)))
+
+        return pyos.CachingResults(pyos.lib.get_meta(*obj_ids))
 
     return None

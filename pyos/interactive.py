@@ -1,8 +1,8 @@
-from . import cmd
-from .cmd import *  # pylint: disable=unused-wildcard-import, wildcard-import
+from . import cmds
+from .cmds import *  # pylint: disable=unused-wildcard-import, wildcard-import
 from . import version
 
-__all__ = cmd.__all__
+__all__ = cmds.__all__
 
 
 def _mod() -> str:

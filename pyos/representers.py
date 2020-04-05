@@ -2,7 +2,6 @@
 
 import functools
 import io
-import os
 import pprint
 from typing import Sequence
 
@@ -14,6 +13,7 @@ except ImportError:
     pass
 
 from . import fmt
+from . import utils
 
 __all__ = 'get_default', 'set_default', 'dict_representer', 'make_custom_pyprnt', 'prnt'
 
@@ -54,11 +54,7 @@ def make_custom_pyprnt(**kwargs):
 
 
 def _terminal_width_prnt(obj, **kwargs):
-    try:
-        width = os.get_terminal_size().columns
-    except OSError:
-        width = 100
-
+    width = utils.get_terminal_width()
     return pyprnt.prnt(obj, width=width, truncate=True, **kwargs)
 
 

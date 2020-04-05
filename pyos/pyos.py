@@ -1,4 +1,4 @@
-from . import cmd
-from .cmd import *  # pylint: disable=unused-wildcard-import, wildcard-import
+from . import cmds
+from .cmds import *  # pylint: disable=unused-wildcard-import, wildcard-import
 
-__all__ = cmd.__all__
+__all__ = cmds.__all__

@@ -12,6 +12,7 @@ from . import constants
 from . import fmt
 from . import dirs
 from . import queries
+from . import utils
 
 __all__ = 'DirectoryNode', 'ObjectNode', 'ResultsNode', 'to_node', 'TABLE_VIEW', 'LIST_VIEW', \
           'TREE_VIEW'
@@ -396,7 +397,7 @@ class ResultsNode(ContainerNode):
             for child in self:
                 repr_list.append("-".join(self._get_row(child)))
 
-            return columnize.columnize(repr_list, displaywidth=100)
+            return columnize.columnize(repr_list, displaywidth=utils.get_terminal_width())
 
         return super().__repr__()
 

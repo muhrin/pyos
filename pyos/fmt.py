@@ -1,6 +1,7 @@
 import datetime
 import inspect
 import typing
+from typing import Mapping
 
 
 def pretty_type_string(obj_type: typing.Type) -> str:
@@ -18,6 +19,9 @@ def pretty_type_string(obj_type: typing.Type) -> str:
 
 def obj_dict(obj):
     """Given an object return a dictionary that represents it"""
+    if isinstance(obj, Mapping):
+        return dict(obj)
+
     repr_dict = {}
     for name in dir(obj):
         if not name.startswith('_'):

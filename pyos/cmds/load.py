@@ -8,6 +8,9 @@ from . import flags
 def load(*obj_or_ids) -> Union[Iterable[Any], Any]:
     """Load one or more objects"""
     _options, rest = pyos.opts.separate_opts(*obj_or_ids)
+    if not rest:
+        return None
+
     to_load = ls(-flags.d, *rest)
 
     loaded = []
