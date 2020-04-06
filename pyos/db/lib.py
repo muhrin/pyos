@@ -109,6 +109,7 @@ def save_many(to_save: Iterable[Tuple[Any, pyos.fs.PathSpec]], overwrite=False):
     length 2 containing the object and a path of where to save it.
 
     :param to_save: the iterable able objects to save
+    :param overwrite: overwrite objects with the same name
     """
     obj_ids = []
     for entry in to_save:
