@@ -35,27 +35,27 @@ def parse_arg(arg) -> Sequence:
     raise TypeError("Unknown type '{}'".format(arg))
 
 
-@parse_arg.register
+@parse_arg.register(pyos.fs.ObjectNode)
 def _(arg: pyos.fs.ObjectNode):
     return [copy.copy(arg)]
 
 
-@parse_arg.register
+@parse_arg.register(pyos.fs.DirectoryNode)
 def _(arg: pyos.fs.DirectoryNode):
     return [copy.copy(arg)]
 
 
-@parse_arg.register
+@parse_arg.register(pyos.fs.ResultsNode)
 def _(arg: pyos.fs.ResultsNode):
     return parse_args(*arg.children)
 
 
-@parse_arg.register
+@parse_arg.register(pyos.fs.PyosPath)
 def _(arg: pyos.fs.PyosPath):
     return [arg]
 
 
-@parse_arg.register
+@parse_arg.register(str)
 def _(arg: str):
     hist = mincepy.get_historian()
 

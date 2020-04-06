@@ -509,12 +509,12 @@ def to_node(entry) -> PyosNode:
     raise ValueError("Unknown entry type: {}".format(entry))
 
 
-@to_node.register
+@to_node.register(PyosNode)
 def _(entry: PyosNode):
     return entry
 
 
-@to_node.register
+@to_node.register(paths.PyosPath)
 def _(entry: paths.PyosPath):
     if entry.is_dir():
         return DirectoryNode(entry)
