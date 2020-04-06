@@ -1,7 +1,7 @@
 import mincepy.testing
 
 import pyos
-from pyos.pysh import cmds
+from pyos.psh import cmds
 
 
 def test_reaching_root():

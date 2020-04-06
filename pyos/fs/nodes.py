@@ -402,7 +402,7 @@ class ResultsNode(ContainerNode):
             for child in self:
                 repr_list.append("-".join(self._get_row(child)))
 
-            return columnize.columnize(repr_list, displaywidth=pyos.shell.get_terminal_width())
+            return columnize.columnize(repr_list, displaywidth=pyos.psh_lib.get_terminal_width())
 
         return super().__repr__()
 
@@ -494,9 +494,10 @@ class ResultsNode(ContainerNode):
 
 def to_node(entry) -> PyosNode:
     """Get the node for a given object.  This can be either:
-    1. An object id -> ObjectNode
-    2. A directory path -> DirectoryNode
-    3. An object path -> ObjectNode
+
+    1.  An object id -> ObjectNode
+    2.  A directory path -> DirectoryNode
+    3.  An object path -> ObjectNode
     """
     if isinstance(entry, PyosNode):
         return entry

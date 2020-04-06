@@ -1,13 +1,13 @@
 """The tree command"""
 import pyos
-from pyos import pysh
+from pyos import psh
 
 
-@pyos.shell.option(pysh.flags.L)
+@pyos.psh_lib.option(psh.flags.L)
 def tree(options, *paths):
     """Get a tree representation of the given paths"""
-    to_tree = pysh.ls(-pysh.d, *paths)
-    level = options.pop(pysh.L, -1)
+    to_tree = psh.ls(-psh.d, *paths)
+    level = options.pop(psh.L, -1)
     # Fully expand all directories
     for dir_node in to_tree.directories:
         dir_node.expand(level)

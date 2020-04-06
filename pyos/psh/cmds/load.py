@@ -1,7 +1,7 @@
 from typing import Union, Iterable, Any
 
-from pyos import pysh
-from pyos.shell import opts
+from pyos import psh
+from pyos.psh_lib import opts
 
 
 def load(*obj_or_ids) -> Union[Iterable[Any], Any]:
@@ -10,7 +10,7 @@ def load(*obj_or_ids) -> Union[Iterable[Any], Any]:
     if not rest:
         return None
 
-    to_load = pysh.ls(-pysh.d, *rest)
+    to_load = psh.ls(-psh.d, *rest)
 
     loaded = []
     for node in to_load:

@@ -1,6 +1,6 @@
 from mincepy.testing import Car
 
-from pyos.pysh import cmds
+from pyos.psh import cmds
 
 
 def test_oid_simple():

@@ -1,10 +1,10 @@
 """The save command"""
 
 import pyos
-from pyos import pysh
+from pyos import psh
 
 
-@pyos.shell.flag(pysh.f, help="Force - overwrite files with the same name")
+@pyos.psh_lib.flag(psh.f, help="Force - overwrite files with the same name")
 def save(*args):
     """Save one or more objects"""
     options = args[0]
@@ -21,9 +21,9 @@ def save(*args):
             dest = dest.to_dir()
 
         save_args = tuple((obj, dest) for obj in objs)
-        saved = pyos.db.lib.save_many(save_args, overwrite=pysh.f in options)
+        saved = pyos.db.lib.save_many(save_args, overwrite=psh.f in options)
     else:
-        saved = pyos.db.lib.save_many(objs, overwrite=pysh.f in options)
+        saved = pyos.db.lib.save_many(objs, overwrite=psh.f in options)
 
     if len(objs) == 1:
         return saved[0]

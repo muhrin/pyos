@@ -2,21 +2,41 @@ API Reference
 =============
 
 
+``pyos``
+--------
+
+
 .. automodule:: pyos
     :members:
+
+
+``pyos.db``
+-----------
 
 
 .. automodule:: pyos.db
     :members:
 
 
+``pyos.fs``
+-----------
+
+
 .. automodule:: pyos.fs
     :members:
 
 
-.. automodule:: pyos.pysh
+``pyos.psh``
+------------
+
+
+.. automodule:: pyos.psh
     :members:
 
 
-.. automodule:: pyos.shell
+``pyos.psh_lib``
+----------------
+
+
+.. automodule:: pyos.psh_lib
     :members:

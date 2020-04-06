@@ -88,7 +88,7 @@ class Options:
         return self._opts.pop(name, default[0] if default else None)
 
     def update(self, other):
-        for name, opt in other._opts.items():
+        for name, opt in other._opts.items():  # pylint: disable=protected-access
             if name not in self._opts:
                 self._opts[name] = opt
             else:

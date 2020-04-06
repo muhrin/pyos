@@ -37,11 +37,11 @@ Welcome to pyOS's documentation!
 Features
 ++++++++
 
-* Familiar shell like interface: `ls`, `mv`, `cat`, `rm` but on your objects!
-* Powerful and fast `find` facility to locate and organise your python world.
+* Familiar shell like interface: ``ls``, ``mv``, ``cat``, ``rm`` but on your objects!
+* Powerful and fast ``find`` facility to locate and organise your python world.
 * Version control of all your objects by default.
-* Familiar flags from the shell e.g. `ls (-l)`, `cp(-n)`.
-* Easy pipe-like chaining e.g. `rm(find(meta={'name': 'martin'}))`
+* Familiar flags from the shell e.g. ``ls (-l)``, ``cp(-n)``.
+* Easy pipe-like chaining e.g. ``rm(find(meta={'name': 'martin'}))``
 
 
 Installation

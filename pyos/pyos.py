@@ -1,7 +1,15 @@
 from . import db
-from .pysh import *
-from . import pysh
+from . import psh
+from . import version
+from .psh import *  # pylint: disable=unused-wildcard-import, wildcard-import
 
-__all__ = pysh.__all__
+__all__ = psh.__all__
 
+
+def _mod() -> str:
+    """Get the message of the day string"""
+    return "Welcome to\n{}".format(version.BANNER)
+
+
+print(_mod())
 db.init()

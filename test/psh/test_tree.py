@@ -1,19 +1,19 @@
 from mincepy.testing import Car
 
-from pyos import pysh
+from pyos import psh
 
 
 def test_tree_basic():
     Car().save()
-    results = pysh.tree()
+    results = psh.tree()
     assert len(results) == 1
 
 
 def test_tree_depth():
     Car().save()
-    pysh.save(Car(), 'sub/')
-    pysh.save(Car(), 'sub/sub/')
-    pysh.save(Car(), 'sub/sub/sub')
+    psh.save(Car(), 'sub/')
+    psh.save(Car(), 'sub/sub/')
+    psh.save(Car(), 'sub/sub/sub')
 
     def check_depth(results):
         depth = 0
@@ -22,7 +22,7 @@ def test_tree_depth():
             depth += 1
         return depth
 
-    results = pysh.tree()
+    results = psh.tree()
     assert check_depth(results) == 4
     for idx in range(4):
-        assert check_depth(pysh.tree - pysh.L(idx)()) == idx + 1
+        assert check_depth(psh.tree - psh.L(idx)()) == idx + 1

@@ -2,12 +2,12 @@
 
 import mincepy
 
-from pyos import shell
+from pyos import psh_lib
 
 
 def oid(*args):
     """Get the object id for one or more live objects"""
-    _options, rest = shell.opts.separate_opts(*args)
+    _options, rest = psh_lib.opts.separate_opts(*args)
     if not rest:
         return None
 

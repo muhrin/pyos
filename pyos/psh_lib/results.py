@@ -3,7 +3,7 @@ import collections
 import collections.abc
 from typing import Iterable, Callable
 
-from pyos.shell import representers
+from pyos.psh_lib import representers
 
 __all__ = 'CachingResults', 'ResultsDict', 'ResultsString'
 

@@ -4,6 +4,7 @@ import pyos
 
 
 def cd(path: pyos.fs.PathSpec):  # pylint: disable=invalid-name
+    """Change the current working directory"""
     path = pyos.PyosPath(path)
     if path.is_file():
         # Assume they just left out the slash

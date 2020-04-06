@@ -4,14 +4,14 @@ import logging
 import mincepy
 
 import pyos
-from pyos import pysh
+from pyos import psh
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
-@pyos.shell.flag(pysh.l)
-@pyos.shell.flag(pysh.d)
-@pyos.shell.flag(pysh.p)
+@pyos.psh_lib.flag(psh.l)
+@pyos.psh_lib.flag(psh.d)
+@pyos.psh_lib.flag(psh.p)
 def ls(*args) -> pyos.fs.ResultsNode:  # pylint: disable=invalid-name
     """List the contents of a directory
 
@@ -19,7 +19,7 @@ def ls(*args) -> pyos.fs.ResultsNode:  # pylint: disable=invalid-name
     """
     options = args[0]
     rest = list(args[1:])
-    parsed = pyos.shell.parse_args(*rest)
+    parsed = pyos.psh_lib.parse_args(*rest)
 
     results = pyos.fs.ResultsNode()
     if rest:
@@ -34,10 +34,10 @@ def ls(*args) -> pyos.fs.ResultsNode:  # pylint: disable=invalid-name
     else:
         results.append(pyos.fs.to_node(pyos.fs.cwd()))
 
-    if not options.pop(pysh.d):
+    if not options.pop(psh.d):
         for entry in results:
             if isinstance(entry, pyos.fs.DirectoryNode):
-                entry.expand(populate_objects=pysh.l in options)
+                entry.expand(populate_objects=psh.l in options)
 
         if len(results) == 1 and isinstance(results[0], pyos.fs.DirectoryNode):
             sole_dir = results[0]
@@ -47,9 +47,9 @@ def ls(*args) -> pyos.fs.ResultsNode:  # pylint: disable=invalid-name
 
             results = new_results
 
-    if options.pop(pysh.l):
+    if options.pop(psh.l):
         properties = ['loaded', 'type', 'version', 'mtime', 'name']
-        if options.pop(pysh.p):
+        if options.pop(psh.p):
             properties.append('str')
         results.show(*properties, mode=pyos.fs.TABLE_VIEW)
     else:

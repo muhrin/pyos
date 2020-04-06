@@ -49,7 +49,7 @@ setup(name='pyos',
               'twine',
           ],
       },
-      packages=['pyos', 'pyos.db', 'pyos.fs', 'pyos.pysh', 'pyos.shell'],
+      packages=['pyos', 'pyos.db', 'pyos.fs', 'pyos.psh', 'pyos.psh_lib'],
       include_package_data=True,
       test_suite='test',
       entry_points={'mincepy.plugins.types': ['pyos_types = pyos.provides:get_types',]})

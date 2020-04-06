@@ -3,8 +3,8 @@
 from typing import Optional
 
 import pyos
-from pyos.shell import opts
-from pyos import pysh
+from pyos.psh_lib import opts
+from pyos import psh
 
 
 def locate(*obj_or_ids) -> Optional[pyos.fs.ResultsNode]:
@@ -13,7 +13,7 @@ def locate(*obj_or_ids) -> Optional[pyos.fs.ResultsNode]:
         return None
 
     _options, rest = opts.separate_opts(*obj_or_ids)
-    to_locate = pysh.ls(-pysh.d, *rest)
+    to_locate = psh.ls(-psh.d, *rest)
     to_locate.show('abspath', mode=pyos.fs.TABLE_VIEW)
 
     return to_locate
