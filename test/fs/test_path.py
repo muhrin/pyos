@@ -4,21 +4,6 @@ import pyos
 from pyos.psh import cmds
 
 
-def test_reaching_root():
-    """Assert the correct behaviour when traversing up until reaching root and beyond"""
-    cwd = cmds.pwd()
-    for _ in range(len(cwd.parts) - 1):
-        cmds.cd('..')
-
-    # Should be at root
-    assert cmds.pwd() == pyos.PyosPath('/')
-
-    # Now trying going up again
-    cmds.cd('..')
-    # Should still be at root
-    assert cmds.pwd() == pyos.PyosPath('/')
-
-
 def test_saving_path():
     path = pyos.PyosPath('/some/random/path/')
     path_str = str(path)

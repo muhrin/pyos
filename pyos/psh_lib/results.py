@@ -1,14 +1,14 @@
 """Module that contains classes used to provide results to the user"""
-import collections
 import collections.abc
 from typing import Iterable, Callable
 
+import pyos.results
 from pyos.psh_lib import representers
 
 __all__ = 'CachingResults', 'ResultsDict', 'ResultsString'
 
 
-class CachingResults(collections.abc.Sequence):
+class CachingResults(collections.abc.Sequence, pyos.results.BaseResults):
     """A helper that takes an iterable and wraps it caching the results as a sequence."""
 
     def __init__(self, iterable: Iterable, representer: Callable = None):
@@ -71,7 +71,7 @@ class CachingResults(collections.abc.Sequence):
                 return
 
 
-class ResultsDict(collections.abc.Mapping):
+class ResultsDict(collections.abc.Mapping, pyos.results.BaseResults):
     """A custom dictionary representing results from a command"""
 
     def __init__(self, results: dict, representer=None):
@@ -91,7 +91,7 @@ class ResultsDict(collections.abc.Mapping):
         return self._representer(self)
 
 
-class ResultsString(collections.UserString):
+class ResultsString(collections.UserString, pyos.results.BaseResults):
     """A string that overwrites the __repr__ method"""
 
     def __init__(self, result: str, representer=None):

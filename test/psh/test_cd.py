@@ -1,26 +1,41 @@
 """Tests for the change directory command"""
 
 import pyos
-from pyos.psh import cmds
+from pyos import psh
 
 
 def test_cd_simple():
-    start = cmds.pwd()
+    start = psh.pwd()
     assert isinstance(start, pyos.PyosPath)
 
     # Try relative directory changes
     a = 'a/'
-    cmds.cd(a)
-    assert cmds.pwd() == start / a
+    psh.cd(a)
+    assert psh.pwd() == start / a
 
     b = 'b/'
-    cmds.cd(b)
-    assert cmds.pwd() == start / a / b
+    psh.cd(b)
+    assert psh.pwd() == start / a / b
 
     # Try absolute directory change
-    cmds.cd(start / a)
-    assert cmds.pwd() == start / a
+    psh.cd(start / a)
+    assert psh.pwd() == start / a
 
     # Try .. change
-    cmds.cd('..')
-    assert cmds.pwd() == start
+    psh.cd('..')
+    assert psh.pwd() == start
+
+
+def test_reaching_root():
+    """Assert the correct behaviour when traversing up until reaching root and beyond"""
+    cwd = psh.pwd()
+    for _ in range(len(cwd.parts) - 1):
+        psh.cd('../..')
+
+    # Should be at root
+    assert psh.pwd() == pyos.PyosPath('/')
+
+    # Now trying going up again
+    psh.cd('../..')
+    # Should still be at root
+    assert psh.pwd() == pyos.PyosPath('/')

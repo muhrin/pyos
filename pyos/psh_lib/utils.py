@@ -1,4 +1,5 @@
 import copy
+import functools
 import os
 from typing import Sequence
 
@@ -16,38 +17,62 @@ def get_terminal_width() -> int:
         return 100
 
 
+@functools.singledispatch
+def parse_arg(arg) -> Sequence:
+    hist = mincepy.get_historian()
+
+    try:
+        # Maybe it can be turned into an object id
+        return [hist._ensure_obj_id(arg)]
+    except mincepy.NotFound:
+        pass
+
+    # Maybe it's a live object
+    obj_id = hist.get_obj_id(arg)
+    if obj_id is not None:
+        return [obj_id]
+
+    raise TypeError("Unknown type '{}'".format(arg))
+
+
+@parse_arg.register
+def _(arg: pyos.fs.ObjectNode):
+    return [copy.copy(arg)]
+
+
+@parse_arg.register
+def _(arg: pyos.fs.DirectoryNode):
+    return [copy.copy(arg)]
+
+
+@parse_arg.register
+def _(arg: pyos.fs.ResultsNode):
+    return parse_args(*arg.children)
+
+
+@parse_arg.register
+def _(arg: pyos.fs.PyosPath):
+    return [arg]
+
+
+@parse_arg.register
+def _(arg: str):
+    hist = mincepy.get_historian()
+
+    try:
+        # Maybe it's an object id
+        return [hist._ensure_obj_id(arg)]
+    except mincepy.NotFound:
+        pass
+
+    if isinstance(arg, str):
+        # Assume it's a path
+        return [pyos.PyosPath(arg)]
+
+
 def parse_args(*args) -> Sequence:
     parsed = []
-    hist = mincepy.get_historian()
     for arg in args:
-        if arg is None:
-            parsed.append(None)
-        elif isinstance(arg, pyos.fs.ObjectNode):
-            parsed.append(copy.copy(arg))
-        elif isinstance(arg, pyos.fs.DirectoryNode):
-            parsed.append(copy.copy(arg))
-        elif isinstance(arg, pyos.fs.ResultsNode):
-            parsed.extend(parse_args(*arg.children))
-        elif isinstance(arg, pyos.PyosPath):
-            parsed.append(arg)
-        elif hist.is_obj_id(arg):
-            parsed.append(arg)
-        else:
-            try:
-                # Maybe it's an object id
-                parsed.append(hist._ensure_obj_id(arg))
-                continue
-            except mincepy.NotFound:
-                pass
-
-            # Maybe it's a live object
-            obj_id = hist.get_obj_id(arg)
-            if obj_id is not None:
-                parsed.append(obj_id)
-            elif isinstance(arg, str):
-                # Assume it's a path
-                parsed.append(pyos.PyosPath(arg))
-            else:
-                raise TypeError("Unknown type '{}'".format(arg))
+        parsed.extend(parse_arg(arg))
 
     return parsed

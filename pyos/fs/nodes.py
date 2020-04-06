@@ -1,5 +1,7 @@
 from abc import ABCMeta
 from collections.abc import Sequence
+import copy
+import functools
 import typing
 
 import anytree
@@ -9,6 +11,7 @@ import tabulate
 import mincepy
 
 import pyos
+import pyos.results
 from . import paths
 
 __all__ = (
@@ -22,7 +25,7 @@ __all__ = (
 )
 
 
-class BaseNode(Sequence, anytree.NodeMixin, metaclass=ABCMeta):
+class BaseNode(Sequence, anytree.NodeMixin, pyos.results.BaseResults, metaclass=ABCMeta):
 
     def __init__(self, name: str, parent=None):
         super().__init__()
@@ -142,7 +145,7 @@ class DirectoryNode(ContainerNode, PyosNode):
     def __copy__(self):
         """Create a copy with no parent"""
         dir_node = DirectoryNode(self.abspath)
-        dir_node.children = [child.copy() for child in self.children]
+        dir_node.children = [copy.copy(child) for child in self.children]
         return dir_node
 
     def _invalidate_cache(self):
@@ -492,6 +495,7 @@ class ResultsNode(ContainerNode):
         return False
 
 
+@functools.singledispatch
 def to_node(entry) -> PyosNode:
     """Get the node for a given object.  This can be either:
 
@@ -499,15 +503,20 @@ def to_node(entry) -> PyosNode:
     2.  A directory path -> DirectoryNode
     3.  An object path -> ObjectNode
     """
-    if isinstance(entry, PyosNode):
-        return entry
-    hist = mincepy.get_historian()
-    if hist.is_obj_id(entry):
+    if mincepy.get_historian().is_obj_id(entry):
         return ObjectNode(entry)
-    if isinstance(entry, paths.PyosPath):
-        if entry.is_dir():
-            return DirectoryNode(entry)
-
-        return ObjectNode.from_path(entry)
 
     raise ValueError("Unknown entry type: {}".format(entry))
+
+
+@to_node.register
+def _(entry: PyosNode):
+    return entry
+
+
+@to_node.register
+def _(entry: paths.PyosPath):
+    if entry.is_dir():
+        return DirectoryNode(entry)
+
+    return ObjectNode.from_path(entry)
