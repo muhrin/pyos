@@ -4,7 +4,7 @@ version_info = (0, 4, 0)
 __author__ = ", ".join("{} <{}>".format(*info) for info in author_info)
 __version__ = ".".join(map(str, version_info))
 
-__all__ = ('__version__',)
+__all__ = ('__version__',)  # pylint: disable=undefined-all-variable
 
 BANNER = """
                   ____  ____ 
