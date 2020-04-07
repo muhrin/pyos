@@ -1,6 +1,4 @@
 """Functions and constants that emulate python's os module"""
-import os
-
 import mincepy
 
 __all__ = 'getcwd', 'chdir', 'fspath', 'remove', 'sep'
@@ -8,9 +6,8 @@ __all__ = 'getcwd', 'chdir', 'fspath', 'remove', 'sep'
 import pyos
 from . import types
 
-name = 'pyos'
-# The path separator
-sep = '/'  # pylint: disable=invalid-name
+name = 'pyos'  # pylint: disable=invalid-name
+sep = '/'  # The path separator pylint: disable=invalid-name
 
 
 def chdir(path: types.PathSpec):
@@ -31,7 +28,25 @@ def fspath(path: types.PathSpec):
     If str is passed in, it is returned unchanged.
     Otherwise __fspath__() is called and its value is returned as long as it is a str. In all other
     cases, TypeError is raised."""
-    return os.fspath(path)
+    if isinstance(path, str):
+        return path
+
+    # Work from the object's type to match method resolution of other magic methods.
+    path_type = type(path)
+    try:
+        path_repr = path_type.__fspath__(path)
+    except AttributeError:
+        if hasattr(path_type, '__fspath__'):
+            raise
+
+        raise TypeError("expected str or os.PathLike object, not " + path_type.__name__)
+
+    if isinstance(path_repr, str):
+        return path_repr
+
+    raise TypeError("expected {}.__fspath__() to return str, not {}".format(
+        path_type.__name__,
+        type(path_repr).__name__))
 
 
 def getcwd() -> str:

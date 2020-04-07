@@ -26,6 +26,15 @@ API Reference
     :members:
 
 
+``pyos.os``
+-----------
+
+
+.. automodule:: pyos.os
+    :members:
+
+
+
 ``pyos.psh``
 ------------
 
