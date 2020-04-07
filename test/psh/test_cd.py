@@ -6,7 +6,7 @@ from pyos import psh
 
 def test_cd_simple():
     start = psh.pwd()
-    assert isinstance(start, pyos.PyosPath)
+    assert isinstance(start, pyos.pathlib.Path)
 
     # Try relative directory changes
     a = 'a/'
@@ -33,9 +33,9 @@ def test_reaching_root():
         psh.cd('../..')
 
     # Should be at root
-    assert psh.pwd() == pyos.PyosPath('/')
+    assert psh.pwd() == pyos.pathlib.Path('/')
 
     # Now trying going up again
     psh.cd('../..')
     # Should still be at root
-    assert psh.pwd() == pyos.PyosPath('/')
+    assert psh.pwd() == pyos.pathlib.Path('/')

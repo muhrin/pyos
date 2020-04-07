@@ -5,7 +5,7 @@ from pyos.psh import cmds
 
 
 def test_saving_path():
-    path = pyos.PyosPath('/some/random/path/')
+    path = pyos.pathlib.Path('/some/random/path/')
     path_str = str(path)
     obj_id = cmds.save(path)
     del path
@@ -16,41 +16,41 @@ def test_saving_path():
 
 def test_parents_file():
     """Test that parents works for files"""
-    path = pyos.PyosPath('tmp/test/sub/a')
+    path = pyos.pathlib.PurePath('tmp/test/sub/a')
     assert path.parents == [
-        pyos.PyosPath('tmp/test/sub/'),
-        pyos.PyosPath('tmp/test/'),
-        pyos.PyosPath('tmp/'),
-        pyos.PyosPath('./')
+        pyos.pathlib.Path('tmp/test/sub/'),
+        pyos.pathlib.Path('tmp/test/'),
+        pyos.pathlib.Path('tmp/'),
+        pyos.pathlib.Path('./')
     ]
 
     # Test absolute
-    path = pyos.PyosPath('/tmp/test/sub/a')
+    path = pyos.pathlib.Path('/tmp/test/sub/a')
     assert path.parents == [
-        pyos.PyosPath('/tmp/test/sub/'),
-        pyos.PyosPath('/tmp/test/'),
-        pyos.PyosPath('/tmp/'),
-        pyos.PyosPath('/')
+        pyos.pathlib.Path('/tmp/test/sub/'),
+        pyos.pathlib.Path('/tmp/test/'),
+        pyos.pathlib.Path('/tmp/'),
+        pyos.pathlib.Path('/')
     ]
 
 
 def test_parents_dir():
     """Test that parents works for directories"""
-    path = pyos.PyosPath('tmp/test/sub/a/')
+    path = pyos.pathlib.Path('tmp/test/sub/a/')
     assert path.parents == [
-        pyos.PyosPath('tmp/test/sub/'),
-        pyos.PyosPath('tmp/test/'),
-        pyos.PyosPath('tmp/'),
-        pyos.PyosPath('./')
+        pyos.pathlib.Path('tmp/test/sub/'),
+        pyos.pathlib.Path('tmp/test/'),
+        pyos.pathlib.Path('tmp/'),
+        pyos.pathlib.Path('./')
     ]
 
     # Test absolute
-    path = pyos.PyosPath('/tmp/test/sub/a')
+    path = pyos.pathlib.Path('/tmp/test/sub/a')
     assert path.parents == [
-        pyos.PyosPath('/tmp/test/sub/'),
-        pyos.PyosPath('/tmp/test/'),
-        pyos.PyosPath('/tmp/'),
-        pyos.PyosPath('/')
+        pyos.pathlib.Path('/tmp/test/sub/'),
+        pyos.pathlib.Path('/tmp/test/'),
+        pyos.pathlib.Path('/tmp/'),
+        pyos.pathlib.Path('/')
     ]
 
 
@@ -58,13 +58,13 @@ def test_exists_object():
     car = mincepy.testing.Car()
     pyos.db.lib.save_one(car, 'my_car')
 
-    assert pyos.PyosPath('my_car').exists()
-    assert not pyos.PyosPath('not_my_car').exists()
+    assert pyos.pathlib.Path('my_car').exists()
+    assert not pyos.pathlib.Path('not_my_car').exists()
 
 
 def test_exists_path():
     car = mincepy.testing.Car()
     pyos.db.lib.save_one(car, 'folder/my_car')
 
-    assert pyos.PyosPath('folder/').exists()
-    assert not pyos.PyosPath('other_folder/').exists()
+    assert pyos.pathlib.Path('folder/').exists()
+    assert not pyos.pathlib.Path('other_folder/').exists()

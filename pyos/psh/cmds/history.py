@@ -1,11 +1,10 @@
 """The history command"""
 
-import mincepy
-
+import pyos
 from .cat import cat
 
 
 def history(obj):
-    hist = mincepy.get_historian()
+    hist = pyos.db.get_historian()
     for entry in hist.history(obj):
         cat(entry.obj)

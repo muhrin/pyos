@@ -5,4 +5,4 @@ import pyos
 
 def get_types():
     """Provide the list of types and helpers we define for mincepy"""
-    return (pyos.PyosPath,)
+    return (pyos.pathlib.Path,)

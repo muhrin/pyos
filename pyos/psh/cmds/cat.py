@@ -18,7 +18,7 @@ def cat(*obj_or_ids, representer=None):
 
     for entry in rest:
         if isinstance(entry,
-                      (str, pyos.PyosPath, pyos.fs.nodes.BaseNode, hist.archive.get_id_type())):
+                      (str, pyos.pathlib.Path, pyos.fs.BaseNode, hist.archive.get_id_type())):
             to_cat.extend(psh.ls(-psh.d, entry))
         else:
             to_cat.append(entry)

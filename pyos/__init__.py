@@ -1,17 +1,21 @@
 from .version import *
+from . import os
+from . import pathlib
+from .lib import *
+from .exceptions import *
+
+from . import config
 from . import db
-from . import fmt
+from . import exceptions
 from . import fs
+from . import fmt
 from . import lib
 from . import psh
 from . import psh_lib
 from . import version
-from .fs import PyosPath
-from .db import init, reset
 from .deprecated import working_path
 
-_MODULES = 'db', 'fmt', 'fs', 'lib', 'psh_lib', 'psh'
-_ADDITIONAL = 'PyosPath', 'init', 'reset'
+_MODULES = 'os', 'config', 'db', 'fmt', 'fs', 'pathlib', 'psh_lib', 'psh'
 _DEPRECATED = ('working_path',)
 
-__all__ = version.__all__ + _MODULES + _ADDITIONAL + _DEPRECATED
+__all__ = version.__all__ + lib.__all__ + exceptions.__all__ + _MODULES + _DEPRECATED

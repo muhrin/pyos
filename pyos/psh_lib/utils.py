@@ -23,7 +23,7 @@ def parse_arg(arg) -> Sequence:
 
     try:
         # Maybe it can be turned into an object id
-        return [hist._ensure_obj_id(arg)]
+        return [pyos.db.to_obj_id(arg)]
     except mincepy.NotFound:
         pass
 
@@ -50,24 +50,22 @@ def _(arg: pyos.fs.ResultsNode):
     return parse_args(*arg.children)
 
 
-@parse_arg.register(pyos.fs.PyosPath)
-def _(arg: pyos.fs.PyosPath):
+@parse_arg.register(pyos.pathlib.Path)
+def _(arg: pyos.pathlib.Path):
     return [arg]
 
 
 @parse_arg.register(str)
 def _(arg: str):
-    hist = mincepy.get_historian()
-
     try:
         # Maybe it's an object id
-        return [hist._ensure_obj_id(arg)]
+        return [pyos.db.to_obj_id(arg)]
     except mincepy.NotFound:
         pass
 
     if isinstance(arg, str):
         # Assume it's a path
-        return [pyos.PyosPath(arg)]
+        return [pyos.pathlib.Path(arg)]
 
 
 def parse_args(*args) -> Sequence:

@@ -14,9 +14,9 @@ def test_cat_file(historian: mincepy.Historian):
     for descriptor in (
             dawg,
             'dawg.txt',  # Relative path string
-            pyos.PyosPath('dawg.txt'),  # Relative pyos path
-            pyos.PyosPath('dawg.txt').resolve(),  # Abs pyos path
-            str(pyos.PyosPath('dawg.txt').resolve()),  # Abs pyos path str
+            pyos.pathlib.Path('dawg.txt'),  # Relative pyos path
+            pyos.pathlib.Path('dawg.txt').resolve(),  # Abs pyos path
+            str(pyos.pathlib.Path('dawg.txt').resolve()),  # Abs pyos path str
             file_id,  # Obj id
     ):
         catted = psh.cat(descriptor)

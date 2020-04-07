@@ -4,7 +4,7 @@ import pyos
 
 
 def find(
-        *starting_point: pyos.fs.PathSpec,
+        *starting_point: pyos.os.PathLike,
         meta: dict = None,
         state: dict = None,
         type=None,  # pylint: disable=redefined-builtin
@@ -22,11 +22,11 @@ def find(
     """
     _options, spoints = pyos.psh_lib.opts.separate_opts(*starting_point)
     if not spoints:
-        spoints = (pyos.fs.cwd(),)
+        spoints = (pyos.pathlib.Path(),)
 
-    return pyos.db.lib.find(*spoints,
-                            meta=meta,
-                            state=state,
-                            type=type,
-                            mindepth=mindepth,
-                            maxdepth=maxdepth)
+    return pyos.fs.find(*spoints,
+                        meta=meta,
+                        state=state,
+                        type=type,
+                        mindepth=mindepth,
+                        maxdepth=maxdepth)

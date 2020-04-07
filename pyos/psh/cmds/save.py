@@ -10,9 +10,9 @@ def save(*args):
     options = args[0]
     objs = args[1:]
 
-    if len(objs) > 1 and isinstance(objs[-1], (str, pyos.PyosPath)):
+    if len(objs) > 1 and isinstance(objs[-1], (str, pyos.pathlib.Path)):
         # Extract the destination
-        dest = pyos.PyosPath(objs[-1]).resolve()
+        dest = pyos.pathlib.Path(objs[-1]).resolve()
         objs = objs[:-1]
 
         if len(objs) > 1 and dest.is_file():

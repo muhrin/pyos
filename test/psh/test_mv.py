@@ -62,7 +62,7 @@ def test_mv_dest_as_path():
     car = Car()
     car.save()
 
-    psh.mv(car.obj_id, pyos.PyosPath('test/'))
+    psh.mv(car.obj_id, pyos.pathlib.Path('test/'))
     contents = psh.ls('test/')
     assert len(contents) == 1
     assert contents[0].obj_id == car.obj_id

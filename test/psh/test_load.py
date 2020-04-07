@@ -20,4 +20,4 @@ def test_load_from_path():
     assert cmds.load('my_car') is car
 
     # Try with path
-    assert cmds.load(pyos.PyosPath('my_car')) is car
+    assert cmds.load(pyos.pathlib.Path('my_car')) is car

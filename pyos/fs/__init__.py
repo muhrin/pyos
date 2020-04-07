@@ -1,7 +1,6 @@
-"""Classes and functions related to pyos' virtual filesystem"""
+"""Higher-level classes and functions for browsing the database as a filesystem"""
 
 from .nodes import *
-from .paths import *
 from . import nodes
 
-__all__ = nodes.__all__ + paths.__all__
+__all__ = nodes.__all__

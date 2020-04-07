@@ -1,8 +1,8 @@
 """Print working directory command"""
 
-import pyos.fs
+import pyos
 
 
-def pwd() -> pyos.fs.PyosPath:
+def pwd() -> pyos.pathlib.Path:
     """Return the current working directory"""
-    return pyos.fs.cwd()
+    return pyos.pathlib.Path().resolve()

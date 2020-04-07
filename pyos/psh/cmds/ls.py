@@ -32,7 +32,7 @@ def ls(*args) -> pyos.fs.ResultsNode:  # pylint: disable=invalid-name
             except mincepy.NotFound as exc:
                 logger.info(str(exc))
     else:
-        results.append(pyos.fs.to_node(pyos.fs.cwd()))
+        results.append(pyos.fs.to_node(pyos.pathlib.Path()))
 
     if not options.pop(psh.d):
         for entry in results:

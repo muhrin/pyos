@@ -11,7 +11,7 @@ def mv(*args):  # pylint: disable=invalid-name
     options = args[0]
     rest = list(args[1:])
     assert len(rest) <= 2, "mv: missing destination"
-    dest = pyos.PyosPath(rest.pop())
+    dest = pyos.pathlib.Path(rest.pop())
     if len(rest) > 1:
         # If there is more than one thing to move then we assume that dest is a directory
         dest = dest.to_dir()

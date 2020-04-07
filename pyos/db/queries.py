@@ -1,7 +1,7 @@
 """Module with convenience functions for building queries"""
 from typing import Iterable
 
-from . import constants
+import pyos
 
 
 def or_(*conditions):
@@ -20,7 +20,7 @@ def unset_(*keys: Iterable[str]):
 
 
 def in_(*args):
-    return {'$in': args}
+    return {'$in': list(args)}
 
 
 def subdirs(root: str, start_depth=1, end_depth=1) -> dict:
@@ -30,14 +30,14 @@ def subdirs(root: str, start_depth=1, end_depth=1) -> dict:
     if end_depth == -1:
         end_depth = ''  # This will cause the regex to allow any number of repetitions
     regex = ('^{}([^/]+/){{{},{}}}$'.format(root, start_depth, end_depth))
-    return {constants.DIR_KEY: {'$regex': regex}}
+    return {pyos.config.DIR_KEY: {'$regex': regex}}
 
 
 def dirmatch(directory: str) -> dict:
     """Get the query dictionary to search in a particular directory"""
-    query = {constants.DIR_KEY: str(directory)}
+    query = {pyos.config.DIR_KEY: str(directory)}
     if directory == "/":
         # Special case for root: all objects that have no DIR_KEY are by default
         # considered to be in the root
-        query = or_(query, {constants.DIR_KEY: {'$exists': False}})
+        query = or_(query, {pyos.config.DIR_KEY: {'$exists': False}})
     return query

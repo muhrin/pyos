@@ -1,11 +1,10 @@
 """Database related classes, functions and constants"""
 
-from .constants import *
 from .lib import *
-from . import constants
+from .utils import *
 from . import lib
 from . import queries
 
 ADDITIONAL = ('queries',)
 
-__all__ = constants.__all__ + lib.__all__ + ADDITIONAL
+__all__ = lib.__all__ + utils.__all__ + ADDITIONAL

@@ -7,6 +7,6 @@ import pyos
 
 @pytest.fixture(autouse=True)
 def lib(historian):
-    pyos.db.lib.init()
+    pyos.init()
     yield pyos.db.lib
-    pyos.db.lib.reset()
+    pyos.reset()

@@ -12,17 +12,13 @@ import mincepy
 
 import pyos
 import pyos.results
-from . import paths
 
-__all__ = (
-    'DirectoryNode',
-    'ObjectNode',
-    'ResultsNode',
-    'to_node',
-    'TABLE_VIEW',
-    'LIST_VIEW',
-    'TREE_VIEW',
-)
+__all__ = ('BaseNode', 'DirectoryNode', 'ObjectNode', 'ResultsNode', 'to_node', 'TABLE_VIEW',
+           'LIST_VIEW', 'TREE_VIEW', 'find')
+
+LIST_VIEW = 'list'
+TREE_VIEW = 'tree'
+TABLE_VIEW = 'table'
 
 
 class BaseNode(Sequence, anytree.NodeMixin, pyos.results.BaseResults, metaclass=ABCMeta):
@@ -31,7 +27,7 @@ class BaseNode(Sequence, anytree.NodeMixin, pyos.results.BaseResults, metaclass=
         super().__init__()
         self._name = name
         self.parent = parent
-        self._hist = mincepy.get_historian()
+        self._hist = pyos.db.get_historian()
 
     def __getitem__(self, item):
         return self.children.__getitem__(item)
@@ -48,8 +44,12 @@ class BaseNode(Sequence, anytree.NodeMixin, pyos.results.BaseResults, metaclass=
         for child in self.children:
             child.delete()
 
-    def move(self, where: paths.PyosPath, overwrite=False):
-        """Move this object (with any descendents) to the given path"""
+    def move(self, where, overwrite=False):
+        """Move this object (with any descendents) to the given path
+
+        :type where: pyos.os.PathLike
+        :param overwrite: overwrite if exists
+        """
         for child in self.children:
             child.move(where, overwrite)
 
@@ -57,12 +57,17 @@ class BaseNode(Sequence, anytree.NodeMixin, pyos.results.BaseResults, metaclass=
 class PyosNode(BaseNode):
     """Base node for representing an object in the virtual filesystem"""
 
-    def __init__(self, abspath: paths.PyosPath, parent=None):
-        super().__init__(abspath.name, parent)
-        self._abspath = abspath
+    def __init__(self, path: pyos.os.PathSpec, parent: BaseNode = None):
+        """
+        :param path: the path this not represents
+        :param parent: parent node
+        """
+        path = pyos.pathlib.PurePath(path).resolve()
+        super().__init__(path.name, parent)
+        self._abspath = path
 
     @property
-    def abspath(self) -> paths.PyosPath:
+    def abspath(self) -> pyos.pathlib.PurePath:
         return self._abspath
 
 
@@ -70,8 +75,8 @@ class ContainerNode(BaseNode):
     """A node that contains children that can be either directory nodes or object nodes"""
 
     def __contains__(self, item):
-        if isinstance(item, paths.PyosPath):
-            path = item
+        if isinstance(item, pyos.pathlib.PurePath):
+            path = pyos.pathlib.PurePath(item)
             if path.is_absolute():
                 if path.is_dir():
                     # It's a directory
@@ -92,7 +97,7 @@ class ContainerNode(BaseNode):
                 # It's relative
                 parts = path.parts
                 if len(parts) > 1:
-                    subpath = paths.PyosPath("".join(parts[1:]))
+                    subpath = pyos.pathlib.PurePath("".join(parts[1:]))
 
                     # Check subdirs
                     for node in self.directories:
@@ -132,9 +137,10 @@ class ContainerNode(BaseNode):
 
 class DirectoryNode(ContainerNode, PyosNode):
 
-    def __init__(self, pathname: paths.PyosPath, parent=None):
-        assert pathname.is_dir(), "Must supply a directory path"
-        super().__init__(pathname.resolve(), parent)
+    def __init__(self, path: pyos.os.PathLike, parent: BaseNode = None):
+        path = pyos.pathlib.PurePath(path)
+        assert path.is_dir(), "Must supply a directory path"
+        super().__init__(path.resolve(), parent)
 
     def __repr__(self):
         rep = []
@@ -154,7 +160,7 @@ class DirectoryNode(ContainerNode, PyosNode):
     def expand(self, depth=1, populate_objects=False):
         """Populate the children with what is currently in the database
 
-        :param depth: expand to the given depth, 0 mean no expansion, 1 means my child nodes, etc
+        :param depth: expand to the given depth, 0 means no expansion, 1 means my child nodes, etc
         :param populate_objects: if True objects will have their records fetched immediately (as
             opposed to lazily when needed).  This gives a large speedup when the client knows that
             the all or most of the details of the child objects will be needed as they can be
@@ -173,7 +179,7 @@ class DirectoryNode(ContainerNode, PyosNode):
 
         obj_kwargs = []
         for meta in metas:
-            directory = meta[pyos.db.DIR_KEY]
+            directory = meta[pyos.config.DIR_KEY]
 
             if directory == dirstring:
                 # This is an object in _this_ directory and not further down the hierarchy
@@ -183,7 +189,7 @@ class DirectoryNode(ContainerNode, PyosNode):
                 # that there must exist a subdirectory
 
                 # Get the subdirectory relative to us
-                obj_dir = paths.PyosPath(directory)
+                obj_dir = pyos.pathlib.PurePath(directory)
                 path = (self._abspath / obj_dir.parts[len(self._abspath.parts)]).to_dir()
                 if path not in directories_added:
                     directories_added.add(path)
@@ -208,7 +214,8 @@ class DirectoryNode(ContainerNode, PyosNode):
                 self._hist.delete(meta['obj_id'])
         self._invalidate_cache()
 
-    def move(self, where: paths.PyosPath, overwrite=False):
+    def move(self, where: pyos.pathlib.PurePath, overwrite=False):
+        where = pyos.pathlib.PurePath(where)
         assert where.is_dir(), "Can't move a directory to a file"
         where = where.resolve()
         self.expand(1)
@@ -217,21 +224,21 @@ class DirectoryNode(ContainerNode, PyosNode):
 
 
 class ObjectNode(PyosNode):
+    """A node that represents an object"""
 
     @classmethod
-    def from_path(cls, path: paths.PyosPath):
-        assert path.is_file()
+    def from_path(cls, path: pyos.os.PathLike):
+        path = pyos.pathlib.PurePath(path)
+        if path.is_dir():
+            raise pyos.IsADirectory(path)
+
         path = path.resolve()
+        meta = None
         # Let's find the object id
-        hist = mincepy.get_historian()
         try:
-            obj_id = hist._ensure_obj_id(path.name)
-            meta = None
+            obj_id = pyos.db.to_obj_id(path.name)
         except mincepy.NotFound:
-            results = tuple(
-                hist.meta.find(
-                    pyos.db.queries.and_(pyos.db.queries.dirmatch(path.parent),
-                                         {pyos.db.NAME_KEY: path.name})))
+            results = tuple(pyos.db.find_meta(pyos.db.path_to_meta_dict(path)))
             if not results:
                 raise mincepy.NotFound(path)
 
@@ -245,7 +252,8 @@ class ObjectNode(PyosNode):
             assert obj_id == record.obj_id, "Obj id and record don't match!"
         if meta:
             assert obj_id == meta['obj_id'], "Obj id and meta don't match!"
-        self._hist = mincepy.get_historian()
+
+        self._hist = pyos.db.get_historian()
         self._obj_id = obj_id
         self._record = record  # This will be lazily loaded if None
 
@@ -258,9 +266,8 @@ class ObjectNode(PyosNode):
         assert self._meta['obj_id'] == obj_id
 
         # Set up the abspath
-        self._abspath = paths.get_abspath(obj_id, self._meta)
-
-        super().__init__(self._abspath, parent)
+        abspath = pyos.db.get_abspath(obj_id, self._meta)
+        super().__init__(abspath, parent)
 
     def __contains__(self, item):
         """Object nodes have no children and so do not contain anything"""
@@ -286,10 +293,6 @@ class ObjectNode(PyosNode):
             return True
         except mincepy.NotFound:
             return False
-
-    @property
-    def abspath(self) -> paths.PyosPath:
-        return self._abspath
 
     @property
     def obj(self) -> typing.Any:
@@ -333,8 +336,9 @@ class ObjectNode(PyosNode):
     def delete(self):
         self._hist.delete(self._hist.load_one(self._obj_id))
 
-    def move(self, where: paths.PyosPath, overwrite=False):
-        meta_update = paths.path_to_meta_dict(where)
+    def move(self, where: pyos.pathlib.PurePath, overwrite=False):
+        where = pyos.pathlib.PurePath(where)
+        meta_update = pyos.db.path_to_meta_dict(where)
         try:
             self._hist.meta.update(self._obj_id, meta_update)
         except mincepy.DuplicateKeyError:
@@ -351,11 +355,6 @@ class ObjectNode(PyosNode):
 
                 # One more time...
                 self._hist.meta.update(self._obj_id, meta_update)
-
-
-LIST_VIEW = 'list'
-TREE_VIEW = 'tree'
-TABLE_VIEW = 'table'
 
 
 class ResultsNode(ContainerNode):
@@ -503,7 +502,7 @@ def to_node(entry) -> PyosNode:
     2.  A directory path -> DirectoryNode
     3.  An object path -> ObjectNode
     """
-    if mincepy.get_historian().is_obj_id(entry):
+    if pyos.db.get_historian().is_obj_id(entry):
         return ObjectNode(entry)
 
     raise ValueError("Unknown entry type: {}".format(entry))
@@ -514,9 +513,68 @@ def _(entry: PyosNode):
     return entry
 
 
-@to_node.register(paths.PyosPath)
-def _(entry: paths.PyosPath):
+@to_node.register(pyos.pathlib.PurePath)
+def _(entry: pyos.pathlib.PurePath):
+    # Make sure we've got a pure path so we don't actually check that database
+    entry = pyos.pathlib.PurePath(entry)
+
     if entry.is_dir():
         return DirectoryNode(entry)
 
     return ObjectNode.from_path(entry)
+
+
+# pylint: disable=redefined-builtin
+def find(*starting_point,
+         meta: dict = None,
+         state: dict = None,
+         type=None,
+         mindepth=0,
+         maxdepth=-1):
+    """
+    Find objects matching the given criteria
+
+    :param starting_point: the starting points for the search, if not supplied defaults to '/'
+    :param meta: filter criteria for the metadata
+    :param state: filter criteria for the object's saved state
+    :param type: restrict the search to this type (can be a tuple of types)
+    :param mindepth: the minimum depth from the starting point(s) to search in
+    :param maxdepth: the maximum depth from the starting point(s) to search in
+    :return: results node
+    :rtype: pyos.os.ResultsNode
+    """
+    if not starting_point:
+        starting_point = (pyos.os.getcwd(),)
+    if meta is None:
+        meta = {}
+    if state is None:
+        state = {}
+
+    # Converting starting points to abspaths
+    spoints = [pyos.os.path.abspath(pyos.os.fspath(path) + pyos.os.sep) for path in starting_point]
+
+    # Add the directory search criteria to the meta search
+    subdirs_query = (pyos.db.queries.subdirs(point, mindepth, maxdepth) for point in spoints)
+    meta.update(pyos.db.queries.or_(*subdirs_query))
+
+    hist = pyos.db.get_historian()
+
+    # Find the metadata
+    metas = {}
+    for result in hist.meta.find(meta):
+        metas[result['obj_id']] = result
+
+    data = {}
+    if metas and (type is not None or state is not None):
+        # Further restrict the match
+        meta_filter = {'obj_id': pyos.db.queries.in_(*metas.keys())}
+        for entry in hist.find(obj_type=type, state=state, meta=meta_filter, as_objects=False):
+            data[entry.obj_id] = dict(record=entry, meta=metas[entry.obj_id])
+
+    results = pyos.fs.ResultsNode()
+    for obj_id, entry in data.items():
+        node = pyos.fs.ObjectNode(obj_id,
+                                  record=entry.get('record', None),
+                                  meta=entry.get('meta', None))
+        results.append(node)
+    return results

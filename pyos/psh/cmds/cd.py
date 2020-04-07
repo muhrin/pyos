@@ -3,11 +3,11 @@
 import pyos
 
 
-def cd(path: pyos.fs.PathSpec):  # pylint: disable=invalid-name
+def cd(path: pyos.os.PathSpec):  # pylint: disable=invalid-name
     """Change the current working directory"""
-    path = pyos.PyosPath(path)
+    path = pyos.pathlib.PurePath(path)
     if path.is_file():
         # Assume they just left out the slash
         path = path.to_dir()
 
-    pyos.fs.cd(path)
+    pyos.os.chdir(path)

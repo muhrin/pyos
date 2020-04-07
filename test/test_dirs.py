@@ -6,8 +6,8 @@ from pyos import psh
 
 def test_working_path():
     home = psh.pwd()
-    address_book = pyos.PyosPath('address_book/').resolve()
-    with pyos.fs.working_path(address_book):
+    address_book = pyos.pathlib.Path('address_book/').resolve()
+    with pyos.pathlib.working_path(address_book):
         person_id = Person('martin', 34).save()
         assert psh.pwd() == home / address_book
 
