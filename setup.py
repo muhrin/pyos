@@ -38,6 +38,7 @@ setup(
         'gui': ['mincepy[gui]'],
         'dev': [
             'ipython',
+            'nbsphinx',
             'pip',
             'pytest>4',
             'pytest-cov',

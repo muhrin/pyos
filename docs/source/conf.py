@@ -42,7 +42,7 @@ autoclass_content = 'both'
 # ones.
 extensions = [
     'sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.coverage', 'sphinx.ext.viewcode',
-    'sphinx.ext.autosummary'
+    'sphinx.ext.autosummary', 'nbsphinx'
 ]
 
 # Add any paths that contain templates here, relative to this directory.

@@ -31,16 +31,24 @@ As easy as:
 
 1. Install MongoDB
 
-   Ubuntu::
+   Ubuntu:
+
+
+   .. code-block:: shell
 
     sudo apt install mongodb
 
-2. Install pyos::
+2. Install pyos:
+
+   .. code-block:: shell
 
     pip install pyos
 
 
-3. Dive in!::
+3. Dive in!:
+
+
+   .. code-block:: shell
 
     > ipython
 

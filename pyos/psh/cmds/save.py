@@ -10,7 +10,7 @@ def save(*args):
     options = args[0]
     objs = args[1:]
 
-    if len(objs) > 1 and isinstance(objs[-1], (str, pyos.pathlib.Path)):
+    if len(objs) > 1 and isinstance(objs[-1], (str, pyos.pathlib.PurePath)):
         # Extract the destination
         dest = pyos.pathlib.Path(objs[-1]).resolve()
         objs = objs[:-1]
@@ -21,9 +21,9 @@ def save(*args):
             dest = dest.to_dir()
 
         save_args = tuple((obj, dest) for obj in objs)
-        saved = pyos.db.lib.save_many(save_args, overwrite=psh.f in options)
+        saved = pyos.db.save_many(save_args, overwrite=psh.f in options)
     else:
-        saved = pyos.db.lib.save_many(objs, overwrite=psh.f in options)
+        saved = pyos.db.save_many(objs, overwrite=psh.f in options)
 
     if len(objs) == 1:
         return saved[0]

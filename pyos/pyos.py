@@ -2,6 +2,7 @@ from . import db
 from . import psh
 from . import version
 from .psh import *  # pylint: disable=unused-wildcard-import, wildcard-import
+from pathlib import PurePath, Path
 
 __all__ = psh.__all__
 
