@@ -3,6 +3,7 @@
 import pyos
 
 
+@pyos.psh_lib.command()
 def cd(path: pyos.os.PathSpec):  # pylint: disable=invalid-name
     """Change the current working directory"""
     path = pyos.pathlib.PurePath(path)

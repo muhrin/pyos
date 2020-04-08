@@ -8,15 +8,15 @@ from pyos import psh
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
+@pyos.psh_lib.command(pass_options=True)
 @pyos.psh_lib.flag(psh.s, "Set the metadata")
 @pyos.psh_lib.flag(psh.u, "Update the metadata")
-def meta(*obj_or_ids, **updates):
+def meta(options, *obj_or_ids, **updates):
     """Get, set or update the metadata on one or more objects"""
-    options, rest = pyos.psh_lib.separate_opts(*obj_or_ids)
-    if not rest:
+    if not obj_or_ids:
         return None
 
-    to_update = psh.ls(-psh.d, *rest)
+    to_update = psh.ls(-psh.d, *obj_or_ids)
     obj_ids = []
     for node in to_update:
         if isinstance(node, pyos.fs.ObjectNode):

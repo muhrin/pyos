@@ -55,7 +55,7 @@ def make_custom_pyprnt(**kwargs):
 
 def _terminal_width_prnt(obj, **kwargs):
     width = utils.get_terminal_width()
-    return pyprnt.prnt(obj, width=width, truncate=True, **kwargs)
+    return pyprnt.prnt(obj, end='', width=width, truncate=True, **kwargs)
 
 
 def prnt(obj, custom_prnt=None):

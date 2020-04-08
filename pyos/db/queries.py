@@ -26,6 +26,13 @@ def in_(*args):
     return {'$in': list(args)}
 
 
+def gt(val):  # pylint: disable=invalid-name
+    return {'$gt': val}
+
+
+gt_ = gt  # pylint: disable=invalid-name
+
+
 def subdirs(root: str, start_depth=1, end_depth=1) -> dict:
     """Get a query string that will look for subdirectories of root optionally specifying the
     start and end depths

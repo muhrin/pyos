@@ -261,6 +261,19 @@ class ObjectNode(PyosNode):
         self._meta = meta
         if self._meta is None:
             self._meta = self._hist.meta.get(obj_id)
+            if self._meta is None:
+                # Double check this object actually exists
+                try:
+                    record = next(self._hist.archive.find(obj_id=obj_id,
+                                                          deleted=True))  # type: mincepy.DataRecord
+                except StopIteration:
+                    raise ValueError("Object with id '{}' not found".format(obj_id))
+                else:
+                    if record.is_deleted_record():
+                        raise ValueError("Object with id '{}' has been deleted".format(obj_id))
+                    self._record = record
+                    self._meta = {}
+
             self._meta['obj_id'] = obj_id
 
         assert self._meta['obj_id'] == obj_id
@@ -334,7 +347,7 @@ class ObjectNode(PyosNode):
         return self._meta
 
     def delete(self):
-        self._hist.delete(self._hist.load_one(self._obj_id))
+        self._hist.delete(self._obj_id)
 
     def move(self, where: pyos.pathlib.PurePath, overwrite=False):
         where = pyos.pathlib.PurePath(where)

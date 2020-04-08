@@ -4,6 +4,7 @@ import pyos
 from pyos import psh
 
 
+@pyos.psh_lib.command()
 def cat(*obj_or_ids, representer=None):
     """Convert the contents of objects into strings.
     A representer can optionally be passed in which should take the passed object and convert it to
@@ -13,10 +14,9 @@ def cat(*obj_or_ids, representer=None):
         return None
 
     hist = mincepy.get_historian()
-    _options, rest = pyos.psh_lib.separate_opts(*obj_or_ids)
     to_cat = []
 
-    for entry in rest:
+    for entry in obj_or_ids:
         if isinstance(entry,
                       (str, pyos.pathlib.Path, pyos.fs.BaseNode, hist.archive.get_id_type())):
             to_cat.extend(psh.ls(-psh.d, entry))

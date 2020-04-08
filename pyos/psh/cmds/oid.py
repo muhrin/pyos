@@ -2,19 +2,19 @@
 
 import mincepy
 
-from pyos import psh_lib
+import pyos
 
 
+@pyos.psh_lib.command()
 def oid(*args):
     """Get the object id for one or more live objects"""
-    _options, rest = psh_lib.opts.separate_opts(*args)
-    if not rest:
+    if not args:
         return None
 
     hist = mincepy.get_historian()
 
     oids = []
-    for obj in rest:
+    for obj in args:
         try:
             oids.append(hist.get_obj_id(obj))
         except mincepy.NotFound:

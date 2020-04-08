@@ -7,16 +7,16 @@ from pyos import psh
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
+@pyos.psh_lib.command(pass_options=True)
 @pyos.psh_lib.flag(psh.l)
 @pyos.psh_lib.flag(psh.d)
 @pyos.psh_lib.flag(psh.p)
-def ls(*args) -> pyos.fs.ResultsNode:  # pylint: disable=invalid-name
+def ls(options, *args) -> pyos.fs.ResultsNode:  # pylint: disable=invalid-name
     """List the contents of a directory
 
     :type: restrict listing to a particular type
     """
-    options = args[0]
-    rest = list(args[1:])
+    rest = args
     parsed = pyos.psh_lib.parse_args(*rest)
 
     results = pyos.fs.ResultsNode()

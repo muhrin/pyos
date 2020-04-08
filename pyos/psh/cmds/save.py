@@ -4,11 +4,11 @@ import pyos
 from pyos import psh
 
 
+@pyos.psh_lib.command(pass_options=True)
 @pyos.psh_lib.flag(psh.f, help="Force - overwrite files with the same name")
-def save(*args):
+def save(options, *args):
     """Save one or more objects"""
-    options = args[0]
-    objs = args[1:]
+    objs = args
 
     if len(objs) > 1 and isinstance(objs[-1], (str, pyos.pathlib.PurePath)):
         # Extract the destination

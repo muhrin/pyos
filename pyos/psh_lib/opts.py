@@ -1,4 +1,9 @@
-__all__ = 'Option', 'Options', 'separate_opts', 'option', 'flag'
+import abc
+import functools
+from typing import Callable
+import types
+
+__all__ = 'command', 'Option', 'Options', 'separate_opts', 'option', 'flag'
 
 
 class Option:
@@ -114,12 +119,45 @@ def separate_opts(*args) -> [Options, list]:
     return opts, rest
 
 
-class Command:
+# region Commands
+
+
+def command(pass_options=False):
+
+    def wrapper(func):
+        if isinstance(func, Command):
+            func.pass_options = pass_options
+            return func
+
+        return Command(func, pass_options)
+
+    return wrapper
+
+
+class CommandLike(metaclass=abc.ABCMeta):
+    """Base class for command like things"""
+
+    @abc.abstractmethod
+    def __call__(self, *args, **kwargs):
+        """Call this command"""
+
+    def __or__(self, other: Callable):
+        """Pipe the result of this call into a callable
+
+        :param other: the callable to pipe the results to
+        """
+        result = self.__call__()
+        return result.__or__(other)
+
+
+class Command(CommandLike):
     """Class representing a command"""
 
-    def __init__(self, func: callable):
+    def __init__(self, func: callable, pass_options=False):
         self.func = func
+        self.pass_options = pass_options
         self.accepts = {}
+        self.__call__ = types.MethodType(functools.wraps(func)(Command.__call__), self)
 
     @property
     def name(self) -> str:
@@ -129,10 +167,13 @@ class Command:
         """Add an option that this command accepts"""
         self.accepts[spec.option.name] = spec
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs):  # pylint: disable=method-hidden
         """Execute this command directly"""
-        options, rest = separate_opts(*args)
-        return self.func(options, *rest, **kwargs)
+        if self.pass_options:
+            options, rest = separate_opts(*args)
+            return self.func(options, *rest, **kwargs)
+
+        return self.func(*args, **kwargs)
 
     def __sub__(self, other: Option):
         """Start an execution of this command by supplying options"""
@@ -140,7 +181,7 @@ class Command:
         return builder - other
 
 
-class CommandBuilder:
+class CommandBuilder(CommandLike):
     """Used when a command is being built by options being passed to it"""
 
     def __init__(self, cmd: Command):
@@ -149,6 +190,9 @@ class CommandBuilder:
 
     def execute(self, *args, **kwargs):
         return self.command(self.options, *args, **kwargs)
+
+    def __call__(self, *args, **kwargs):
+        return self.execute(*args, **kwargs)
 
     def __sub__(self, other: Option):
         unsupported = ValueError("Command does not accept option: {}".format(other))
@@ -189,6 +233,9 @@ class CommandBuilder:
 
     def __str__(self) -> str:
         return " ".join((self.command.name, str(self.options)))
+
+
+# endregion
 
 
 def option(opt: Option, help=''):  # pylint: disable=redefined-builtin

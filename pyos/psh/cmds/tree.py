@@ -3,6 +3,7 @@ import pyos
 from pyos import psh
 
 
+@pyos.psh_lib.command(pass_options=True)
 @pyos.psh_lib.option(psh.flags.L)
 def tree(options, *paths):
     """Get a tree representation of the given paths"""

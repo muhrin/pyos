@@ -3,6 +3,7 @@
 import pyos
 
 
+@pyos.psh_lib.command()
 def find(
         *starting_point: pyos.os.PathLike,
         meta: dict = None,
