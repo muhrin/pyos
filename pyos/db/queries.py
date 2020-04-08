@@ -12,6 +12,9 @@ def or_(*conditions):
 
 
 def and_(*conditions):
+    if len(conditions) == 1:
+        return conditions
+
     return {'$and': list(conditions)}
 
 

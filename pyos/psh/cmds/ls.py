@@ -1,8 +1,6 @@
 """List command"""
 import logging
 
-import mincepy
-
 import pyos
 from pyos import psh
 
@@ -29,7 +27,7 @@ def ls(*args) -> pyos.fs.ResultsNode:  # pylint: disable=invalid-name
 
             try:
                 results.append(pyos.fs.to_node(entry))
-            except mincepy.NotFound as exc:
+            except ValueError as exc:
                 logger.info(str(exc))
     else:
         results.append(pyos.fs.to_node(pyos.pathlib.Path()))

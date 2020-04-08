@@ -3,8 +3,6 @@ import functools
 import os
 from typing import Sequence
 
-import mincepy
-
 import pyos
 
 __all__ = 'get_terminal_width', 'parse_args'
@@ -19,18 +17,10 @@ def get_terminal_width() -> int:
 
 @functools.singledispatch
 def parse_arg(arg) -> Sequence:
-    hist = mincepy.get_historian()
-
-    try:
-        # Maybe it can be turned into an object id
-        return [pyos.db.to_obj_id(arg)]
-    except mincepy.NotFound:
-        pass
-
-    # Maybe it's a live object
-    obj_id = hist.get_obj_id(arg)
+    # Maybe it can be turned into an object id
+    obj_id = pyos.db.to_obj_id(arg)
     if obj_id is not None:
-        return [obj_id]
+        return (obj_id,)
 
     raise TypeError("Unknown type '{}'".format(arg))
 
@@ -57,15 +47,15 @@ def _(arg: pyos.pathlib.Path):
 
 @parse_arg.register(str)
 def _(arg: str):
-    try:
-        # Maybe it's an object id
-        return [pyos.db.to_obj_id(arg)]
-    except mincepy.NotFound:
-        pass
+    obj_id = pyos.db.to_obj_id(arg)
+    if obj_id is not None:
+        return (obj_id,)
 
     if isinstance(arg, str):
         # Assume it's a path
-        return [pyos.pathlib.Path(arg)]
+        return (pyos.pathlib.Path(arg),)
+
+    raise TypeError("Unknown type '{}'".format(arg))
 
 
 def parse_args(*args) -> Sequence:

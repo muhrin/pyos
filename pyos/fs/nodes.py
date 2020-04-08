@@ -235,12 +235,12 @@ class ObjectNode(PyosNode):
         path = path.resolve()
         meta = None
         # Let's find the object id
-        try:
-            obj_id = pyos.db.to_obj_id(path.name)
-        except mincepy.NotFound:
+        obj_id = pyos.db.to_obj_id(path.name)
+        if obj_id is None:
+            # Ok, have to do a lookup
             results = tuple(pyos.db.find_meta(pyos.db.path_to_meta_dict(path)))
             if not results:
-                raise mincepy.NotFound(path)
+                raise ValueError("'{}' is not a valid object path".format(path))
 
             meta = results[0]
             obj_id = meta['obj_id']

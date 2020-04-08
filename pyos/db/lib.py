@@ -79,7 +79,7 @@ def set_name(*obj_ids, name: str):
 def get_name(*obj_or_ids) -> Sequence[Optional[str]]:
     """Get the name of the passed objects(s)"""
     hist = get_historian()
-    results = hist.meta.find({'obj_id': {'$in': obj_or_ids}})
+    results = hist.meta.find({'obj_id': queries.in_(*obj_or_ids)})
     names = {meta['obj_id']: meta[pyos.config.NAME_KEY] for meta in results}
     return [names.get(obj_id, None) for obj_id in obj_or_ids]
 
@@ -151,8 +151,8 @@ def get_abspath(obj_id, meta: dict) -> str:
 def to_obj_id(identifier):
     """Get the database object id from the passed identifier.  If the identifier is already a
     mincepy object id it will be returned unaltered.  Otherwise mincepy will try and turn the type
-    into an object id"""
-    return get_historian()._ensure_obj_id(identifier)  # pylint: disable=protected-access
+    into an object id.  It it fails, None is returned"""
+    return get_historian().to_obj_id(identifier)
 
 
 def get_obj_id(path: pyos.os.PathSpec):
