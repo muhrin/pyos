@@ -2,4 +2,3 @@
 .[dev]
 autodoc
 nbsphinx
-jupyter-sphinx

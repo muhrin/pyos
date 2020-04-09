@@ -105,7 +105,7 @@ Table Of Contents
    :glob:
    :maxdepth: 3
 
-   quick-start
+   examples/quick-start.ipynb
    examples/restaurants.ipynb
    apidoc
 
