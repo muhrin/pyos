@@ -100,3 +100,15 @@ def test_mv_no_clobber():
     assert len(psh.ls()) == 2
     psh.mv(-psh.n, car2, 'my_car')
     assert len(psh.ls()) == 2  # Still 2
+
+
+def test_mv_multiple():
+    ferrari = Car()
+    psh.save(ferrari, 'ferrari')
+    skoda = Car()
+    psh.save(skoda, 'skoda')
+
+    assert len(psh.ls()) == 2
+
+    psh.mv('skoda', 'ferrari', 'garage/')
+    assert psh.ls('garage/') | len == 2

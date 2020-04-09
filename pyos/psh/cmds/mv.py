@@ -9,7 +9,8 @@ from pyos import psh
 def mv(options, *args):  # pylint: disable=invalid-name
     """Take one or more files or directories with the final parameter being interpreted as
      destination"""
-    assert len(args) <= 2, "mv: missing destination"
+    if len(args) < 2:
+        raise ValueError("mv: missing destination")
 
     args = list(args)
     dest = pyos.pathlib.Path(args.pop())

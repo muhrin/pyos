@@ -4,6 +4,9 @@
    contain the root `toctree` directive.
 
 .. _pyOS: https://github.com/muhrin/pyos
+.. _Django: https://www.djangoproject.com/
+.. _SQLAlchemy: https://www.sqlalchemy.org/
+
 
 
 Welcome to pyOS's documentation!
@@ -41,15 +44,12 @@ Features
 * Powerful and fast ``find`` facility to locate and organise your python world.
 * Version control of all your objects by default.
 * Familiar flags from the shell e.g. ``ls (-l)``, ``cp(-n)``.
-* Easy pipe-like chaining e.g. ``rm(find(meta={'name': 'martin'}))``
+* Easy pipe-like chaining e.g. ``find(meta=dict(name='martin')) | rm``
 
-PyOS allows you to treat python objects in a
-similar way to the way you interact with files on your filesystem at the moment except in an ``ipython``
-console or script.  Objects are stored in a database and presented to the user as existing in a
-virtual file system.  Many of the familiar \*nix commands are available (``ls``, ``mv``, ``rm``, ``tree``, ``cat``,
-``find``) except they take on a new, more powerful form because you're in a fully fledged python environment
-and not restricted to just two types (file and directories) like on a traditional filesystem but
-indeed any python type that can be stored by PyOS' backend.
+Think of PyOS as a mixture between an ORM like `Django`_ or `SQLAlchemy`_ but where you can store any class by providing
+a simple mapper, from then on you interact with your objects as if they were files in a filesystem.
+Many of the familiar \*nix commands are available (``ls``, ``mv``, ``rm``, ``tree``, ``cat``,
+``find``) except they take on a new, more powerful form because you're in a fully fledged python environment!
 
 
 Installation
@@ -105,6 +105,7 @@ Table Of Contents
    :glob:
    :maxdepth: 3
 
+   quick-start
    examples/restaurants.ipynb
    apidoc
 

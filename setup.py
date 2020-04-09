@@ -39,6 +39,7 @@ setup(
         'gui': ['mincepy[gui]'],
         'dev': [
             'ipython',
+            'jupyter-sphinx',
             'nbsphinx',
             'pip',
             'pytest>4',
