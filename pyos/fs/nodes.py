@@ -54,7 +54,7 @@ class BaseNode(Sequence, anytree.NodeMixin, pyos.results.BaseResults, metaclass=
             child.move(where, overwrite)
 
 
-class PyosNode(BaseNode):
+class FilesystemNode(BaseNode):
     """Base node for representing an object in the virtual filesystem"""
 
     def __init__(self, path: pyos.os.PathSpec, parent: BaseNode = None):
@@ -135,7 +135,7 @@ class ContainerNode(BaseNode):
         return filter(lambda node: isinstance(node, ObjectNode), self.children)
 
 
-class DirectoryNode(ContainerNode, PyosNode):
+class DirectoryNode(ContainerNode, FilesystemNode):
 
     def __init__(self, path: pyos.os.PathLike, parent: BaseNode = None):
         path = pyos.pathlib.PurePath(path)
@@ -223,7 +223,7 @@ class DirectoryNode(ContainerNode, PyosNode):
             child.move((where / self.name).to_dir())
 
 
-class ObjectNode(PyosNode):
+class ObjectNode(FilesystemNode):
     """A node that represents an object"""
 
     @classmethod
@@ -430,10 +430,16 @@ class ResultsNode(ContainerNode):
         assert new_mode in (TREE_VIEW, LIST_VIEW, TABLE_VIEW)
         self._view_mode = new_mode
 
-    def append(self, node: PyosNode, display_name: str = None):
+    def append(self, node: FilesystemNode, display_name: str = None):
+        """Append a node to the results"""
         node.parent = self
         display_name = display_name or node.name
         node.display_name = display_name
+
+    def extend(self, other: ContainerNode):
+        """Extend this results using incorporating the entries of the other container"""
+        for entry in other:
+            self.append(entry)
 
     def show(self, *properties, mode: str = None):
         if mode is not None:
@@ -508,7 +514,7 @@ class ResultsNode(ContainerNode):
 
 
 @functools.singledispatch
-def to_node(entry) -> PyosNode:
+def to_node(entry) -> FilesystemNode:
     """Get the node for a given object.  This can be either:
 
     1.  An object id -> ObjectNode
@@ -521,8 +527,8 @@ def to_node(entry) -> PyosNode:
     raise ValueError("Unknown entry type: {}".format(entry))
 
 
-@to_node.register(PyosNode)
-def _(entry: PyosNode):
+@to_node.register(FilesystemNode)
+def _(entry: FilesystemNode):
     return entry
 
 

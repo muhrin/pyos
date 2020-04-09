@@ -1,3 +1,5 @@
+.. _documentation: https://pyos.readthedocs.io/en/latest/
+
 pyOS
 ====
 
@@ -24,8 +26,8 @@ pyOS
 
 A fresh way to interact with your python objects as though they were files on your filesystem.
 
-Get started
------------
+Installation
+------------
 
 As easy as:
 
@@ -34,23 +36,35 @@ As easy as:
    Ubuntu:
 
 
-   .. code-block:: shell
+.. code-block:: shell
 
     sudo apt install mongodb
 
 2. Install pyos:
 
-   .. code-block:: shell
+.. code-block:: shell
 
     pip install pyos
 
+Usage example
+-------------
 
-3. Dive in!:
-
-
-   .. code-block:: shell
+.. code-block:: shell
 
     > ipython
 
     In [1]: from pyos.pyos import *
     In [2]: ls()
+
+    [4]:
+    import mincepy
+    import urllib.request
+    import json
+
+    ids = []
+    with urllib.request.urlopen('https://raw.githubusercontent.com/ozlerhakan/mongodb-json-files/master/datasets/restaurant.json') as url:
+        for line, _ in zip(url, range(399)):
+            data = json.loads(line.decode())
+            data.pop('_id')
+            ids.append(mincepy.Dict(data).save())
+

@@ -33,6 +33,7 @@ setup(
         'tabulate',
         'ipython',
         'pyprnt',
+        'tqdm',
     ],
     extras_require={
         'gui': ['mincepy[gui]'],
@@ -52,6 +53,10 @@ setup(
         ],
     },
     packages=['pyos', 'pyos.db', 'pyos.fs', 'pyos.os', 'pyos.psh', 'pyos.psh.cmds', 'pyos.psh_lib'],
+    project_urls={
+        'Documentation': 'https://pyos.readthedocs.org/',
+        'Source': 'https://github.com/muhrin/pyos/',
+    },
     include_package_data=True,
     test_suite='test',
     entry_points={'mincepy.plugins.types': ['pyos_types = pyos.provides:get_types',]})
