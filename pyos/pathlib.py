@@ -29,7 +29,7 @@ class PurePath(pyos.os.PathLike):
         parts = list(self._path.split('/'))
         for idx in range(len(parts) - 1):
             parts[idx] += '/'
-        if PurePath.is_dir(self):
+        if self.is_dir_path():
             parts.pop()
 
         return tuple(parts)
@@ -93,7 +93,7 @@ class PurePath(pyos.os.PathLike):
             else:
                 raise TypeError("Cannot join a path with a '{}'".format(type(other)))
 
-        if self.is_file():
+        if self.is_file_path():
             raise ValueError("Can't join a file with another path")
 
         if other.is_absolute():
@@ -101,27 +101,29 @@ class PurePath(pyos.os.PathLike):
 
         return self.__class__(str(self) + str(other))
 
-    def is_file(self) -> bool:
-        return not self.is_dir()
+    def is_file_path(self) -> bool:
+        """Returns True if this path specifies a file i.e. does not end with a training '/'"""
+        return not self.is_dir_path()
 
-    def is_dir(self) -> bool:
+    def is_dir_path(self) -> bool:
+        """Returns True if this path specified a directory i.e. ends with a trailing '/'"""
         return self._path.endswith(pyos.os.sep)
 
     def is_absolute(self) -> bool:
         return pyos.os.path.isabs(self._path)
 
     def to_dir(self):
-        """If this path is a file then a directory with the same name (and path) will be returned.
-        Otherwise this path will be returned"""
-        if PurePath.is_dir(self):
+        """If this path is a file path then a directory with the same name will be
+        returned. Otherwise this path will be returned"""
+        if self.is_dir_path():
             return self
 
         return self.__class__(str(self) + '/')
 
     def to_file(self):
-        """If this path is a directory then a file with the same name (and path) will be returned.
+        """If this path is a directory then a file path with the same name will be returned.
         Otherwise this path will be returned"""
-        if self.is_file():
+        if self.is_file_path():
             return self
 
         return self.__class__(str(self)[:-1])
@@ -143,12 +145,12 @@ class Path(PurePath, mincepy.BaseSavableObject):
     TYPE_ID = uuid.UUID('5eac541e-848c-43aa-818d-50cf8a2b8507')
 
     def is_file(self) -> bool:
-        """Returns True if this path points to a file that exists"""
-        return super(Path, self).is_file() and self.exists()
+        """Returns True if this path is a file path and exists"""
+        return self.is_file_path() and self.exists()
 
     def is_dir(self) -> bool:
-        """Returns True if this path points to a directory that exists"""
-        return super(Path, self).is_dir() and self.exists()
+        """Returns True if this path is a directory path and exists"""
+        return self.is_dir_path() and self.exists()
 
     def exists(self) -> bool:
         """Test whether a path point exists"""

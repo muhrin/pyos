@@ -62,12 +62,12 @@ class FilesystemNode(BaseNode):
         :param path: the path this not represents
         :param parent: parent node
         """
-        path = pyos.pathlib.PurePath(path).resolve()
+        path = pyos.Path(path).resolve()
         super().__init__(path.name, parent)
         self._abspath = path
 
     @property
-    def abspath(self) -> pyos.pathlib.PurePath:
+    def abspath(self) -> pyos.pathlib.Path:
         return self._abspath
 
 
@@ -75,10 +75,10 @@ class ContainerNode(BaseNode):
     """A node that contains children that can be either directory nodes or object nodes"""
 
     def __contains__(self, item):
-        if isinstance(item, pyos.pathlib.PurePath):
-            path = pyos.pathlib.PurePath(item)
+        if isinstance(item, pyos.PurePath):
+            path = pyos.PurePath(item)
             if path.is_absolute():
-                if path.is_dir():
+                if path.is_dir_path():
                     # It's a directory
                     for node in self.directories:
                         if path == node.abspath:
@@ -97,14 +97,14 @@ class ContainerNode(BaseNode):
                 # It's relative
                 parts = path.parts
                 if len(parts) > 1:
-                    subpath = pyos.pathlib.PurePath("".join(parts[1:]))
+                    subpath = pyos.PurePath("".join(parts[1:]))
 
                     # Check subdirs
                     for node in self.directories:
                         if node.abspath.name == parts[0] and subpath in node:
                             return True
                 else:
-                    if path.is_dir():
+                    if path.is_dir_path():
                         # It's a directory
                         for node in self.directories:
                             if node.abspath.name == parts[0]:
@@ -139,7 +139,7 @@ class DirectoryNode(ContainerNode, FilesystemNode):
 
     def __init__(self, path: pyos.os.PathLike, parent: BaseNode = None):
         path = pyos.pathlib.PurePath(path)
-        assert path.is_dir(), "Must supply a directory path"
+        assert path.is_dir_path(), "Must supply a directory path"
         super().__init__(path.resolve(), parent)
 
     def __repr__(self):
@@ -216,7 +216,7 @@ class DirectoryNode(ContainerNode, FilesystemNode):
 
     def move(self, where: pyos.pathlib.PurePath, overwrite=False):
         where = pyos.pathlib.PurePath(where)
-        assert where.is_dir(), "Can't move a directory to a file"
+        assert where.is_dir_path(), "Can't move a directory to a file"
         where = where.resolve()
         self.expand(1)
         for child in self.children:
@@ -229,7 +229,7 @@ class ObjectNode(FilesystemNode):
     @classmethod
     def from_path(cls, path: pyos.os.PathLike):
         path = pyos.pathlib.PurePath(path)
-        if path.is_dir():
+        if path.is_dir_path():
             raise pyos.IsADirectory(path)
 
         path = path.resolve()
@@ -537,7 +537,7 @@ def _(entry: pyos.pathlib.PurePath):
     # Make sure we've got a pure path so we don't actually check that database
     entry = pyos.pathlib.PurePath(entry)
 
-    if entry.is_dir():
+    if entry.is_dir_path():
         return DirectoryNode(entry)
 
     return ObjectNode.from_path(entry)

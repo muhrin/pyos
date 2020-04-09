@@ -1,6 +1,6 @@
 """Module that contains classes used to provide results to the user"""
 import collections.abc
-from typing import Iterable, Callable
+from typing import Callable, Iterator
 
 import pyos.results
 from pyos.psh_lib import representers
@@ -9,17 +9,17 @@ __all__ = 'CachingResults', 'ResultsDict', 'ResultsString'
 
 
 class CachingResults(collections.abc.Sequence, pyos.results.BaseResults):
-    """A helper that takes an iterable and wraps it caching the results as a sequence."""
+    """A helper that takes an iterator and wraps it caching the results as a sequence."""
 
-    def __init__(self, iterable: Iterable, representer: Callable = None):
+    def __init__(self, iterator: Iterator, representer: Callable = None):
         """
         Create a caching results sequence.  If no representer is supplied the default will be used.
 
-        :param iterable: the iterable to cache results of
+        :param iterator: the iterable to cache results of
         :param representer: the representer to use, if None the current default will be used.
         """
         super().__init__()
-        self._iterable = iterable
+        self._iterator = iterator
         self._representer = representer or representers.get_default()
         self._cache = []
 
@@ -42,13 +42,13 @@ class CachingResults(collections.abc.Sequence, pyos.results.BaseResults):
         while True:
             if idx >= len(self._cache):
                 # Ok, try the iterable
-                if self._iterable is None:
+                if self._iterator is None:
                     return
 
                 try:
-                    self._cache.append(next(self._iterable))
+                    self._cache.append(next(self._iterator))
                 except StopIteration:
-                    self._iterable = None
+                    self._iterator = None
                     return
 
             yield self._cache[idx]
@@ -56,7 +56,7 @@ class CachingResults(collections.abc.Sequence, pyos.results.BaseResults):
 
     def _ensure_cache(self, max_index=-1):
         """Fill up the cache up to the max index.  If -1 then fill up entirely"""
-        if self._iterable is None or (0 <= max_index < len(self._cache)):
+        if self._iterator is None or (0 <= max_index < len(self._cache)):
             return
 
         idx = len(self._cache)

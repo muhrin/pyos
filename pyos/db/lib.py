@@ -1,5 +1,5 @@
 import getpass
-from typing import Sequence, Iterable, Optional, Tuple, Any
+from typing import Sequence, Iterable, Optional, Tuple, Any, Union
 
 import mincepy
 
@@ -87,7 +87,7 @@ def get_name(*obj_or_ids) -> Sequence[Optional[str]]:
 # endregion
 
 
-def save_one(obj, path: pyos.os.PathSpec = './', overwrite=False):
+def save_one(obj, path: pyos.os.PathSpec = None, overwrite=False):
     """Save one object to a the given path.  The path can be a filename or a directory or a filename
     in a directory
 
@@ -95,8 +95,17 @@ def save_one(obj, path: pyos.os.PathSpec = './', overwrite=False):
     :param path: the optional path to save it to
     :param overwrite: overwrite if there is already an object at that path
     """
-    path = pyos.os.path.abspath(path)
-    meta = utils.path_to_meta_dict(path)
+    if path is None:
+        # Check if it's already saved (in which case we don't need to set a path)
+        hist = get_historian()
+        if hist.get_obj_id(obj) is None:
+            path = './'
+
+    meta = None
+    if path is not None:
+        path = pyos.os.path.abspath(path)
+        meta = utils.path_to_meta_dict(path)
+
     try:
         return get_historian().save(obj, with_meta=meta)
     except mincepy.DuplicateKeyError:
@@ -108,9 +117,9 @@ def save_one(obj, path: pyos.os.PathSpec = './', overwrite=False):
         raise
 
 
-def save_many(to_save: Iterable[Tuple[Any, pyos.os.PathSpec]], overwrite=False):
+def save_many(to_save: Iterable[Union[Any, Tuple[Any, pyos.os.PathSpec]]], overwrite=False):
     """
-    Save many objects, expects an iterable where each entry is an object to save or a sequence of
+    Save many objects, expects an iterable where each entry is an object to save or a tuple of
     length 2 containing the object and a path of where to save it.
 
     :param to_save: the iterable able objects to save
@@ -118,7 +127,7 @@ def save_many(to_save: Iterable[Tuple[Any, pyos.os.PathSpec]], overwrite=False):
     """
     obj_ids = []
     for entry in to_save:
-        path = './'
+        path = None
         if isinstance(entry, Sequence):
             if len(entry) > 2:
                 raise ValueError("Can only pass sequences of at most length 2")

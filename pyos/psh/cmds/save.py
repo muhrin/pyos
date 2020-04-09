@@ -20,10 +20,11 @@ def save(options, *args):
             # more than one with the same filename in the same folder!
             dest = dest.to_dir()
 
-        save_args = tuple((obj, dest) for obj in objs)
-        saved = pyos.db.save_many(save_args, overwrite=psh.f in options)
+        save_args = [(obj, dest) for obj in objs]
     else:
-        saved = pyos.db.save_many(objs, overwrite=psh.f in options)
+        save_args = [(obj, None) for obj in objs]
+
+    saved = pyos.db.save_many(save_args, overwrite=psh.f in options)
 
     if len(objs) == 1:
         return saved[0]

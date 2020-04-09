@@ -11,7 +11,7 @@ def test_mv_basic():
     # Move to test subdirectory
     psh.mv(car, 'test/')
 
-    assert psh.locate(car)[0].abspath == psh.pwd() / 'test/' / str(car.obj_id)
+    assert psh.locate(car) == psh.pwd() / 'test/' / str(car.obj_id)
 
     contents = psh.ls('test/')
     assert len(contents) == 1

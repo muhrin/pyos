@@ -1,18 +1,23 @@
 """The locate command"""
 
-from typing import Optional
+from typing import Optional, Union, Sequence
 
 import pyos
 from pyos import psh
 
 
 @pyos.psh_lib.command()
-def locate(*obj_or_ids) -> Optional[pyos.fs.ResultsNode]:
-    """Locate the directory of or more objects"""
+def locate(*obj_or_ids) -> Optional[Union[pyos.pathlib.Path, Sequence[pyos.pathlib.Path]]]:
+    """Locate the directory of one or more objects"""
     if not obj_or_ids:
         return None
 
     to_locate = psh.ls(-psh.d, *obj_or_ids)
-    to_locate.show('abspath', mode=pyos.fs.TABLE_VIEW)
+    # Convert to abspaths
+    paths = [node.abspath for node in to_locate]
+    results = pyos.psh_lib.CachingResults(paths.__iter__(), representer=str)
 
-    return to_locate
+    if len(obj_or_ids) == 1:
+        return results[0]
+
+    return results
