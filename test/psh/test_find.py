@@ -8,7 +8,7 @@ def fill_with_cars(subdirs: list):
     for subdir in subdirs:
         psh.cd(subdir)
         car = Car()
-        car.save(with_meta={'target': True, 'mydir': subdir})
+        car.save(meta={'target': True, 'mydir': subdir})
     # Now change back to the original directory
     psh.cd(cwd)
 
@@ -16,7 +16,7 @@ def fill_with_cars(subdirs: list):
 def test_simple_find():
     # Save a car
     car = Car()
-    car.save(with_meta={'group': 'cars'})
+    car.save(meta={'group': 'cars'})
 
     # Look for it
     results = psh.find(meta=dict(group='cars'))
@@ -25,7 +25,7 @@ def test_simple_find():
 
     # Add another car to the group
     car2 = Car()
-    car2.save(with_meta={'group': 'cars'})
+    car2.save(meta={'group': 'cars'})
 
     # Look for them
     results = psh.find(meta=dict(group='cars'))
@@ -77,7 +77,7 @@ def test_find_starting_point():
     fill_with_cars(subdirs)
     num_subdirs = len(subdirs)
 
-    for idx, subdir in enumerate(subdirs):
+    for idx, _subdir in enumerate(subdirs):
         start_point = "/".join(subdirs[:idx + 1])
         found = psh.find(start_point)
         assert len(found) == num_subdirs - idx

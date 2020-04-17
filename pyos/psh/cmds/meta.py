@@ -41,8 +41,8 @@ def meta(options, *obj_or_ids, **updates):
 
         if len(obj_ids) == 1:
             # Special case for a single parameter
-            return pyos.psh_lib.ResultsDict(next(pyos.db.lib.get_meta(*obj_ids)))
+            return pyos.psh_lib.ResultsDict(pyos.db.lib.get_meta(obj_ids[0]))
 
-        return pyos.psh_lib.CachingResults(pyos.db.lib.get_meta(*obj_ids))
+        return pyos.psh_lib.CachingResults(pyos.db.lib.find_meta(obj_ids=obj_ids))
 
     return None

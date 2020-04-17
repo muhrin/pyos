@@ -23,6 +23,9 @@ def unset_(*keys: Iterable[str]):
 
 
 def in_(*args):
+    if len(args) == 1:
+        return args[0]
+
     return {'$in': list(args)}
 
 

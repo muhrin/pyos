@@ -35,14 +35,10 @@ def reset():
 # region metadata
 
 
-def get_meta(*obj_or_identifier: Iterable):
+def get_meta(obj_id: Union[Any, Iterable[Any]]):
     """Get the metadata for a bunch of objects"""
-    obj_ids = tuple(map(to_obj_id, obj_or_identifier))
     hist = get_historian()
-    results = {meta['obj_id']: meta for meta in hist.meta.find({'obj_id': queries.in_(*obj_ids)})}
-
-    for obj_id in obj_ids:
-        yield results.get(obj_id, None)
+    return hist.archive.meta_get(obj_id)
 
 
 def update_meta(*obj_or_identifier: Iterable, meta: dict):
@@ -56,7 +52,7 @@ def set_meta(*obj_or_identifier: Iterable, meta: dict):
     """Set the metadata for a bunch of objects"""
     hist = get_historian()
     obj_ids = tuple(map(to_obj_id, obj_or_identifier))
-    metas = {meta['obj_id']: meta for meta in find_meta({'obj_id': queries.in_(*obj_ids)})}
+    metas = dict(find_meta(obj_ids=obj_ids))
 
     # Preserve the internal keys
     for obj_id in obj_ids:
@@ -64,10 +60,10 @@ def set_meta(*obj_or_identifier: Iterable, meta: dict):
         hist.meta.set(obj_id, new_meta)
 
 
-def find_meta(filter: dict = None):  # pylint: disable=redefined-builtin
+def find_meta(filter: dict = None, obj_ids=None):  # pylint: disable=redefined-builtin
     filter = filter or {}
     hist = get_historian()
-    return hist.meta.find(filter)
+    return hist.meta.find(filter, obj_ids)
 
 
 def set_name(*obj_ids, name: str):
@@ -87,7 +83,7 @@ def get_name(*obj_or_ids) -> Sequence[Optional[str]]:
 # endregion
 
 
-def save_one(obj, path: pyos.os.PathSpec = None, overwrite=False):
+def save_one(obj, path: pyos.os.PathSpec = None, overwrite=False, historian=None):
     """Save one object to a the given path.  The path can be a filename or a directory or a filename
     in a directory
 
@@ -95,9 +91,10 @@ def save_one(obj, path: pyos.os.PathSpec = None, overwrite=False):
     :param path: the optional path to save it to
     :param overwrite: overwrite if there is already an object at that path
     """
+    hist = historian or get_historian()
+
     if path is None:
         # Check if it's already saved (in which case we don't need to set a path)
-        hist = get_historian()
         if hist.get_obj_id(obj) is None:
             path = './'
 
@@ -107,17 +104,19 @@ def save_one(obj, path: pyos.os.PathSpec = None, overwrite=False):
         meta = utils.path_to_meta_dict(path)
 
     try:
-        return get_historian().save(obj, with_meta=meta)
+        return hist.save_one(obj, meta=meta)
     except mincepy.DuplicateKeyError:
         if overwrite:
             pyos.os.remove(path)
             # Try again
-            return get_historian().save(obj, with_meta=meta)
+            return hist.save_one(obj, meta=meta)
 
         raise
 
 
-def save_many(to_save: Iterable[Union[Any, Tuple[Any, pyos.os.PathSpec]]], overwrite=False):
+def save_many(to_save: Iterable[Union[Any, Tuple[Any, pyos.os.PathSpec]]],
+              overwrite=False,
+              historian=None):
     """
     Save many objects, expects an iterable where each entry is an object to save or a tuple of
     length 2 containing the object and a path of where to save it.
@@ -135,7 +134,7 @@ def save_many(to_save: Iterable[Union[Any, Tuple[Any, pyos.os.PathSpec]]], overw
         else:
             # Assume it's just the object
             obj = entry
-        obj_ids.append(save_one(obj, path, overwrite))
+        obj_ids.append(save_one(obj, path, overwrite, historian=historian))
 
     return obj_ids
 
@@ -168,6 +167,6 @@ def get_obj_id(path: pyos.os.PathSpec):
     """Given a path get the id of the corresponding object.  Returns None if not found."""
     results = find_meta(utils.path_to_meta_dict(path))
     try:
-        return next(results)['obj_id']
+        return next(results)[0]
     except StopIteration:
         return None

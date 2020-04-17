@@ -137,7 +137,7 @@ class PurePath(pyos.os.PathLike):
         return self.__class__(pyos.os.path.join(self, *other))
 
 
-class Path(PurePath, mincepy.BaseSavableObject):
+class Path(PurePath, mincepy.SimpleSavable):
     """A path in Pyos.  Where possible the convention follows that of a PurePosixPath in pathlib.
     The one major exception is that folders are represented with an explicit trailing '/' and
     anything else is a file."""

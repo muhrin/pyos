@@ -178,12 +178,12 @@ class DirectoryNode(ContainerNode, FilesystemNode):
         directories_added = set()
 
         obj_kwargs = []
-        for meta in metas:
+        for obj_id, meta in metas:
             directory = meta[pyos.config.DIR_KEY]
 
             if directory == dirstring:
                 # This is an object in _this_ directory and not further down the hierarchy
-                obj_kwargs.append(dict(obj_id=meta['obj_id'], meta=meta, parent=self))
+                obj_kwargs.append(dict(obj_id=obj_id, meta=meta, parent=self))
             else:
                 # This is an object that resides at some subdirectory so we know
                 # that there must exist a subdirectory
@@ -210,8 +210,9 @@ class DirectoryNode(ContainerNode, FilesystemNode):
 
     def delete(self):
         with self._hist.transaction():
-            for meta in self._hist.meta.find(pyos.db.queries.subdirs(str(self._abspath), 0, -1)):
-                self._hist.delete(meta['obj_id'])
+            for obj_id, _meta in self._hist.meta.find(
+                    pyos.db.queries.subdirs(str(self._abspath), 0, -1)):
+                self._hist.delete(obj_id)
         self._invalidate_cache()
 
     def move(self, where: pyos.pathlib.PurePath, overwrite=False):
@@ -242,16 +243,13 @@ class ObjectNode(FilesystemNode):
             if not results:
                 raise ValueError("'{}' is not a valid object path".format(path))
 
-            meta = results[0]
-            obj_id = meta['obj_id']
+            obj_id, meta = results[0]
 
         return ObjectNode(obj_id, meta=meta)
 
     def __init__(self, obj_id, record: mincepy.DataRecord = None, meta=None, parent=None):
         if record:
             assert obj_id == record.obj_id, "Obj id and record don't match!"
-        if meta:
-            assert obj_id == meta['obj_id'], "Obj id and meta don't match!"
 
         self._hist = pyos.db.get_historian()
         self._obj_id = obj_id
@@ -262,7 +260,7 @@ class ObjectNode(FilesystemNode):
         if self._meta is None:
             self._meta = self._hist.meta.get(obj_id)
             if self._meta is None:
-                # Double check this object actually exists
+                # Still don't have metadata! Double check this object actually exists
                 try:
                     record = next(self._hist.archive.find(obj_id=obj_id,
                                                           deleted=True))  # type: mincepy.DataRecord
@@ -273,10 +271,6 @@ class ObjectNode(FilesystemNode):
                         raise ValueError("Object with id '{}' has been deleted".format(obj_id))
                     self._record = record
                     self._meta = {}
-
-            self._meta['obj_id'] = obj_id
-
-        assert self._meta['obj_id'] == obj_id
 
         # Set up the abspath
         abspath = pyos.db.get_abspath(obj_id, self._meta)
@@ -354,15 +348,24 @@ class ObjectNode(FilesystemNode):
         meta_update = pyos.db.path_to_meta_dict(where)
         try:
             self._hist.meta.update(self._obj_id, meta_update)
-        except mincepy.DuplicateKeyError:
+        except mincepy.DuplicateKeyError as exc:
             if overwrite:
                 # Delete the current one
+                # Copy over the path specification
+                path_spec = {
+                    key: meta_update[key] for key in (pyos.config.NAME_KEY, pyos.config.NAME_KEY)
+                }
+
                 try:
-                    results = tuple(self._hist.meta.find(meta_update))
-                    to_delete = results[0]['obj_id']
+                    results = tuple(self._hist.meta.find(path_spec))
+                    assert len(results) <= 1, \
+                        "Shouldn't be possible to have more than one object with the same path, " \
+                        "check the indexes"
+
+                    to_delete = results[0].obj_id
                 except IndexError:
                     # Give up
-                    return
+                    raise exc
                 else:
                     self._hist.delete(to_delete)
 
@@ -579,21 +582,16 @@ def find(*starting_point,
     hist = pyos.db.get_historian()
 
     # Find the metadata
-    metas = {}
-    for result in hist.meta.find(meta):
-        metas[result['obj_id']] = result
-
-    data = {}
+    metas = dict(hist.meta.find(meta))
+    records = {}
     if metas and (type is not None or state is not None):
         # Further restrict the match
-        meta_filter = {'obj_id': pyos.db.queries.in_(*metas.keys())}
-        for entry in hist.find(obj_type=type, state=state, meta=meta_filter, as_objects=False):
-            data[entry.obj_id] = dict(record=entry, meta=metas[entry.obj_id])
+        obj_id_filter = pyos.db.queries.in_(*metas.keys())
+        for record in hist.find_records(obj_id=obj_id_filter, obj_type=type, state=state):
+            records[record.obj_id] = record
 
     results = pyos.fs.ResultsNode()
-    for obj_id, entry in data.items():
-        node = pyos.fs.ObjectNode(obj_id,
-                                  record=entry.get('record', None),
-                                  meta=entry.get('meta', None))
+    for obj_id, record in records.items():
+        node = pyos.fs.ObjectNode(obj_id, record=record, meta=metas[obj_id])
         results.append(node)
     return results
