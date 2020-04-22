@@ -50,7 +50,7 @@ def normpath(path: types.PathSpec) -> str:
     path = posixpath.normpath(path)
     if path.startswith('//'):
         path = path[1:]
-    if final_slash or path == dot:
+    if (final_slash or path == dot) and path != '/':
         path += sep
 
     return path or dot + sep

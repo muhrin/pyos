@@ -573,7 +573,7 @@ def find(*starting_point,
         state = {}
 
     # Converting starting points to abspaths
-    spoints = [pyos.os.path.abspath(pyos.os.fspath(path) + pyos.os.sep) for path in starting_point]
+    spoints = [str(pyos.PurePath(path).to_dir().resolve()) for path in starting_point]
 
     # Add the directory search criteria to the meta search
     subdirs_query = (pyos.db.queries.subdirs(point, mindepth, maxdepth) for point in spoints)
@@ -594,4 +594,5 @@ def find(*starting_point,
     for obj_id, record in records.items():
         node = pyos.fs.ObjectNode(obj_id, record=record, meta=metas[obj_id])
         results.append(node)
+
     return results

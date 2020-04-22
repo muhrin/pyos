@@ -87,7 +87,7 @@ class PurePath(pyos.os.PathLike):
         return self._path
 
     def __truediv__(self, other):
-        if not isinstance(other, Path):
+        if not isinstance(other, PurePath):
             if isinstance(other, str):
                 other = self.__class__(other)
             else:

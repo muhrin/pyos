@@ -132,3 +132,16 @@ def test_ls_minus_l():
 def test_inexistent():
     """This used to raise but shouldn't do make sure it's possible"""
     assert len(psh.ls('not_there')) == 0
+
+
+def test_vanishing_folders():
+    """Test for bug we had where folders would vanish if changed to their parent directory"""
+    psh.cd('/test/')
+    car_id = psh.save(Car())
+    results = psh.ls()
+    assert len(results) == 1
+    assert results[0].obj_id == car_id
+
+    results = psh.ls('/')
+    assert len(results) == 1
+    assert results[0].abspath == pyos.Path('/test/')
