@@ -19,5 +19,5 @@ def test_overwrite(historian: mincepy.Historian):
     pyos.db.save_one(new_car, 'car', overwrite=True)
     del new_car
 
-    with pytest.raises(mincepy.ObjectDeleted):
+    with pytest.raises(mincepy.NotFound):
         historian.load(car_id)

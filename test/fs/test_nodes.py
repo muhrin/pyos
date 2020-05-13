@@ -55,7 +55,7 @@ def test_dir_delete(historian: mincepy.Historian):
     address_book_node.delete()
     assert not address_book.exists()
 
-    with pytest.raises(mincepy.ObjectDeleted):
+    with pytest.raises(mincepy.NotFound):
         historian.load(martin_id)
-    with pytest.raises(mincepy.ObjectDeleted):
+    with pytest.raises(mincepy.NotFound):
         historian.load(sonia_id)
