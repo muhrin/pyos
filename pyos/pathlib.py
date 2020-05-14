@@ -156,6 +156,14 @@ class Path(PurePath, mincepy.SimpleSavable):
         """Test whether a path point exists"""
         return pyos.os.path.exists(self)
 
+    def unlink(self, missing_ok=False):
+        if not self.exists():
+            if missing_ok:
+                return
+            raise pyos.FileNotFoundError("Can't delete '{}', it does not exist".format(self))
+
+        pyos.os.unlink(self)
+
 
 @contextlib.contextmanager
 def working_path(path: pyos.os.PathSpec):

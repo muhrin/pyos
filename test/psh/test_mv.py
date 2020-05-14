@@ -1,3 +1,5 @@
+import io
+
 from mincepy.testing import Car
 
 import pyos
@@ -80,17 +82,17 @@ def test_mv_remote():
 
 
 def test_mv_overwrite():
-    """Test the moving handles overwriting an existing name correctly"""
+    """Test that mv overwrites an existing object correctly"""
     car1 = Car()
     psh.save(car1, 'my_car')
 
     car2 = Car()
     car2.save()
-    psh.mv(car2, 'my_car')
+    psh.mv(psh.f, car2, 'my_car')
 
 
-def test_mv_no_clobber():
-    """Test moving with no clobber"""
+def test_mv_overwrite_prompt(monkeypatch):
+    """Test moving with that would cause an overwrite without force"""
     car1 = Car()
     psh.save(car1, 'my_car')
 
@@ -98,8 +100,18 @@ def test_mv_no_clobber():
     psh.save(car2, 'my_car2')
 
     assert len(psh.ls()) == 2
-    psh.mv(-psh.n, car2, 'my_car')
+
+    # This will prompt
+    confirm = io.StringIO('N')
+    monkeypatch.setattr('sys.stdin', confirm)
+    psh.mv(car2, 'my_car')
     assert len(psh.ls()) == 2  # Still 2
+
+    # Now overwrite
+    confirm = io.StringIO('Y')
+    monkeypatch.setattr('sys.stdin', confirm)
+    psh.mv(car2, 'my_car')
+    assert len(psh.ls()) == 1
 
 
 def test_mv_multiple():
@@ -112,3 +124,16 @@ def test_mv_multiple():
 
     psh.mv('skoda', 'ferrari', 'garage/')
     assert psh.ls('garage/') | len == 2
+
+
+def test_mv_rename_directory():
+    psh.cd('cars/')
+    car_id = Car().save()
+    psh.cd('../')
+
+    # Now, rename the directory using mv
+    psh.mv('cars/', 'new_cars')
+    results = psh.ls('new_cars/')
+
+    assert len(results) == 1
+    assert results[0].obj_id == car_id

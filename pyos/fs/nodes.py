@@ -1,4 +1,4 @@
-from abc import ABCMeta
+import abc
 from collections.abc import Sequence
 import copy
 import functools
@@ -21,7 +21,7 @@ TREE_VIEW = 'tree'
 TABLE_VIEW = 'table'
 
 
-class BaseNode(Sequence, anytree.NodeMixin, pyos.results.BaseResults, metaclass=ABCMeta):
+class BaseNode(Sequence, anytree.NodeMixin, pyos.results.BaseResults, metaclass=abc.ABCMeta):
 
     def __init__(self, name: str, parent=None):
         super().__init__()
@@ -69,6 +69,10 @@ class FilesystemNode(BaseNode):
     @property
     def abspath(self) -> pyos.pathlib.Path:
         return self._abspath
+
+    @abc.abstractmethod
+    def rename(self, new_name: str):
+        """Rename this filesystem node"""
 
 
 class ContainerNode(BaseNode):
@@ -215,13 +219,34 @@ class DirectoryNode(ContainerNode, FilesystemNode):
                 self._hist.delete(obj_id)
         self._invalidate_cache()
 
-    def move(self, where: pyos.pathlib.PurePath, overwrite=False):
-        where = pyos.pathlib.PurePath(where)
-        assert where.is_dir_path(), "Can't move a directory to a file"
-        where = where.resolve()
-        self.expand(1)
-        for child in self.children:
-            child.move((where / self.name).to_dir())
+    def move(self, where: pyos.os.PathSpec, overwrite=False):
+        where = pyos.pathlib.Path(where).to_dir()
+
+        # The new path is the dest directory plus our current name
+        newpath = where.resolve() / self.name
+
+        if newpath.is_dir():
+            raise RuntimeError("Directory '{}' already exists".format(newpath))
+
+        with self._hist.transaction():
+            self.expand(1)
+            for child in self.children:
+                child.move((newpath / self.name).to_dir())
+
+        self._abspath = newpath
+
+    def rename(self, new_name: str):
+        newpath = pyos.Path(self.abspath.parent / new_name).to_dir()
+
+        if newpath.is_dir():
+            raise RuntimeError("Folder with the name '{}' already exists".format(new_name))
+
+        with self._hist.transaction():
+            self.expand(1)
+            for child in self.children:
+                child.move(newpath)
+
+        self._abspath = newpath
 
 
 class ObjectNode(FilesystemNode):
@@ -371,6 +396,12 @@ class ObjectNode(FilesystemNode):
 
                 # One more time...
                 self._hist.meta.update(self._obj_id, meta_update)
+
+    def rename(self, new_name: str):
+        try:
+            self._hist.meta.update(self._obj_id, {pyos.config.NAME_KEY: new_name})
+        except mincepy.DuplicateKeyError:
+            raise RuntimeError("File with the name '{}' already exists".format(new_name))
 
 
 class ResultsNode(ContainerNode):

@@ -1,7 +1,7 @@
 """Functions and constants that emulate python's os module"""
 import mincepy
 
-__all__ = 'getcwd', 'chdir', 'fspath', 'remove', 'sep'
+__all__ = 'getcwd', 'chdir', 'fspath', 'remove', 'sep', 'unlink'
 
 import pyos
 from . import types
@@ -91,3 +91,14 @@ def remove(path: types.PathSpec):
 
     obj_id = pyos.db.get_obj_id(path)
     pyos.db.get_historian().delete(obj_id)
+
+
+def unlink(path: types.PathSpec):
+    """
+    Remove (delete) the file path. This function is semantically identical to remove(); the unlink
+    name is its traditional Unix name. Please see the documentation for remove() for further
+    information.
+
+    :param path: the path to remove
+    """
+    return remove(path)

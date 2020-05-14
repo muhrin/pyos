@@ -1,4 +1,4 @@
-__all__ = ('IsADirectory',)
+__all__ = ('PyOSError', 'IsADirectory', 'FileNotFoundError')
 
 
 class PyOSError(Exception):
@@ -7,3 +7,7 @@ class PyOSError(Exception):
 
 class IsADirectory(PyOSError):
     """Raise when a file is expected but a directory was passed"""
+
+
+class FileNotFoundError(PyOSError):  # pylint: disable=redefined-builtin
+    """A file was not found"""
