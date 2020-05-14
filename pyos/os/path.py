@@ -6,6 +6,8 @@ import pyos
 from . import types
 from . import pos
 
+from .pos import curdir, sep, pardir
+
 
 def isabs(path: types.PathSpec):
     """Test whether a path is absolute
@@ -43,7 +45,6 @@ def normpath(path: types.PathSpec) -> str:
 
     :type path: pyos.os.PathSpec
     """
-    sep = pos.sep
     dot = '.'
     path = pos.fspath(path)
     final_slash = path.endswith(sep)
@@ -95,3 +96,62 @@ def split(path: types.PathSpec) -> tuple:
     if parts[0]:
         parts = (parts[0] + pos.sep, parts[1])
     return parts
+
+
+def relpath(path: types.PathSpec, start=pos.curdir) -> str:
+    """
+    Return a relative filepath to path either from the current directory or from an optional start
+    directory. This is a path computation: the filesystem is not accessed to confirm the existence
+    or nature of path or start.
+
+    start defaults to pos.curdir.
+
+    :param path: the path to get the relative path for
+    :param start: the start directory
+    """
+    if not path:
+        raise ValueError("no path specified")
+
+    path = pos.fspath(path)
+
+    if start is None:
+        start = curdir
+    else:
+        start = pos.fspath(start)
+
+    try:
+        start_list = [x for x in abspath(start).split(sep) if x]
+        path_list = [x for x in abspath(path).split(sep) if x]
+        # Work out how much of the filepath is shared by start and path.
+        i = len(commonprefix([start_list, path_list]))
+
+        rel_list = [pardir] * (len(start_list) - i) + path_list[i:]
+        if not rel_list:
+            return curdir
+        return join(*rel_list)
+    except (TypeError, AttributeError, DeprecationWarning):
+        _check_arg_types('relpath', path, start)
+        raise
+
+
+# Return the longest prefix of all list elements.
+def commonprefix(names):
+    """Given a list of pathnames, returns the longest common leading component"""
+    if not names:
+        return ''
+    if not isinstance(names[0], (list, tuple)):
+        names = tuple(map(pos.fspath, names))
+    str1 = min(names)
+    str2 = max(names)
+    for i, char in enumerate(str1):
+        if char != str2[i]:
+            return str1[:i]
+    return str1
+
+
+def _check_arg_types(funcname, *args):
+    for arg in args:
+        if not isinstance(arg, str):
+            raise TypeError('{}() argument must be str, bytes, or '
+                            'os.PathLike object, not {}'.format(funcname,
+                                                                arg.__class__.__name__)) from None

@@ -9,6 +9,7 @@ import columnize
 import tabulate
 
 import mincepy
+import mincepy.qops
 
 import pyos
 import pyos.results
@@ -528,6 +529,12 @@ class ResultsNode(ContainerNode):
         if 'abspath' in self._show:
             row.append(str(getattr(child, 'abspath', empty)))
 
+        if 'relpath' in self._show:
+            try:
+                row.append(pyos.os.path.relpath(child.abspath))
+            except AttributeError:
+                row.append(empty)
+
         return row
 
     def _get_table(self, entry) -> list:
@@ -598,10 +605,8 @@ def find(*starting_point,
     """
     if not starting_point:
         starting_point = (pyos.os.getcwd(),)
-    if meta is None:
-        meta = {}
-    if state is None:
-        state = {}
+    meta = (meta or {}).copy()
+    state = (state or {}).copy()
 
     # Converting starting points to abspaths
     spoints = [str(pyos.PurePath(path).to_dir().resolve()) for path in starting_point]
@@ -617,11 +622,13 @@ def find(*starting_point,
     records = {}
     if metas and (type is not None or state is not None):
         # Further restrict the match
-        obj_id_filter = pyos.db.queries.in_(*metas.keys())
+        obj_id_filter = mincepy.qops.in_(*metas.keys())
         for record in hist.find_records(obj_id=obj_id_filter, obj_type=type, state=state):
             records[record.obj_id] = record
 
     results = pyos.fs.ResultsNode()
+    results.show('relpath')
+
     for obj_id, record in records.items():
         node = pyos.fs.ObjectNode(obj_id, record=record, meta=metas[obj_id])
         results.append(node)

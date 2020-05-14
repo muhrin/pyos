@@ -1,13 +1,18 @@
 """Functions and constants that emulate python's os module"""
 import mincepy
 
-__all__ = 'getcwd', 'chdir', 'fspath', 'remove', 'sep', 'unlink'
+__all__ = 'getcwd', 'chdir', 'fspath', 'remove', 'sep', 'unlink', 'curdir', 'pardir'
 
 import pyos
 from . import types
 
-name = 'pyos'  # pylint: disable=invalid-name
+# pylint: disable=invalid-name
+name = 'pyos'
 sep = '/'  # The path separator pylint: disable=invalid-name
+# Used to refer to the current directory
+curdir = '.'
+# Used to refer to the parent directory
+pardir = '..'
 
 
 def chdir(path: types.PathSpec):
