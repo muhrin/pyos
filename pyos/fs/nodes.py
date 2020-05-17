@@ -257,7 +257,7 @@ class ObjectNode(FilesystemNode):
     def from_path(cls, path: pyos.os.PathLike):
         path = pyos.pathlib.PurePath(path)
         if path.is_dir_path():
-            raise pyos.IsADirectory(path)
+            raise pyos.IsADirectoryError(path)
 
         path = path.resolve()
         meta = None
@@ -573,8 +573,8 @@ def _(entry: FilesystemNode):
     return entry
 
 
-@to_node.register(pyos.pathlib.PurePath)
-def _(entry: pyos.pathlib.PurePath):
+@to_node.register(pyos.os.PathLike)
+def _(entry: pyos.os.PathLike):
     # Make sure we've got a pure path so we don't actually check that database
     entry = pyos.pathlib.PurePath(entry)
 

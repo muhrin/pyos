@@ -3,7 +3,10 @@ from .flags import *
 from .cmds import *
 from . import flags
 from . import cmds
+from . import completion
 
-_ADDITIONAL = ('queries',)
+cwd = completion.PathCompletion('.')  # pylint: disable=invalid-name
+
+_ADDITIONAL = 'queries', 'completion', 'cwd'
 
 __all__ = cmds.__all__ + flags.__all__ + _ADDITIONAL

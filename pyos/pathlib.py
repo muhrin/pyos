@@ -1,7 +1,6 @@
 """Module that deals with directories and paths"""
 import contextlib
-import typing
-from typing import Sequence
+from typing import Sequence, Iterable, Tuple
 import uuid
 
 import mincepy
@@ -25,7 +24,7 @@ class PurePath(pyos.os.PathLike):
         self._path = pyos.os.path.normpath(path)
 
     @property
-    def parts(self) -> typing.Tuple[str]:
+    def parts(self) -> Tuple[str]:
         parts = list(self._path.split('/'))
         for idx in range(len(parts) - 1):
             parts[idx] += '/'
@@ -112,7 +111,7 @@ class PurePath(pyos.os.PathLike):
     def is_absolute(self) -> bool:
         return pyos.os.path.isabs(self._path)
 
-    def to_dir(self):
+    def to_dir(self) -> 'PurePath':
         """If this path is a file path then a directory with the same name will be
         returned. Otherwise this path will be returned"""
         if self.is_dir_path():
@@ -163,6 +162,32 @@ class Path(PurePath, mincepy.SimpleSavable):
             raise pyos.FileNotFoundError("Can't delete '{}', it does not exist".format(self))
 
         pyos.os.unlink(self)
+
+    def iterdir(self) -> Iterable['Path']:
+        """
+        When the path points to a directory, yield path objects of the directory contents:
+
+        >>>
+        >>> p = Path('docs')
+        >>> for child in p.iterdir(): child
+        ...
+        Path('docs/conf')
+        Path('docs/readme')
+        Path('docs/index.rst')
+        Path('docs/_build')
+        Path('docs/_static')
+        """
+        if not self.is_dir_path():
+            raise pyos.exceptions.NotADirectoryError("Not a directory: {}".format(
+                pyos.os.path.relpath(self)))
+        if not self.exists():
+            raise pyos.exceptions.FileNotFoundError("No such directory: '{}'".format(
+                pyos.os.path.relpath(self)))
+
+        node = pyos.fs.DirectoryNode(self)
+        node.expand(1)
+        for child in node.children:
+            yield child.abspath
 
 
 @contextlib.contextmanager

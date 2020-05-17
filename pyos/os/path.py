@@ -75,7 +75,11 @@ def dirname(path: types.PathSpec) -> str:
 def exists(path: types.PathSpec):
     """Return `True` if the path exists"""
     path = pyos.os.path.abspath(path)
-    results = pyos.db.find_meta(pyos.db.path_to_meta_dict(path))
+    query = pyos.db.path_to_meta_dict(path)
+    if path.endswith(sep):
+        query[pyos.config.DIR_KEY] = {'$regex': '{}.*'.format(query[pyos.config.DIR_KEY])}
+
+    results = pyos.db.find_meta(query)
     try:
         # Check if we have hits
         next(results)

@@ -71,7 +71,7 @@ def open(file: types.PathSpec, mode='r', encoding: str = None) -> mincepy.File:
     """
     path = pyos.os.path.abspath(file)
     if path.endswith(sep):
-        raise pyos.IsADirectory(file)
+        raise pyos.IsADirectoryError(file)
 
     results = pyos.db.find_meta(pyos.db.path_to_meta_dict(path))
     try:
@@ -92,7 +92,7 @@ def remove(path: types.PathSpec):
     rmdir() to remove directories."""
     path = pyos.os.path.abspath(path)
     if path.endswith(sep):
-        raise pyos.IsADirectory(path)
+        raise pyos.IsADirectoryError(path)
 
     obj_id = pyos.db.get_obj_id(path)
     pyos.db.get_historian().delete(obj_id)

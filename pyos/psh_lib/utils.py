@@ -40,8 +40,8 @@ def _(arg: pyos.fs.ResultsNode):
     return parse_args(*arg.children)
 
 
-@parse_arg.register(pyos.pathlib.Path)
-def _(arg: pyos.pathlib.Path):
+@parse_arg.register(pyos.os.PathLike)
+def _(arg: pyos.os.PathLike):
     return [arg]
 
 
