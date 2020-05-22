@@ -1,7 +1,7 @@
 import pytest
 
 import mincepy
-from mincepy.testing import Car
+from mincepy.testing import Car, Garage
 
 from pyos import psh
 
@@ -64,3 +64,25 @@ def test_rm_directory():
     assert car1.is_saved()
     assert not car2.is_saved()
     assert not car3.is_saved()
+
+
+def test_rm_objects_with_references():
+    """Test deleting objects in a directory that reference each other"""
+    num_cars = 10
+    psh.cd('/cars/garage/')
+    for _ in range(num_cars):
+        Car().save()
+
+    psh.cd('/cars/')
+    cars = mincepy.RefList()
+    cars.extend(psh.load(psh.ls('garage/')))
+
+    psh.save(cars)
+    results = psh.ls()
+    assert len(results) == 2  # the list plus the 'garage' folder
+
+    psh.cd('/')
+    # Delete the folder
+    psh.rm - psh.r('/cars/')
+
+    assert len(psh.ls('/cars/')) == 0
