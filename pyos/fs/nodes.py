@@ -131,6 +131,16 @@ class ContainerNode(BaseNode):
 
         return False
 
+    def __getitem__(self, item):
+        items = super(ContainerNode, self).__getitem__(item)
+        if isinstance(item, slice):
+            results = ResultsNode()
+            for entry in items:
+                results.append(copy.copy(entry))
+            return results
+
+        return items
+
     @property
     def directories(self):
         return filter(lambda node: isinstance(node, DirectoryNode), self.children)
@@ -142,7 +152,7 @@ class ContainerNode(BaseNode):
 
 class DirectoryNode(ContainerNode, FilesystemNode):
 
-    def __init__(self, path: pyos.os.PathLike, parent: BaseNode = None):
+    def __init__(self, path: pyos.os.PathSpec, parent: BaseNode = None):
         path = pyos.pathlib.PurePath(path)
         assert path.is_dir_path(), "Must supply a directory path"
         super().__init__(path.resolve(), parent)
@@ -455,6 +465,19 @@ class ResultsNode(ContainerNode):
             return columnize.columnize(repr_list, displaywidth=pyos.psh_lib.get_terminal_width())
 
         return super().__repr__()
+
+    def __getitem__(self, item):
+        result = super(ResultsNode, self).__getitem__(item)
+        if isinstance(result, ResultsNode):
+            # Transfer the view mode
+            result.show(*self._show, mode=self._view_mode)
+        return result
+
+    @property
+    def showing(self) -> set:
+        """Returns the current view properties that are being displayed (if the view mode supports
+        them)"""
+        return self._show
 
     @property
     def view_mode(self) -> str:
