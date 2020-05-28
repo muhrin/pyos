@@ -46,7 +46,7 @@ Features
 * Familiar flags from the shell e.g. ``ls (-l)``, ``cp(-n)``.
 * Easy pipe-like chaining e.g. ``find(meta=dict(name='martin')) | rm``
 
-Think of PyOS as a mixture between an ORM like `Django`_ or `SQLAlchemy`_ but where you can store any class by providing
+Think of pyOS as a mixture between an ORM like `Django`_ or `SQLAlchemy`_ but where you can store any class by providing
 a simple mapper, from then on you interact with your objects as if they were files in a filesystem.
 Many of the familiar \*nix commands are available (``ls``, ``mv``, ``rm``, ``tree``, ``cat``,
 ``find``) except they take on a new, more powerful form because you're in a fully fledged python environment!
@@ -105,6 +105,7 @@ Table Of Contents
    :glob:
    :maxdepth: 3
 
+   basics
    examples/quick-start.ipynb
    examples/restaurants.ipynb
    apidoc
