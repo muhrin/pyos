@@ -47,11 +47,12 @@ def normpath(path: types.PathSpec) -> str:
     """
     dot = '.'
     path = pos.fspath(path)
-    final_slash = path.endswith(sep)
+    needs_final_slash = path.endswith(sep) or path.endswith(dot)
     path = posixpath.normpath(path)
     if path.startswith('//'):
         path = path[1:]
-    if (final_slash or path == dot) and path != '/':
+    # Posix will never return a trailing '/' so check if we need to add it back
+    if needs_final_slash and path != '/':
         path += sep
 
     return path or dot + sep

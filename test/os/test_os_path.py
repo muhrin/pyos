@@ -3,6 +3,7 @@ import re
 from mincepy.testing import Car
 
 import pyos
+from pyos import os
 
 
 def test_normpath_curdir():
@@ -21,3 +22,13 @@ def test_exists():
     parts = re.findall(r'(\w*/|\w+$)', car_path)
     for idx in range(1, len(parts)):
         assert pyos.os.path.exists(''.join(parts[:idx]))
+
+
+def test_normpath_parent_dir():
+    assert os.path.normpath('a/b/../') == "a/"
+    assert os.path.normpath('a/b/..') == "a/"
+
+
+def test_normpah_current_dir():
+    assert os.path.normpath('a/b/./') == "a/b/"
+    assert os.path.normpath('a/b/.') == "a/b/"
