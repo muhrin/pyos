@@ -3,13 +3,13 @@ from typing import Sequence, Iterable, Optional, Tuple, Any, Union
 
 import mincepy
 
-import pyos
-from . import queries
+from pyos import config
+from pyos import os
 from . import utils
 
-__all__ = ('get_historian', 'get_meta', 'update_meta', 'set_meta', 'find_meta', 'set_name',
-           'save_one', 'save_many', 'get_abspath', 'load', 'to_obj_id', 'get_obj_id', 'init',
-           'reset')
+__all__ = ('get_historian', 'get_meta', 'update_meta', 'set_meta', 'find_meta', 'save_one',
+           'save_many', 'get_abspath', 'load', 'to_obj_id', 'get_obj_id', 'init', 'reset',
+           'get_path', 'get_paths')
 
 
 def get_historian():
@@ -19,17 +19,17 @@ def get_historian():
 
 def init():
     mincepy.get_historian().meta.create_index([
-        (pyos.config.NAME_KEY, mincepy.ASCENDING),
-        (pyos.config.DIR_KEY, mincepy.ASCENDING),
+        (config.NAME_KEY, mincepy.ASCENDING),
+        (config.DIR_KEY, mincepy.ASCENDING),
     ],
                                               unique=True,
                                               where_exist=True)
     path = '/{}/'.format(getpass.getuser())
-    get_historian().meta.sticky[pyos.config.DIR_KEY] = path
+    get_historian().meta.sticky[config.DIR_KEY] = path
 
 
 def reset():
-    get_historian().meta.sticky.pop(pyos.config.DIR_KEY, None)
+    get_historian().meta.sticky.pop(config.DIR_KEY, None)
 
 
 # region metadata
@@ -66,24 +66,35 @@ def find_meta(filter: dict = None, obj_ids=None):  # pylint: disable=redefined-b
     return hist.meta.find(filter, obj_ids)
 
 
-def set_name(*obj_ids, name: str):
-    """Set the name of the passed object(s)"""
-    update = {pyos.config.NAME_KEY: name}
-    update_meta(*obj_ids, meta=update)
-
-
-def get_name(*obj_or_ids) -> Sequence[Optional[str]]:
-    """Get the name of the passed objects(s)"""
-    hist = get_historian()
-    results = hist.meta.find({'obj_id': queries.in_(*obj_or_ids)})
-    names = {meta['obj_id']: meta[pyos.config.NAME_KEY] for meta in results}
-    return [names.get(obj_id, None) for obj_id in obj_or_ids]
-
-
 # endregion
 
 
-def save_one(obj, path: pyos.os.PathSpec = None, overwrite=False, historian=None):
+def get_path(obj_or_id) -> Optional[str]:
+    """Given an object or object id get the current path"""
+    return get_paths(obj_or_id)[0]
+
+
+def get_paths(*obj_or_id) -> Sequence[Optional[str]]:
+    """Given objects or identifier this will return their current paths in the order they were
+    passed"""
+    hist = get_historian()
+    obj_ids = tuple(map(hist.get_obj_id, obj_or_id))
+    metas = dict(hist.meta.find({}, obj_id=obj_ids))
+    paths = []
+    for obj_id in obj_ids:
+        meta = metas.pop(obj_id)
+        dirname, name = meta.get(config.DIR_KEY, None), meta.get(config.NAME_KEY, None)
+        path = []
+        if dirname:
+            path.append(dirname)
+        path.append(name or str(obj_id))
+
+        paths.append(os.path.join(*path))
+
+    return paths
+
+
+def save_one(obj, path: os.PathSpec = None, overwrite=False, historian=None):
     """Save one object to a the given path.  The path can be a filename or a directory or a filename
     in a directory
 
@@ -100,21 +111,21 @@ def save_one(obj, path: pyos.os.PathSpec = None, overwrite=False, historian=None
 
     meta = None
     if path is not None:
-        path = pyos.os.path.abspath(path)
+        path = os.path.abspath(path)
         meta = utils.path_to_meta_dict(path)
 
     try:
         return hist.save_one(obj, meta=meta)
     except mincepy.DuplicateKeyError:
         if overwrite:
-            pyos.os.remove(path)
+            os.remove(path)
             # Try again
             return hist.save_one(obj, meta=meta)
 
         raise
 
 
-def save_many(to_save: Iterable[Union[Any, Tuple[Any, pyos.os.PathSpec]]],
+def save_many(to_save: Iterable[Union[Any, Tuple[Any, os.PathSpec]]],
               overwrite=False,
               historian=None):
     """
@@ -146,14 +157,11 @@ def load(*identifier):
 
 def get_abspath(obj_id, meta: dict) -> str:
     """Given an object id and metadata dictionary this method will return a string representing
-    the absolute path of the object
-
-    :rtype: pyos.pathlib.Path
-    """
+    the absolute path of the object"""
     assert obj_id, "Must provide a valid obj id"
-    dirname = meta[pyos.config.DIR_KEY]
-    basename = meta.get(pyos.config.NAME_KEY, str(obj_id))
-    return pyos.os.path.join(dirname, basename)
+    dirname = meta[config.DIR_KEY]
+    basename = meta.get(config.NAME_KEY, str(obj_id))
+    return os.path.join(dirname, basename)
 
 
 def to_obj_id(identifier):
@@ -163,7 +171,7 @@ def to_obj_id(identifier):
     return get_historian().to_obj_id(identifier)
 
 
-def get_obj_id(path: pyos.os.PathSpec):
+def get_obj_id(path: os.PathSpec):
     """Given a path get the id of the corresponding object.  Returns None if not found."""
     results = find_meta(utils.path_to_meta_dict(path))
     try:

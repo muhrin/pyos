@@ -12,8 +12,8 @@ try:
 except ImportError:
     pass
 
-import pyos
-from . import utils
+from pyos import utils as putils
+from pyos import fmt
 
 __all__ = 'get_default', 'set_default', 'dict_representer', 'make_custom_pyprnt', 'prnt'
 
@@ -44,7 +44,7 @@ def dict_representer(obj):
         if isinstance(obj, mincepy.File):
             return obj.read_text()
 
-        return pprint.pformat(pyos.fmt.obj_dict(obj))
+        return pprint.pformat(fmt.obj_dict(obj))
     except Exception as exc:  # pylint: disable=broad-except
         return str(exc)
 
@@ -54,7 +54,7 @@ def make_custom_pyprnt(**kwargs):
 
 
 def _terminal_width_prnt(obj, **kwargs):
-    width = utils.get_terminal_width()
+    width = putils.get_terminal_width()
     return pyprnt.prnt(obj, end='', width=width, truncate=True, **kwargs)
 
 
@@ -82,4 +82,4 @@ def to_simple_repr(obj):
     if isinstance(obj, Exception):
         return "{}: {}".format(obj.__class__.__name__, obj)
 
-    return pyos.fmt.obj_dict(obj)
+    return fmt.obj_dict(obj)

@@ -1,16 +1,19 @@
 """Module that deals with directories and paths"""
 import contextlib
-from typing import Sequence, Iterable, Tuple
+from typing import Sequence, Iterable, Tuple, Optional
 import uuid
 
 import mincepy
 
-import pyos
+from pyos import db
+from pyos import exceptions
+from pyos import fs
+from pyos import os
 
 __all__ = ('Path', 'PurePath')
 
 
-class PurePath(pyos.os.PathLike):
+class PurePath(os.PathLike):
     """A path in PyOS.  Where possible the convention follows that of a PurePosixPath in pathlib.
     The one major exception is that folders are represented with an explicit trailing '/' and
     anything else is a file.
@@ -21,7 +24,7 @@ class PurePath(pyos.os.PathLike):
 
     def __init__(self, path='./'):
         super().__init__()
-        self._path = pyos.os.path.normpath(path)
+        self._path = os.path.normpath(path)
 
     @property
     def parts(self) -> Tuple[str]:
@@ -106,10 +109,10 @@ class PurePath(pyos.os.PathLike):
 
     def is_dir_path(self) -> bool:
         """Returns True if this path specified a directory i.e. ends with a trailing '/'"""
-        return self._path.endswith(pyos.os.sep)
+        return self._path.endswith(os.sep)
 
     def is_absolute(self) -> bool:
-        return pyos.os.path.isabs(self._path)
+        return os.path.isabs(self._path)
 
     def to_dir(self) -> 'PurePath':
         """If this path is a file path then a directory with the same name will be
@@ -129,11 +132,11 @@ class PurePath(pyos.os.PathLike):
 
     def resolve(self):
         """Make the path absolute eliminating any . and .. that occur in the path"""
-        path = pyos.os.path.abspath(self)
+        path = os.path.abspath(self)
         return self.__class__(path)
 
     def joinpath(self, *other):
-        return self.__class__(pyos.os.path.join(self, *other))
+        return self.__class__(os.path.join(self, *other))
 
 
 class Path(PurePath, mincepy.SimpleSavable):
@@ -153,15 +156,15 @@ class Path(PurePath, mincepy.SimpleSavable):
 
     def exists(self) -> bool:
         """Test whether a path point exists"""
-        return pyos.os.path.exists(self)
+        return os.path.exists(self)
 
     def unlink(self, missing_ok=False):
         if not self.exists():
             if missing_ok:
                 return
-            raise pyos.FileNotFoundError("Can't delete '{}', it does not exist".format(self))
+            raise exceptions.FileNotFoundError("Can't delete '{}', it does not exist".format(self))
 
-        pyos.os.unlink(self)
+        os.unlink(self)
 
     def iterdir(self) -> Iterable['Path']:
         """
@@ -178,23 +181,35 @@ class Path(PurePath, mincepy.SimpleSavable):
         Path('docs/_static')
         """
         if not self.is_dir_path():
-            raise pyos.exceptions.NotADirectoryError("Not a directory: {}".format(
-                pyos.os.path.relpath(self)))
+            raise exceptions.NotADirectoryError("Not a directory: {}".format(os.path.relpath(self)))
         if not self.exists():
-            raise pyos.exceptions.FileNotFoundError("No such directory: '{}'".format(
-                pyos.os.path.relpath(self)))
+            raise exceptions.FileNotFoundError("No such directory: '{}'".format(
+                os.path.relpath(self)))
 
-        node = pyos.fs.DirectoryNode(self)
+        node = fs.DirectoryNode(self)
         node.expand(1)
         for child in node.children:
             yield child.abspath
 
 
 @contextlib.contextmanager
-def working_path(path: pyos.os.PathSpec):
-    orig = pyos.os.getcwd()
-    pyos.os.chdir(path)
+def working_path(path: os.PathSpec):
+    """Context manager that changes the current working directory for the duration of the context,
+    returning to the previous directory on exiting"""
+    orig = os.getcwd()
+    os.chdir(path)
     try:
         yield path
     finally:
-        pyos.os.chdir(orig)
+        os.chdir(orig)
+
+
+def get_path(obj_or_id) -> Optional[Path]:
+    """Given an object or object id get the current path"""
+    return Path(db.get_path(obj_or_id))
+
+
+def get_paths(*obj_or_id) -> Sequence[Path]:
+    """Given objects or identifier this will return their current paths in the order they were
+    passed"""
+    return list(map(Path, db.get_paths(*obj_or_id)))

@@ -2,11 +2,16 @@
 import posixpath
 from typing import Iterable
 
-import pyos
+from pyos import config
+from pyos import db
+from pyos.os import pos
 from . import types
-from . import pos
 
-from .pos import curdir, sep, pardir
+# pylint: disable=invalid-name
+
+sep = '/'  # The path separator pylint: disable=invalid-name
+curdir = '.'  # Used to refer to the current directory
+pardir = '..'  # Used to refer to the parent directory
 
 
 def isabs(path: types.PathSpec):
@@ -14,7 +19,7 @@ def isabs(path: types.PathSpec):
 
     :type path: pyos.os.PathSpec
     """
-    return pos.fspath(path).startswith(pos.sep)
+    return pos.fspath(path).startswith(sep)
 
 
 def abspath(path: types.PathSpec) -> str:
@@ -70,17 +75,21 @@ def basename(path: types.PathSpec) -> str:
 def dirname(path: types.PathSpec) -> str:
     """Return the directory name of pathname path. This is the first element of the pair returned by
     passing path to the function split()."""
-    return posixpath.basename(pos.fspath(path))
+    name = posixpath.dirname(pos.fspath(path))
+    if name:
+        name += sep
+
+    return name
 
 
 def exists(path: types.PathSpec):
     """Return `True` if the path exists"""
-    path = pyos.os.path.abspath(path)
-    query = pyos.db.path_to_meta_dict(path)
+    path = abspath(path)
+    query = db.path_to_meta_dict(path)
     if path.endswith(sep):
-        query[pyos.config.DIR_KEY] = {'$regex': '{}.*'.format(query[pyos.config.DIR_KEY])}
+        query[config.DIR_KEY] = {'$regex': '{}.*'.format(query[config.DIR_KEY])}
 
-    results = pyos.db.find_meta(query)
+    results = db.find_meta(query)
     try:
         # Check if we have hits
         next(results)
@@ -103,7 +112,7 @@ def split(path: types.PathSpec) -> tuple:
     return parts
 
 
-def relpath(path: types.PathSpec, start=pos.curdir) -> str:
+def relpath(path: types.PathSpec, start=curdir) -> str:
     """
     Return a relative filepath to path either from the current directory or from an optional start
     directory. This is a path computation: the filesystem is not accessed to confirm the existence
