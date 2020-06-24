@@ -1,5 +1,5 @@
 import abc
-from collections.abc import Sequence
+from collections.abc import Sequence, Set
 import copy
 import functools
 import typing
@@ -13,6 +13,7 @@ import mincepy.qops
 
 import pyos
 import pyos.results
+import pyos.os as pos
 
 __all__ = ('BaseNode', 'DirectoryNode', 'ObjectNode', 'ResultsNode', 'to_node', 'TABLE_VIEW',
            'LIST_VIEW', 'TREE_VIEW', 'find')
@@ -185,29 +186,33 @@ class DirectoryNode(ContainerNode, FilesystemNode):
         if depth == 0:
             return
 
+        # Search metas from this directory (depth 0) to any depth below (-1) as there may be just
+        # folders (no objects) between _abspath and the object in some deeply nested directory
         metas = self._hist.meta.find(pyos.db.queries.subdirs(str(self._abspath), 0, -1))
 
         # Get directories and object ids
-        dirstring = str(self._abspath)
+        my_dirstring = str(self._abspath)
+        my_dirstring_len = len(my_dirstring)
+
         child_expand_depth = depth - 1
-        directories_added = set()
+        directories_added = set()  # type: Set[str]
 
         obj_kwargs = []
         for obj_id, meta in metas:
-            directory = meta[pyos.config.DIR_KEY]
+            dirstring = meta[pyos.config.DIR_KEY]
 
-            if directory == dirstring:
+            if dirstring == my_dirstring:
                 # This is an object in _this_ directory and not further down the hierarchy
                 obj_kwargs.append(dict(obj_id=obj_id, meta=meta, parent=self))
             else:
                 # This is an object that resides at some subdirectory so we know
                 # that there must exist a subdirectory
+                dirname = dirstring[my_dirstring_len:].split(pos.sep)[0]
 
-                # Get the subdirectory relative to us
-                obj_dir = pyos.pathlib.PurePath(directory)
-                path = (self._abspath / obj_dir.parts[len(self._abspath.parts)]).to_dir()
-                if path not in directories_added:
-                    directories_added.add(path)
+                if dirname not in directories_added:
+                    directories_added.add(dirname)
+                    # Get the subdirectory relative to us
+                    path = (self._abspath / dirname).to_dir()
 
                     dir_node = DirectoryNode(path, parent=self)
                     if abs(child_expand_depth) > 0:
