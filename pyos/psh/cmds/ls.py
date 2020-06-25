@@ -8,9 +8,9 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
 @pyos.psh_lib.command(pass_options=True)
-@pyos.psh_lib.flag(psh.l)
-@pyos.psh_lib.flag(psh.d)
-@pyos.psh_lib.flag(psh.p)
+@pyos.psh_lib.flag(psh.l, help="use a long listing format")
+@pyos.psh_lib.flag(psh.d, help="list directories themselves, not their contents")
+@pyos.psh_lib.flag(psh.p, help="print the str() value of each object")
 def ls(options, *args) -> pyos.fs.ResultsNode:  # pylint: disable=invalid-name
     """List the contents of a directory
 

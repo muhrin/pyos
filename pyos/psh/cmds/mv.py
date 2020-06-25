@@ -7,12 +7,12 @@ from pyos import psh
 
 
 @pyos.psh_lib.command(pass_options=True)
-@pyos.psh_lib.flag(psh.f, help="Force - do not prompt before overwriting")
+@pyos.psh_lib.flag(psh.f, help="force - do not prompt before overwriting")
 def mv(options, *args):  # pylint: disable=invalid-name
     """Take one or more files or directories with the final parameter being interpreted as
      destination
 
-    mv has the following syntax, with the highlighted outcomes:
+    mv has the following syntax, with the indicated outcomes:
 
     Files as input:
     mv ('a', 'b/')  - move file 'a' into folder 'b/'

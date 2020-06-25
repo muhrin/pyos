@@ -4,7 +4,7 @@ from pyos import psh
 
 
 @pyos.psh_lib.command(pass_options=True)
-@pyos.psh_lib.option(psh.flags.L)
+@pyos.psh_lib.option(psh.flags.L, help='max display depth of the directory tree')
 def tree(options, *paths):
     """Get a tree representation of the given paths"""
     to_tree = psh.ls(-psh.d, *paths)

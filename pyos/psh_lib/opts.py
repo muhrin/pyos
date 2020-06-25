@@ -157,7 +157,11 @@ class Command(CommandLike):
         self.func = func
         self.pass_options = pass_options
         self.accepts = {}
-        self.__call__ = types.MethodType(functools.wraps(func)(Command.__call__), self)
+
+        # Use partial just to create a new function instance so we can set the docstring on this
+        # instance only
+        self.__call__ = types.MethodType(functools.partial(Command.__call__), self)
+        self._create_docstring()
 
     @property
     def name(self) -> str:
@@ -166,6 +170,7 @@ class Command(CommandLike):
     def add_opt(self, spec: OptionSpec):
         """Add an option that this command accepts"""
         self.accepts[spec.option.name] = spec
+        self._create_docstring()
 
     def __call__(self, *args, **kwargs):  # pylint: disable=method-hidden
         """Execute this command directly"""
@@ -179,6 +184,15 @@ class Command(CommandLike):
         """Start an execution of this command by supplying options"""
         builder = CommandBuilder(self)
         return builder - other
+
+    def _create_docstring(self):
+        doc = [self.func.__doc__ or "Call {}".format(self.name)]
+        if self.accepts:
+            doc.append("FLAGS")
+            for name, spec in sorted(self.accepts.items()):
+                doc.append("\t-{}\t{}".format(name, spec.help))
+
+        self.__call__.__func__.__doc__ = "\n".join(doc)
 
 
 class CommandBuilder(CommandLike):
