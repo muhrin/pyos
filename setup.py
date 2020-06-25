@@ -29,7 +29,7 @@ setup(
     install_requires=[
         'anytree',
         'columnize',
-        'mincepy>=0.13.0, <0.15.0',
+        'mincepy>=0.13.0, <0.16.0',
         'click',
         'tabulate',
         'ipython',
