@@ -192,37 +192,43 @@ class DirectoryNode(ContainerNode, FilesystemNode):
         if depth == 0:
             return
 
-        # Search metas from this directory (depth 0) to any depth below (-1) as there may be just
-        # folders (no objects) between _abspath and the object in some deeply nested directory
-        metas = self._hist.meta.find(db.queries.subdirs(str(self._abspath), 0, -1))
+        # OBJECTS
 
-        # Get directories and object ids
+        # Query for objects in this directory (start depth 0, end depth 0)
+        metas = self._hist.meta.find(db.queries.subdirs(str(self._abspath), 0, 0))
+        obj_kwargs = []
+
+        for obj_id, meta in metas:
+            # This is an object in _this_ directory and not further down the hierarchy
+            obj_kwargs.append(dict(obj_id=obj_id, meta=meta, parent=self))
+
+        # DIRECTORIES
+
+        # Search for objects in directories below this one (depth 1) to any depth (-1) as
+        # there may be just folders (no objects) between _abspath and the object in some deeply
+        # nested directory
+        directories = self._hist.meta.distinct(config.DIR_KEY,
+                                               db.queries.subdirs(str(self._abspath), 1, -1))
+
         my_dirstring = str(self._abspath)
         my_dirstring_len = len(my_dirstring)
 
         child_expand_depth = depth - 1
         directories_added = set()  # type: Set[str]
 
-        obj_kwargs = []
-        for obj_id, meta in metas:
-            dirstring = meta[config.DIR_KEY]
+        for dirstring in directories:
+            # This is an object that resides at some subdirectory so we know
+            # that there must exist a subdirectory
+            dirname = dirstring[my_dirstring_len:].split(os.sep)[0]
 
-            if dirstring == my_dirstring:
-                # This is an object in _this_ directory and not further down the hierarchy
-                obj_kwargs.append(dict(obj_id=obj_id, meta=meta, parent=self))
-            else:
-                # This is an object that resides at some subdirectory so we know
-                # that there must exist a subdirectory
-                dirname = dirstring[my_dirstring_len:].split(os.sep)[0]
+            if dirname not in directories_added:
+                directories_added.add(dirname)
+                # Get the subdirectory relative to us
+                path = (self._abspath / dirname).to_dir()
 
-                if dirname not in directories_added:
-                    directories_added.add(dirname)
-                    # Get the subdirectory relative to us
-                    path = (self._abspath / dirname).to_dir()
-
-                    dir_node = DirectoryNode(path, parent=self)
-                    if abs(child_expand_depth) > 0:
-                        dir_node.expand(child_expand_depth)
+                dir_node = DirectoryNode(path, parent=self)
+                if abs(child_expand_depth) > 0:
+                    dir_node.expand(child_expand_depth)
 
         if populate_objects:
             # Gather all the object ids

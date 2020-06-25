@@ -46,8 +46,7 @@ As easy as:
 
     pip install pyos
 
-Usage example
--------------
+3. Jump in to the shell:
 
 .. code-block:: shell
 
@@ -56,15 +55,5 @@ Usage example
     In [1]: from pyos.pyos import *
     In [2]: ls()
 
-    [4]:
-    import mincepy
-    import urllib.request
-    import json
 
-    ids = []
-    with urllib.request.urlopen('https://raw.githubusercontent.com/ozlerhakan/mongodb-json-files/master/datasets/restaurant.json') as url:
-        for line, _ in zip(url, range(399)):
-            data = json.loads(line.decode())
-            data.pop('_id')
-            ids.append(mincepy.Dict(data).save())
-
+From here you can `save()` objects, use familiar linux commands (`ls()`, `mv()`, `find()`, etc) and a whole lot more.  Head over to the documentation_ to find out how.
