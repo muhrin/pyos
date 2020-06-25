@@ -1,4 +1,5 @@
-import pyos
+from pyos import config
+from pyos import os
 
 __all__ = ('path_to_meta_dict',)
 
@@ -8,7 +9,7 @@ def new_meta(orig: dict, new: dict) -> dict:
     if not orig:
         return merged
 
-    for name in pyos.config.KEYS:
+    for name in config.KEYS:
         if name in orig:
             if name.startswith('_'):
                 # Always take internal, i.e. underscored, keys
@@ -19,22 +20,22 @@ def new_meta(orig: dict, new: dict) -> dict:
     return merged
 
 
-def path_to_meta_dict(path) -> dict:
+def path_to_meta_dict(path: os.PathSpec) -> dict:
     """
     :param path: the path to get a dictionary for
-    :type path: pyos.os.PathSpec
     :return: the meta dictionary with the path
     """
     if path is None:
         return {}
 
-    path = pyos.os.path.abspath(path)
+    path = os.path.normpath(path)
     meta = {}
-    if path.endswith(pyos.os.sep):
-        meta[pyos.config.DIR_KEY] = path
+    if path.endswith(os.sep):
+        meta[config.DIR_KEY] = path
     else:
-        dirname, basename = pyos.os.path.split(path)
-        meta[pyos.config.NAME_KEY] = basename
-        meta[pyos.config.DIR_KEY] = dirname
+        dirname, basename = os.path.split(path)
+        meta[config.NAME_KEY] = basename
+        if dirname:
+            meta[config.DIR_KEY] = os.path.abspath(dirname)
 
     return meta

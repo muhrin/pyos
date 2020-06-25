@@ -99,50 +99,52 @@ def remove(file_path: types.PathSpec):
     db.get_historian().delete(obj_id)
 
 
-def rename(src: types.PathSpec, dst: types.PathSpec):
-    """Rename the file or directory src to dst. If src is a file and dst is a directory or
-    vice-versa, an IsADirectoryError or a NotADirectoryError will be raised respectively. If both
-    are directories and dst is empty, dst will be silently replaced. If dst is a non-empty
-    directory, an OSError is raised. If both are files, dst it will be replaced silently if the user
-    has permission. The operation may fail on some Unix flavors if src and dst are on different
-    filesystems. If successful, the renaming will be an atomic operation (this is a POSIX
-    requirement)."""
+def rename(src: types.PathSpec, dest: types.PathSpec):
+    """Rename the file or directory src to dest.
+    If src is a file and dest is a directory or vice-versa, an IsADirectoryError or a
+    NotADirectoryError will be raised respectively.
+    If both are directories and dest is not empty, an OSError is raised.
+    If both are files, dst it will be replaced silently.
+    """
     src = fspath(src)
-    dst = fspath(dst)
+    dest = fspath(dest)
     if src.endswith(sep):
         # Renaming directory
-        if not dst.endswith(sep):
-            raise exceptions.NotADirectoryError(dst)
+        if not dest.endswith(sep):
+            raise exceptions.NotADirectoryError(dest)
 
-        if path.exists(dst):
+        if path.exists(dest):
             # In pyOS a directory must have something in it to exist
-            raise OSError("The destination directory '{}' is not empty.".format(dst))
+            raise OSError("The destination directory '{}' is not empty.".format(dest))
 
         historian = db.get_historian()
         with historian.transaction():
             # Find everything within this folder at any depth
-            query = db.queries.subdirs(src, end_depth=-1)
-            len_dst = len(dst)
+            query = db.queries.subdirs(src, start_depth=0, end_depth=-1)
+            len_src = len(src)
             for obj_id, meta in historian.meta.find(query):
                 current = meta[config.DIR_KEY]
-                meta[config.DIR_KEY] = path.join(dst, current[len_dst:])
-                historian.meta.update(obj_id, meta)
+                # Update the directory key to contain the new path
+                meta[config.DIR_KEY] = path.join(dest, current[len_src:])
+                historian.meta.set(obj_id, meta)
     else:
         # Renaming file
-        if dst.endswith(sep):
-            raise exceptions.IsADirectoryError(dst)
+        if dest.endswith(sep):
+            raise exceptions.IsADirectoryError(dest)
 
         historian = db.get_historian()
         try:
             obj_id, meta = next(historian.meta.find(db.utils.path_to_meta_dict(src)))
         except StopIteration:
-            raise exceptions.FileNotFoundError(src)
-        else:
-            meta[config.NAME_KEY] = path.basename(dst)
-            dirname = path.dirname(dst)
-            if dirname:
-                meta[config.DIR_KEY] = dirname
-            historian.meta.set(obj_id, meta=meta)
+            # Check if the source corresponds to an object id
+            obj_id = historian.to_obj_id(path.basename(src))
+            if obj_id is None:
+                raise exceptions.FileNotFoundError(src)
+            meta = historian.meta.get(obj_id)
+
+        # Update the metadata
+        meta.update(db.utils.path_to_meta_dict(dest))
+        historian.meta.set(obj_id, meta=meta)
 
 
 def unlink(file_path: types.PathSpec):

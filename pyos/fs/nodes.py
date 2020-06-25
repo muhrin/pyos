@@ -51,13 +51,15 @@ class BaseNode(Sequence, anytree.NodeMixin, results.BaseResults, metaclass=abc.A
         for child in self.children:
             child.delete()
 
-    def move(self, where: os.PathLike, overwrite=False):
-        """Move this object (with any descendents) to the given path
+    def move(self, dest: os.PathSpec, overwrite=False):
+        """Move this object (with any children) into the directory given by dest
 
+        :param dest: the destination to move the node to
         :param overwrite: overwrite if exists
         """
+        dest = pathlib.Path(dest).to_dir()
         for child in self.children:
-            child.move(where, overwrite)
+            child.move(dest, overwrite)
 
 
 class FilesystemNode(BaseNode):
@@ -239,34 +241,15 @@ class DirectoryNode(ContainerNode, FilesystemNode):
                 self._hist.delete(obj_id)
         self._invalidate_cache()
 
-    def move(self, where: os.PathSpec, overwrite=False):
-        where = pathlib.Path(where).to_dir()
-
-        # The new path is the dest directory plus our current name
-        newpath = where.resolve() / self.name
-
-        if newpath.is_dir():
-            raise RuntimeError("Directory '{}' already exists".format(newpath))
-
-        with self._hist.transaction():
-            self.expand(1)
-            for child in self.children:
-                child.move((newpath / self.name).to_dir())
-
-        self._abspath = newpath
+    def move(self, dest: os.PathSpec, overwrite=False):
+        dest = pathlib.Path(dest).to_dir().resolve() / self.name
+        os.rename(self._abspath, dest)
+        self._abspath = dest
 
     def rename(self, new_name: str):
-        newpath = pathlib.Path(self.abspath.parent / new_name).to_dir()
-
-        if newpath.is_dir():
-            raise RuntimeError("Folder with the name '{}' already exists".format(new_name))
-
-        with self._hist.transaction():
-            self.expand(1)
-            for child in self.children:
-                child.move(newpath)
-
-        self._abspath = newpath
+        new_path = pathlib.Path(self.abspath.parent / new_name).to_dir()
+        os.rename(self.abspath, new_path)
+        self._abspath = new_path
 
 
 class ObjectNode(FilesystemNode):
@@ -388,36 +371,18 @@ class ObjectNode(FilesystemNode):
     def delete(self):
         self._hist.delete(self._obj_id)
 
-    def move(self, where: 'pathlib.PurePath', overwrite=False):
-        where = pathlib.PurePath(where)
-        meta_update = db.path_to_meta_dict(where)
-        try:
-            self._hist.meta.update(self._obj_id, meta_update)
-        except mincepy.DuplicateKeyError as exc:
-            if overwrite:
-                # Delete the current one
-                # Copy over the path specification
-                path_spec = {key: meta_update[key] for key in (config.NAME_KEY, config.NAME_KEY)}
-
-                try:
-                    res = tuple(self._hist.meta.find(path_spec))
-                    assert len(res) <= 1, \
-                        "Shouldn't be possible to have more than one object with the same path, " \
-                        "check the indexes"
-
-                    to_delete = res[0].obj_id
-                except IndexError:
-                    # Give up
-                    raise exc
-                else:
-                    self._hist.delete(to_delete)
-
-                # One more time...
-                self._hist.meta.update(self._obj_id, meta_update)
+    def move(self, dest: os.PathSpec, overwrite=False):
+        dest = pathlib.Path(dest).to_dir().resolve() / self.name
+        db.rename(self.obj_id, dest)
+        self._abspath = dest
 
     def rename(self, new_name: str):
+        new_name = self.abspath.parent / new_name
+        if new_name.is_dir():
+            raise exceptions.IsADirectoryError(new_name)
+
         try:
-            self._hist.meta.update(self._obj_id, {config.NAME_KEY: new_name})
+            db.rename(self._obj_id, new_name)
         except mincepy.DuplicateKeyError:
             raise RuntimeError("File with the name '{}' already exists".format(new_name))
 

@@ -7,6 +7,8 @@ from mincepy.testing import Person
 import pyos
 from pyos import psh
 
+# pylint: disable=unused-argument
+
 
 def test_dir_in_directory():
     home = psh.pwd()
@@ -53,6 +55,7 @@ def test_move_dir(historian: mincepy.Historian):
     node.move('sub/')
 
     assert node.abspath == pyos.Path('sub/address_book/').resolve()
+    node.expand(1)
     assert node.children[0].obj_id == martin_id
 
 
@@ -63,7 +66,8 @@ def test_rename_dir(historian: mincepy.Historian):
         martin_id = psh.save(Person('martin', 34), 'martin')
 
     node = pyos.fs.DirectoryNode(path)
-    node.rename('abook/')
+    node.rename('abook')
 
     assert node.abspath == pyos.Path('abook/').resolve()
+    node.expand(1)
     assert node.children[0].obj_id == martin_id

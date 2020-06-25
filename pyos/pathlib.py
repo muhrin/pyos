@@ -191,6 +191,11 @@ class Path(PurePath, mincepy.SimpleSavable):
         for child in node.children:
             yield child.abspath
 
+    def rename(self, target: os.PathSpec) -> 'Path':
+        target = Path(target).resolve()
+        os.rename(self._path, target)
+        return target
+
 
 @contextlib.contextmanager
 def working_path(path: os.PathSpec):

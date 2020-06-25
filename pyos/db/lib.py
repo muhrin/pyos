@@ -4,12 +4,13 @@ from typing import Sequence, Iterable, Optional, Tuple, Any, Union
 import mincepy
 
 from pyos import config
+from pyos import exceptions
 from pyos import os
 from . import utils
 
 __all__ = ('get_historian', 'get_meta', 'update_meta', 'set_meta', 'find_meta', 'save_one',
            'save_many', 'get_abspath', 'load', 'to_obj_id', 'get_obj_id', 'init', 'reset',
-           'get_path', 'get_paths')
+           'get_path', 'get_paths', 'rename')
 
 
 def get_historian():
@@ -68,6 +69,8 @@ def find_meta(filter: dict = None, obj_ids=None):  # pylint: disable=redefined-b
 
 # endregion
 
+# region paths
+
 
 def get_path(obj_or_id) -> Optional[str]:
     """Given an object or object id get the current path"""
@@ -92,6 +95,20 @@ def get_paths(*obj_or_id) -> Sequence[Optional[str]]:
         paths.append(os.path.join(*path))
 
     return paths
+
+
+def rename(obj_or_id, dest: os.PathSpec):
+    """Rename an object to a the dest.  If dest is is a directory IsADirectoryError is raised."""
+    dest = os.fspath(dest)
+    if dest.endswith(os.sep):
+        raise exceptions.IsADirectoryError(dest)
+
+    hist = get_historian()
+    obj_id = hist.to_obj_id(obj_or_id)
+    hist.meta.update(obj_id, meta=utils.path_to_meta_dict(dest))
+
+
+# endregion
 
 
 def save_one(obj, path: os.PathSpec = None, overwrite=False, historian=None):
