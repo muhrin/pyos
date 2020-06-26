@@ -76,7 +76,7 @@ def dirname(path: types.PathSpec) -> str:
     """Return the directory name of pathname path. This is the first element of the pair returned by
     passing path to the function split()."""
     name = posixpath.dirname(pos.fspath(path))
-    if name:
+    if name and not name.endswith(sep):
         name += sep
 
     return name
@@ -98,6 +98,13 @@ def exists(path: types.PathSpec):
         return False
 
 
+def expanduser(path: types.PathSpec) -> str:
+    """An initial `~` is replaced with the users home directory which is '/[username]'/."""
+    homedir = db.homedir()
+    path = pos.fspath(path)
+    return normpath(path.replace('~', homedir, 1))
+
+
 def split(path: types.PathSpec) -> tuple:
     """Split the pathname path into a pair, (head, tail) where tail is the last pathname component
     and head is everything leading up to that. The tail part will never contain a slash; if path
@@ -106,10 +113,21 @@ def split(path: types.PathSpec) -> tuple:
     In all cases, join(head, tail) returns a path to the same location as path (but the strings may
     differ).
     """
-    parts = posixpath.split(pos.fspath(path))
-    if parts[0]:
-        parts = (parts[0] + pos.sep, parts[1])
-    return parts
+    path = pos.fspath(path)
+    if path == sep:
+        return sep, ''
+
+    if path.endswith(sep):
+        idx = path[:-1].rfind(sep)
+    else:
+        idx = path.rfind(sep)
+
+    head, tail = path[:idx + 1], path[idx + 1:]
+    if head and head != sep * len(head):
+        head = head.rstrip(sep)
+        head += sep
+
+    return head, tail
 
 
 def relpath(path: types.PathSpec, start=curdir) -> str:

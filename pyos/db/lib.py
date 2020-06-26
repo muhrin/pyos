@@ -10,7 +10,7 @@ from . import utils
 
 __all__ = ('get_historian', 'get_meta', 'update_meta', 'set_meta', 'find_meta', 'save_one',
            'save_many', 'get_abspath', 'load', 'to_obj_id', 'get_obj_id', 'init', 'reset',
-           'get_path', 'get_paths', 'rename')
+           'get_path', 'get_paths', 'rename', 'homedir')
 
 
 def get_historian():
@@ -108,6 +108,22 @@ def rename(obj_or_id, dest: os.PathSpec):
     hist.meta.update(obj_id, meta=utils.path_to_meta_dict(dest))
 
 
+def get_abspath(obj_id, meta: dict) -> str:
+    """Given an object id and metadata dictionary this method will return a string representing
+    the absolute path of the object"""
+    assert obj_id, "Must provide a valid obj id"
+    dirname = meta[config.DIR_KEY]
+    basename = meta.get(config.NAME_KEY, str(obj_id))
+    return os.path.join(dirname, basename)
+
+
+def homedir() -> str:
+    """Return the users home directory"""
+    user_info = get_historian().get_user_info()
+    user_name = user_info[mincepy.ExtraKeys.USER]
+    return "/{}/".format(user_name)
+
+
 # endregion
 
 
@@ -170,15 +186,6 @@ def save_many(to_save: Iterable[Union[Any, Tuple[Any, os.PathSpec]]],
 def load(*identifier):
     """Load one or more objects"""
     get_historian().load(*identifier)
-
-
-def get_abspath(obj_id, meta: dict) -> str:
-    """Given an object id and metadata dictionary this method will return a string representing
-    the absolute path of the object"""
-    assert obj_id, "Must provide a valid obj id"
-    dirname = meta[config.DIR_KEY]
-    basename = meta.get(config.NAME_KEY, str(obj_id))
-    return os.path.join(dirname, basename)
 
 
 def to_obj_id(identifier):
