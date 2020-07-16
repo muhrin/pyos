@@ -1,17 +1,22 @@
 """List command"""
+import argparse
 import logging
+
+import cmd2
 
 import pyos
 from pyos import psh
+from pyos import psh_lib
+from pyos.psh import base
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
-@pyos.psh_lib.command(pass_options=True)
-@pyos.psh_lib.flag(psh.l, help="use a long listing format")
-@pyos.psh_lib.flag(psh.d, help="list directories themselves, not their contents")
-@pyos.psh_lib.flag(psh.p, help="print the str() value of each object")
-def ls(options, *args) -> pyos.fs.ResultsNode:  # pylint: disable=invalid-name
+@psh_lib.command(pass_options=True)
+@psh_lib.flag(psh.l, help="use a long listing format")
+@psh_lib.flag(psh.d, help="list directories themselves, not their contents")
+@psh_lib.flag(psh.p, help="print the str() value of each object")
+def ls(options, *args) -> pyos.fs.ResultsNode:  # pylint: disable=invalid-name, too-many-branches
     """List the contents of a directory
 
     :type: restrict listing to a particular type
@@ -54,3 +59,25 @@ def ls(options, *args) -> pyos.fs.ResultsNode:  # pylint: disable=invalid-name
         results.show(mode=pyos.fs.LIST_VIEW)
 
     return results
+
+
+parser = argparse.ArgumentParser()  # pylint: disable=invalid-name
+parser.add_argument('-l', action='store_true', help="use a long listing format")
+parser.add_argument('-d',
+                    action='store_true',
+                    help="list directories themselves, not their contents")
+parser.add_argument('-p', action='store_true', help="print the str() value of each object")
+parser.add_argument('path', nargs='*', type=str, completer_method=base.BaseShell.path_complete)
+
+
+@cmd2.with_argparser(parser)
+def do_ls(app: cmd2.Cmd, args):
+    command = ls
+    if args.l:
+        command = command - psh.l
+    if args.d:
+        command = command - psh.d
+    if args.p:
+        command = command - psh.p
+
+    app.poutput(command(*args.path))

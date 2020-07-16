@@ -97,11 +97,35 @@ def test_relpath():
         assert path.relpath("/foo/bar/bat", "/x/y/z") == '../../../foo/bar/bat'
         assert path.relpath("/foo/bar/bat", "/foo/bar") == 'bat'
         assert path.relpath("/foo/bar/bat", "/") == 'foo/bar/bat'
-        assert path.relpath("/", "/foo/bar/bat") == '../../..'
+        assert path.relpath("/", "/foo/bar/bat") == '../../../'
         assert path.relpath("/foo/bar/bat", "/x") == '../foo/bar/bat'
         assert path.relpath("/x", "/foo/bar/bat") == '../../../x'
         assert path.relpath("/", "/") == '.'
         assert path.relpath("/a", "/a") == '.'
         assert path.relpath("/a/b", "/a/b") == '.'
+
+        # Check directories
+        assert path.relpath("a/") == "a/"
+        assert path.relpath(path.abspath("a/")) == "a/"
+        assert path.relpath("a/b/") == "a/b/"
+        assert path.relpath("../a/b/") == "../a/b/"
+
+        # orig: assert path.relpath("a", "../b") == "../" + curdir + "/a"
+        assert path.relpath("a/", "../b") == "../" + curdir + "a/"
+
+        # orig: assert path.relpath("a/b", "../c") == "../" + curdir + "/a/b"
+        assert path.relpath("a/b/", "../c") == "../" + curdir + "a/b/"
+
+        assert path.relpath("a/", "b/c") == "../../a/"
+        assert path.relpath("a/", "a/") == "."
+        assert path.relpath("/foo/bar/bat/", "/x/y/z") == '../../../foo/bar/bat/'
+        assert path.relpath("/foo/bar/bat/", "/foo/bar") == 'bat/'
+        assert path.relpath("/foo/bar/bat/", "/") == 'foo/bar/bat/'
+        assert path.relpath("/", "/foo/bar/bat/") == '../../../'
+        assert path.relpath("/foo/bar/bat/", "/x") == '../foo/bar/bat/'
+        assert path.relpath("/x/", "/foo/bar/bat") == '../../../x/'
+        assert path.relpath("/", "/") == '.'
+        assert path.relpath("/a/", "/a/") == '.'
+        assert path.relpath("/a/b/", "/a/b/") == '.'
     finally:
         os.getcwd = real_getcwd

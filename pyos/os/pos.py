@@ -1,4 +1,6 @@
 """Functions and constants that emulate python's os module"""
+from typing import List
+
 import mincepy
 
 from pyos import config
@@ -12,8 +14,30 @@ from .path import (curdir, pardir, sep)
 # pylint: disable=invalid-name
 name = 'pyos'
 
-__all__ = ('getcwd', 'chdir', 'fspath', 'remove', 'sep', 'unlink', 'curdir', 'pardir', 'path',
-           'rename')
+__all__ = ('getcwd', 'chdir', 'fspath', 'listdir', 'remove', 'sep', 'unlink', 'curdir', 'pardir',
+           'path', 'rename', 'scandir', 'DirEntry')
+
+
+class DirEntry:
+
+    def __init__(self, obj_name: str, obj_path: str, is_file: bool):
+        self._name = obj_name
+        self._path = obj_path
+        self._is_file = is_file
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def path(self) -> str:
+        return self._path
+
+    def is_dir(self):
+        return not self.is_file()
+
+    def is_file(self):
+        return self._is_file
 
 
 def chdir(file_path: types.PathSpec):
@@ -24,7 +48,7 @@ def chdir(file_path: types.PathSpec):
     """
     file_path = path.abspath(file_path)
     if not file_path.endswith(sep):
-        raise ValueError("Must supply a directory, got '{}'".format(file_path))
+        file_path += sep
     db.get_historian().meta.sticky[config.DIR_KEY] = file_path
 
 
@@ -58,6 +82,32 @@ def fspath(file_path: types.PathSpec):
 def getcwd() -> str:
     """Return a string representing the current working directory."""
     return db.get_historian().meta.sticky.get(config.DIR_KEY, None)
+
+
+def listdir(lsdir: types.PathSpec = '.') -> List[str]:
+    lsdir = path.abspath(lsdir)
+    hist = db.get_historian()
+
+    # OBJECTS
+
+    # Query for objects in this directory
+    contents = set()
+    for obj_id, meta in hist.meta.find(db.path_to_meta_dict(lsdir)):
+        contents.add(db.get_obj_name(obj_id, meta))
+
+    # DIRECTORIES
+
+    # Search for objects in directories below this one (depth 1) to any depth (-1) as
+    # there may be just folders (no objects) between _abspath and the object in some deeply
+    # nested directory
+    directories = hist.meta.distinct(config.DIR_KEY, db.queries.subdirs(str(lsdir), 1, -1))
+
+    dirstring_len = len(lsdir)
+    for dirstring in directories:
+        dirname = dirstring[dirstring_len:]
+        contents.add(dirname)
+
+    return list(contents)
 
 
 # pylint: disable=redefined-builtin
@@ -145,6 +195,38 @@ def rename(src: types.PathSpec, dest: types.PathSpec):
         # Update the metadata
         meta.update(db.utils.path_to_meta_dict(dest))
         historian.meta.set(obj_id, meta=meta)
+
+
+def scandir(scan_path='.') -> List[DirEntry]:
+    abspath = path.abspath(scan_path)
+    hist = db.get_historian()
+
+    # OBJECTS
+
+    # Query for objects in this directory
+    contents = {}
+    for obj_id, meta in hist.meta.find(db.path_to_meta_dict(abspath)):
+        obj_name = db.get_obj_name(obj_id, meta)
+        contents[obj_name] = DirEntry(obj_name=obj_name,
+                                      obj_path=path.join(scan_path, obj_name),
+                                      is_file=True)
+
+    # DIRECTORIES
+
+    # Search for objects in directories below this one (depth 1) to any depth (-1) as
+    # there may be just folders (no objects) between _abspath and the object in some deeply
+    # nested directory
+    directories = hist.meta.distinct(config.DIR_KEY, db.queries.subdirs(str(abspath), 1, -1))
+
+    dirstring_len = len(abspath)
+    for dirstring in directories:
+        obj_name = dirstring[dirstring_len:]
+        if obj_name not in contents:
+            contents[obj_name] = DirEntry(obj_name=obj_name,
+                                          obj_path=path.join(scan_path, obj_name),
+                                          is_file=False)
+
+    return list(contents.values())
 
 
 def unlink(file_path: types.PathSpec):

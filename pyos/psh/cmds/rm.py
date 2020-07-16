@@ -1,10 +1,13 @@
 """The remove command"""
+import argparse
 import copy
 
+import cmd2
 import tqdm
 
 import pyos
 from pyos import psh
+from pyos.psh import base
 
 
 def _remove_directories(nodes):
@@ -35,3 +38,22 @@ def rm(options, *obj_or_ids):  # pylint: disable=invalid-name
 
         for node in to_delete:
             node.delete()
+
+
+parser = argparse.ArgumentParser()  # pylint: disable=invalid-name
+parser.add_argument('-p', action='store_true', help="show progress bar")
+parser.add_argument('-r',
+                    action='store_true',
+                    help="remove directories and their contents recursively")
+parser.add_argument('path', nargs='*', type=str, completer_method=base.BaseShell.path_complete)
+
+
+@cmd2.with_argparser(parser)
+def do_rm(app: cmd2.Cmd, args):
+    command = rm
+    if args.r:
+        command = command - psh.r
+    if args.p:
+        command = command - psh.p
+
+    app.poutput(command(*args.path))

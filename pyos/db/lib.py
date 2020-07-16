@@ -140,7 +140,7 @@ def save_one(obj, path: os.PathSpec = None, overwrite=False, historian=None):
     if path is None:
         # Check if it's already saved (in which case we don't need to set a path)
         if hist.get_obj_id(obj) is None:
-            path = './'
+            path = os.getcwd()
 
     meta = None
     if path is not None:

@@ -1,7 +1,7 @@
 from pyos import config
 from pyos import os
 
-__all__ = ('path_to_meta_dict',)
+__all__ = ('path_to_meta_dict', 'get_obj_name')
 
 
 def new_meta(orig: dict, new: dict) -> dict:
@@ -39,3 +39,9 @@ def path_to_meta_dict(path: os.PathSpec) -> dict:
             meta[config.DIR_KEY] = os.path.abspath(dirname)
 
     return meta
+
+
+def get_obj_name(obj_id, meta: dict) -> str:
+    """Get the name of an object.  This will be the name that is used to represent this object on
+    the virtual filesystem and is stored in the metadata"""
+    return meta.get(config.NAME_KEY, str(obj_id))

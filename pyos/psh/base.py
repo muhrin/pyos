@@ -1,0 +1,92 @@
+from typing import List, Callable, Optional
+
+import cmd2.plugin
+
+import pyos
+from pyos import os
+from pyos import glob
+from pyos import version
+
+
+class BaseShell(cmd2.Cmd):
+
+    def __init__(self):
+        super().__init__()
+        pyos.lib.init()
+        self.intro = version.BANNER
+
+        self._update_prompt()
+
+        self.register_cmdfinalization_hook(self.command_finalise)
+
+    def command_finalise(
+            self, data: cmd2.plugin.CommandFinalizationData) -> cmd2.plugin.CommandFinalizationData:
+        self._update_prompt()
+        return data
+
+    def path_complete(self,
+                      text: str,
+                      line: str,
+                      begidx: int,
+                      endidx: int,
+                      *,
+                      path_filter: Optional[Callable[[str], bool]] = None) -> List[str]:
+        """Performs completion of local file system paths
+
+        :param text: the string prefix we are attempting to match (all matches must begin with it)
+        :param line: the current input line with leading whitespace removed
+        :param begidx: the beginning index of the prefix text
+        :param endidx: the ending index of the prefix text
+        :param path_filter: optional filter function that determines if a path belongs in the
+            results this function takes a path as its argument and returns True if the path should
+            be kept in the results
+        :return: a list of possible tab completions
+        """
+        # If the search text is blank, then search in the CWD for *
+        if not text:
+            search_str = '*'
+        else:
+            # Purposely don't match any path containing wildcards
+            if '*' in text or '?' in text:
+                return []
+
+            # Start the search string
+            search_str = text + '*'
+
+        # Set this to True for proper quoting of paths with spaces
+        self.matches_delimited = True
+
+        # Find all matching path completions
+        matches = glob.glob(search_str)
+
+        # Filter out results that don't belong
+        if path_filter is not None:
+            matches = [c for c in matches if path_filter(c)]
+
+        # Don't append a space or closing quote to directory
+        if len(matches) == 1 and os.path.isdir(matches[0]):
+            self.allow_appended_space = False
+            self.allow_closing_quote = False
+
+        # Sort the matches before any trailing slashes are added
+        matches.sort(key=self.default_sort_key)
+        self.matches_sorted = True
+
+        return matches
+
+    def file_completer(self, text: str, line: str, begidx: int, endidx: int) -> List[str]:
+
+        def is_file(path: str):
+            return not path.endswith(os.sep)
+
+        return self.path_complete(text, line, begidx, endidx, path_filter=is_file)
+
+    def dir_completer(self, text: str, line: str, begidx: int, endidx: int) -> List[str]:
+
+        def is_dir(path: str):
+            return path.endswith(os.sep)
+
+        return self.path_complete(text, line, begidx, endidx, path_filter=is_dir)
+
+    def _update_prompt(self):
+        self.prompt = "{}$ ".format(pyos.os.getcwd())

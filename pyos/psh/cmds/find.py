@@ -1,6 +1,10 @@
 """The find command"""
+import argparse
+
+import cmd2
 
 import pyos
+from pyos.psh import base
 
 
 @pyos.psh_lib.command()
@@ -31,3 +35,14 @@ def find(
                         type=type,
                         mindepth=mindepth,
                         maxdepth=maxdepth)
+
+
+parser = argparse.ArgumentParser()  # pylint: disable=invalid-name
+parser.add_argument('path', nargs='*', type=str, completer_method=base.BaseShell.file_completer)
+
+
+@cmd2.with_argparser(parser)
+def do_find(app: cmd2.Cmd, args):
+    command = find
+
+    app.poutput(command(*args.path))

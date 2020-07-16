@@ -1,7 +1,11 @@
+import argparse
+
+import cmd2
 import mincepy
 
 import pyos
 from pyos import psh
+from pyos.psh import base
 
 
 @pyos.psh_lib.command()
@@ -43,3 +47,14 @@ def cat(*obj_or_ids, representer=None):
         return pyos.psh_lib.ResultsString(results[0])
 
     return results
+
+
+ls_parser = argparse.ArgumentParser()  # pylint: disable=invalid-name
+ls_parser.add_argument('path', nargs='*', type=str, completer_method=base.BaseShell.file_completer)
+
+
+@cmd2.with_argparser(ls_parser)
+def do_cat(app: cmd2.Cmd, args):
+    command = cat
+
+    app.poutput(command(*args.path))

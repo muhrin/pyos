@@ -1,6 +1,6 @@
 """Pyos versions os python's os.path methods"""
 import posixpath
-from typing import Iterable
+from typing import Iterable, Tuple
 
 from pyos import config
 from pyos import db
@@ -85,10 +85,10 @@ def dirname(path: types.PathSpec) -> str:
 def exists(path: types.PathSpec):
     """Return `True` if the path exists"""
     path = abspath(path)
-    query = db.path_to_meta_dict(path)
     if path.endswith(sep):
-        query[config.DIR_KEY] = {'$regex': '{}.*'.format(query[config.DIR_KEY])}
-
+        query = {config.DIR_KEY: {'$regex': r'^{}.*'.format(path)}}
+    else:
+        query = db.path_to_meta_dict(path)
     results = db.find_meta(query)
     try:
         # Check if we have hits
@@ -105,15 +105,13 @@ def expanduser(path: types.PathSpec) -> str:
     return normpath(path.replace('~', homedir, 1))
 
 
-def split(path: types.PathSpec) -> tuple:
+def split(path: types.PathSpec) -> Tuple[str, str]:
     """Split the pathname path into a pair, (head, tail) where tail is the last pathname component
-    and head is everything leading up to that. The tail part will never contain a slash; if path
-    ends in a slash, tail will be empty. If there is no slash in path, head will be empty. If path
-    is empty, both head and tail are empty.
+    and head is everything leading up to that.  If there is no slash in path, head will be empty. If
+    path is empty, both head and tail are empty.
     In all cases, join(head, tail) returns a path to the same location as path (but the strings may
     differ).
     """
-    path = pos.fspath(path)
     if path == sep:
         return sep, ''
 
@@ -145,6 +143,7 @@ def relpath(path: types.PathSpec, start=curdir) -> str:
         raise ValueError("no path specified")
 
     path = pos.fspath(path)
+    is_dir = path.endswith(sep)
 
     if start is None:
         start = curdir
@@ -160,6 +159,8 @@ def relpath(path: types.PathSpec, start=curdir) -> str:
         rel_list = [pardir] * (len(start_list) - i) + path_list[i:]
         if not rel_list:
             return curdir
+        if is_dir:
+            rel_list[-1] += sep
         return join(*rel_list)
     except (TypeError, AttributeError, DeprecationWarning):
         _check_arg_types('relpath', path, start)
@@ -179,6 +180,16 @@ def commonprefix(names):
         if char != str2[i]:
             return str1[:i]
     return str1
+
+
+def isdir(path: types.PathSpec) -> bool:
+    """Return True if path is an existing directory."""
+    meta = db.path_to_meta_dict(abspath(path))
+    try:
+        db.get_historian().meta.find(meta)
+        return True
+    except StopIteration:
+        return False
 
 
 def _check_arg_types(funcname, *args):

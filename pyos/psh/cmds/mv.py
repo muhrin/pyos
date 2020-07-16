@@ -1,9 +1,12 @@
 """The move command"""
+import argparse
 
 import click
+import cmd2
 
 import pyos
 from pyos import psh
+from pyos.psh import base
 
 
 @pyos.psh_lib.command(pass_options=True)
@@ -51,3 +54,17 @@ def mv(options, *args):  # pylint: disable=invalid-name
     else:
         dest = dest.resolve()
         to_move.move(dest, overwrite=not options.pop(psh.n))
+
+
+parser = argparse.ArgumentParser()  # pylint: disable=invalid-name
+parser.add_argument('-f', action='store_true', help="force - do not prompt before overwriting")
+parser.add_argument('path', nargs='*', type=str, completer_method=base.BaseShell.path_complete)
+
+
+@cmd2.with_argparser(parser)
+def do_mv(app: cmd2.Cmd, args):
+    command = mv
+    if args.f:
+        command = command - psh.f
+
+    app.poutput(command(*args.path))
