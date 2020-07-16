@@ -62,4 +62,7 @@ setup(
     },
     include_package_data=True,
     test_suite='test',
-    entry_points={'mincepy.plugins.types': ['pyos_types = pyos.provides:get_types',]})
+    entry_points={
+        'console_scripts': ['pyos = pyos.cli:pyos'],
+        'mincepy.plugins.types': ['pyos_types = pyos.provides:get_types',]
+    })
