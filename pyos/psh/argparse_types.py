@@ -1,0 +1,36 @@
+import ast
+
+from pytray import obj_load
+from mincepy import qops
+
+__all__ = ('type_string',)
+
+
+def type_string(value: str) -> type:
+    """Helper to get types as an argparse parameter"""
+    return obj_load.load_obj(value)
+
+
+def parse_query(value: str) -> dict:
+    for oper, func in OPERATORS.items():
+        if oper in value:
+            left, right = value.split(oper, maxsplit=1)
+
+            # Try getting python types from the right hand side (e.g. None, False, 3, 2.6, etc)
+            try:
+                right = ast.literal_eval(right.rstrip())
+            except ValueError:
+                pass
+
+            return func(left.strip(), right)
+
+    raise ValueError("Unknown condition: {}".format(value))
+
+
+OPERATORS = {
+    '=': lambda field, value: {
+        field: value
+    },
+    '>': qops.gt_,
+    '<': qops.lt_,
+}

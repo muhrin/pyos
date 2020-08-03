@@ -11,6 +11,7 @@ def pyos():
 
 
 @pyos.command()
+# @click.argument('cmd', type=str)
 def shell():
     """Start the pyos shell"""
     # Need to clear args because otherwise cmd2 picks them up

@@ -3,7 +3,7 @@
 # Commands:
 from .cat import cat, do_cat
 from .cd import cd, do_cd
-from .find import find
+from .find import find, do_find
 from .history import history
 from .load import load
 from .locate import locate

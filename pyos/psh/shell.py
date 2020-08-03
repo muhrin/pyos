@@ -15,6 +15,7 @@ class PyosShell(base.BaseShell):
     # pylint: disable=too-few-public-methods
     do_cd = cmds.do_cd
     do_cat = cmds.do_cat
+    do_find = cmds.do_find
     do_ls = cmds.do_ls
     do_mv = cmds.do_mv
     do_pwd = cmds.do_pwd

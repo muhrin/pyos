@@ -35,11 +35,13 @@ setup(
         'tabulate',
         'ipython',
         'pyprnt',
+        'pytray >= 0.3.0',
         'tqdm',
     ],
     extras_require={
         'gui': ['mincepy[gui]'],
         'dev': [
+            'cmd2-ext-test',
             'ipython',
             'jupyter-sphinx',
             'nbsphinx',

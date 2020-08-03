@@ -1,3 +1,5 @@
+from pytray import obj_load
+
 from mincepy.testing import Car, Person
 
 from pyos import psh
@@ -100,3 +102,82 @@ def test_find_by_type_simple():
     results = psh.find(type=Person)
     assert len(results) == 1
     assert results[0].obj is person
+
+
+def test_shell_find(pyos_shell):
+    # Save a car
+    car = Car()
+    car.save(meta={'group': 'cars'})
+
+    # Look for it
+    res = pyos_shell.app_cmd('find -t {} -m group=cars'.format(obj_load.full_name(Car)))
+    assert not res.stderr
+    assert str(car.obj_id) in res.stdout
+
+    # Add another car to the group
+    car2 = Car()
+    car2.save(meta={'group': 'cars'})
+
+    # Look for them
+    res = pyos_shell.app_cmd('find -t {} -m group=cars'.format(obj_load.full_name(Car)))
+    assert not res.stderr
+    assert str(car.obj_id) in res.stdout
+    assert str(car2.obj_id) in res.stdout
+
+
+def test_shell_find_starting_point(pyos_shell):
+    """Test that find respects the passed starting points"""
+    subdirs = ['./', 'a/', 'b/', 'c/', 'd/']
+    fill_with_cars(subdirs)
+    num_subdirs = len(subdirs)
+
+    for idx, _subdir in enumerate(subdirs):
+        start_point = "/".join(subdirs[:idx + 1])
+        res = pyos_shell.app_cmd('find -s {}'.format(start_point))
+        assert not res.stderr
+
+        paths = res.stdout.split('\n')[:-1]
+        assert len(paths) == num_subdirs - idx
+        dirs = {psh.meta(path)['mydir'] for path in paths}
+
+        for check_dir in subdirs[idx:]:
+            assert check_dir in dirs
+
+
+def test_shell_find_by_type_simple(pyos_shell):
+    car = Car()
+    car.save()
+    person = Person('martin', 34)
+    person.save()
+
+    res = pyos_shell.app_cmd('find -t {}'.format(obj_load.full_name(Car)))
+    assert not res.stderr
+    lines = res.stdout.split('\n')[:-1]
+    assert len(lines) == 1
+    assert str(car.obj_id) in lines[0]
+
+    res = pyos_shell.app_cmd('find -t {}'.format(obj_load.full_name(Person)))
+    assert not res.stderr
+    lines = res.stdout.split('\n')[:-1]
+    assert len(lines) == 1
+    assert str(person.obj_id) in lines[0]
+
+
+def test_shell_find_query_state(pyos_shell):
+    fiat = Car(make='fiat', colour='white')
+    subaru = Car(make='subaru', colour='white')
+    fiat.save()
+    subaru.save()
+
+    res = pyos_shell.app_cmd('find -t {} colour=white'.format(obj_load.full_name(Car)))
+    assert not res.stderr
+    lines = res.stdout.split('\n')[:-1]
+    assert len(lines) == 2
+    assert str(fiat.obj_id) in res.stdout
+    assert str(subaru.obj_id) in res.stdout
+
+    res = pyos_shell.app_cmd('find make=subaru')
+    assert not res.stderr
+    lines = res.stdout.split('\n')[:-1]
+    assert len(lines) == 1
+    assert str(subaru.obj_id) in lines[0]

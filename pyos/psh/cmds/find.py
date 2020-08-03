@@ -2,9 +2,13 @@
 import argparse
 
 import cmd2
+from mincepy import qops
 
 import pyos
 from pyos.psh import base
+from pyos.psh import argparse_types
+
+__all__ = 'find', 'do_find'
 
 
 @pyos.psh_lib.command()
@@ -38,11 +42,52 @@ def find(
 
 
 parser = argparse.ArgumentParser()  # pylint: disable=invalid-name
-parser.add_argument('path', nargs='*', type=str, completer_method=base.BaseShell.file_completer)
+parser.add_argument('-t',
+                    dest='type',
+                    type=argparse_types.type_string,
+                    help="the type to search for")
+parser.add_argument('-s',
+                    dest='paths',
+                    action='append',
+                    type=str,
+                    default=[],
+                    completer_method=base.BaseShell.dir_completer,
+                    help="starting point (path) for search")
+parser.add_argument('-m',
+                    dest='meta',
+                    action='append',
+                    type=argparse_types.parse_query,
+                    help='a constraint to apply to the metadata')
+parser.add_argument('--maxdepth',
+                    dest='maxdepth',
+                    type=int,
+                    default=-1,
+                    help='maximum depth to search at relative to starting point(s) '
+                    '(-1 means no maximum)')
+parser.add_argument('--mindepth',
+                    dest='mindepth',
+                    type=int,
+                    default=0,
+                    help='minimum depth to start search at relative to starting point(s)')
+parser.add_argument('state',
+                    type=argparse_types.parse_query,
+                    nargs='*',
+                    help='a constraint to apply to the state of the object')
 
 
 @cmd2.with_argparser(parser)
 def do_find(app: cmd2.Cmd, args):
-    command = find
+    meta = None
+    state = None
+    if args.meta:
+        meta = qops.and_(*args.meta)
+    if args.state:
+        state = qops.and_(*args.state)
 
-    app.poutput(command(*args.path))
+    res = pyos.fs.find(*args.paths,
+                       type=args.type,
+                       meta=meta,
+                       state=state,
+                       mindepth=args.mindepth,
+                       maxdepth=args.maxdepth)
+    app.poutput(res)
