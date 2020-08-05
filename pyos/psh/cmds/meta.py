@@ -1,11 +1,14 @@
 """The meta command"""
-
+import argparse
 import logging
 
+import cmd2
+
 import pyos
+from pyos.psh import base
 from pyos import psh
 
-logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
+logger = logging.getLogger(__name__)
 
 
 @pyos.psh_lib.command(pass_options=True)
@@ -46,3 +49,22 @@ def meta(options, *obj_or_ids, **updates):
         return pyos.psh_lib.CachingResults(pyos.db.lib.find_meta(obj_ids=obj_ids))
 
     return None
+
+
+class Meta(cmd2.CommandSet):
+    parser = argparse.ArgumentParser()
+
+    set_update = parser.add_mutually_exclusive_group()
+    set_update.add_argument('-s', action='store_true', help="set the metadata")
+    set_update.add_argument('-u', action='store_true', help="update the metadata")
+    parser.add_argument('path', nargs='*', type=str, completer_method=base.path_complete)
+
+    @cmd2.with_argparser(parser)
+    def do_meta(self, app: cmd2.Cmd, args):  # pylint: disable=no-self-use
+        command = meta
+        if args.u:
+            command = command - psh.u
+        if args.s:
+            command = command - psh.s
+
+        app.poutput(command(*args.path))

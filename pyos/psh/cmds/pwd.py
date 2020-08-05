@@ -12,9 +12,9 @@ def pwd() -> pyos.pathlib.Path:
     return pyos.pathlib.Path().resolve()
 
 
-parser = argparse.ArgumentParser()  # pylint: disable=invalid-name
+class Pwd(cmd2.CommandSet):
+    parser = argparse.ArgumentParser()
 
-
-@cmd2.with_argparser(parser)
-def do_pwd(self, _):
-    self.poutput(pwd())
+    @cmd2.with_argparser(parser)
+    def do_pwd(self, app, _):  # pylint: disable=no-self-use
+        app.poutput(pwd())

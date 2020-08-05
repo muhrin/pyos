@@ -19,13 +19,13 @@ def cd(path: pyos.os.PathSpec):  # pylint: disable=invalid-name
     pyos.os.chdir(path)
 
 
-parser = argparse.ArgumentParser()  # pylint: disable=invalid-name
-parser.add_argument('path',
-                    nargs=1,
-                    type=str,
-                    completer_method=functools.partial(base.BaseShell.dir_completer))
+class Cd(cmd2.CommandSet):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('path',
+                        nargs=1,
+                        type=str,
+                        completer_method=functools.partial(base.dir_completer))
 
-
-@cmd2.with_argparser(parser)
-def do_cd(_app: cmd2.Cmd, args):
-    cd(args.path[0])
+    @cmd2.with_argparser(parser)
+    def do_cd(self, _app: cmd2.Cmd, args):  # pylint: disable=no-self-use
+        cd(args.path[0])

@@ -21,15 +21,15 @@ def tree(options, *paths):
     return to_tree
 
 
-parser = argparse.ArgumentParser()  # pylint: disable=invalid-name
-parser.add_argument('-L', type=int, help="max display depth of the directory tree")
-parser.add_argument('path', nargs='*', type=str, completer_method=base.BaseShell.path_complete)
+class Tree(cmd2.CommandSet):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-L', type=int, help="max display depth of the directory tree")
+    parser.add_argument('path', nargs='*', type=str, completer_method=base.path_complete)
 
+    @cmd2.with_argparser(parser)
+    def do_tree(self, app: cmd2.Cmd, args):  # pylint: disable=no-self-use
+        command = tree
+        if args.L is not None:
+            command = command - psh.L(args.L)
 
-@cmd2.with_argparser(parser)
-def do_tree(app: cmd2.Cmd, args):
-    command = tree
-    if args.L is not None:
-        command = command - psh.L(args.L)
-
-    app.poutput(command(*args.path))
+        app.poutput(command(*args.path))

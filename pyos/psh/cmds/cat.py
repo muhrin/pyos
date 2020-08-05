@@ -49,12 +49,12 @@ def cat(*obj_or_ids, representer=None):
     return results
 
 
-ls_parser = argparse.ArgumentParser()  # pylint: disable=invalid-name
-ls_parser.add_argument('path', nargs='*', type=str, completer_method=base.BaseShell.file_completer)
+class Cat(cmd2.CommandSet):
+    ls_parser = argparse.ArgumentParser()
+    ls_parser.add_argument('path', nargs='*', type=str, completer_method=base.file_completer)
 
+    @cmd2.with_argparser(ls_parser)
+    def do_cat(self, app: cmd2.Cmd, args):  # pylint: disable=no-self-use
+        command = cat
 
-@cmd2.with_argparser(ls_parser)
-def do_cat(app: cmd2.Cmd, args):
-    command = cat
-
-    app.poutput(command(*args.path))
+        app.poutput(command(*args.path))

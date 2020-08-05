@@ -56,15 +56,15 @@ def mv(options, *args):  # pylint: disable=invalid-name
         to_move.move(dest, overwrite=not options.pop(psh.n))
 
 
-parser = argparse.ArgumentParser()  # pylint: disable=invalid-name
-parser.add_argument('-f', action='store_true', help="force - do not prompt before overwriting")
-parser.add_argument('path', nargs='*', type=str, completer_method=base.BaseShell.path_complete)
+class Mv(cmd2.CommandSet):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f', action='store_true', help="force - do not prompt before overwriting")
+    parser.add_argument('path', nargs='*', type=str, completer_method=base.path_complete)
 
+    @cmd2.with_argparser(parser)
+    def do_mv(self, app: cmd2.Cmd, args):  # pylint: disable=no-self-use
+        command = mv
+        if args.f:
+            command = command - psh.f
 
-@cmd2.with_argparser(parser)
-def do_mv(app: cmd2.Cmd, args):
-    command = mv
-    if args.f:
-        command = command - psh.f
-
-    app.poutput(command(*args.path))
+        app.poutput(command(*args.path))

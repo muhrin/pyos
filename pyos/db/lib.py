@@ -1,3 +1,4 @@
+from collections import abc
 import getpass
 from typing import Sequence, Iterable, Optional, Tuple, Any, Union
 
@@ -19,14 +20,19 @@ def get_historian():
 
 
 def init():
-    mincepy.get_historian().meta.create_index([
+    historian = get_historian()
+
+    # Make sure the indexes are there
+    historian.meta.create_index([
         (config.NAME_KEY, mincepy.ASCENDING),
         (config.DIR_KEY, mincepy.ASCENDING),
     ],
-                                              unique=True,
-                                              where_exist=True)
+                                unique=True,
+                                where_exist=True)
+
+    # Set the current path
     path = '/{}/'.format(getpass.getuser())
-    get_historian().meta.sticky[config.DIR_KEY] = path
+    historian.meta.sticky[config.DIR_KEY] = path
 
 
 def reset():
@@ -171,7 +177,7 @@ def save_many(to_save: Iterable[Union[Any, Tuple[Any, os.PathSpec]]],
     obj_ids = []
     for entry in to_save:
         path = None
-        if isinstance(entry, Sequence):
+        if isinstance(entry, abc.Sequence):
             if len(entry) > 2:
                 raise ValueError("Can only pass sequences of at most length 2")
             obj, path = entry[0], entry[1]

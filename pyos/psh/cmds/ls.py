@@ -9,7 +9,7 @@ from pyos import psh
 from pyos import psh_lib
 from pyos.psh import base
 
-logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
+logger = logging.getLogger(__name__)
 
 
 @psh_lib.command(pass_options=True)
@@ -61,23 +61,23 @@ def ls(options, *args) -> pyos.fs.ResultsNode:  # pylint: disable=invalid-name, 
     return results
 
 
-parser = argparse.ArgumentParser()  # pylint: disable=invalid-name
-parser.add_argument('-l', action='store_true', help="use a long listing format")
-parser.add_argument('-d',
-                    action='store_true',
-                    help="list directories themselves, not their contents")
-parser.add_argument('-p', action='store_true', help="print the str() value of each object")
-parser.add_argument('path', nargs='*', type=str, completer_method=base.BaseShell.path_complete)
+class Ls(cmd2.CommandSet):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-l', action='store_true', help="use a long listing format")
+    parser.add_argument('-d',
+                        action='store_true',
+                        help="list directories themselves, not their contents")
+    parser.add_argument('-p', action='store_true', help="print the str() value of each object")
+    parser.add_argument('path', nargs='*', type=str, completer_method=base.path_complete)
 
+    @cmd2.with_argparser(parser)
+    def do_ls(self, app: cmd2.Cmd, args):  # pylint: disable=no-self-use
+        command = ls
+        if args.l:
+            command = command - psh.l
+        if args.d:
+            command = command - psh.d
+        if args.p:
+            command = command - psh.p
 
-@cmd2.with_argparser(parser)
-def do_ls(app: cmd2.Cmd, args):
-    command = ls
-    if args.l:
-        command = command - psh.l
-    if args.d:
-        command = command - psh.d
-    if args.p:
-        command = command - psh.p
-
-    app.poutput(command(*args.path))
+        app.poutput(command(*args.path))
