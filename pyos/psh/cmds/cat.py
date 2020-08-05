@@ -1,9 +1,9 @@
 import argparse
 
 import cmd2
-import mincepy
 
 import pyos
+from pyos import db
 from pyos import psh
 from pyos.psh import base
 
@@ -17,7 +17,7 @@ def cat(*obj_or_ids, representer=None):
     if not obj_or_ids:
         return None
 
-    hist = mincepy.get_historian()
+    hist = db.get_historian()
     to_cat = []
 
     for entry in obj_or_ids:

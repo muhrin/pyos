@@ -16,5 +16,7 @@ from .rm import rm
 from .save import save
 from .tree import tree
 
+from . import connect
+
 __all__ = ('cat', 'cd', 'find', 'history', 'load', 'ls', 'locate', 'meta', 'mv', 'oid', 'pwd', 'rm',
            'save', 'tree')

@@ -1,22 +1,28 @@
 from typing import List, Callable, Optional
 
+import mincepy
 import cmd2.plugin
 
 import pyos
+from pyos import db
 from pyos import os
 from pyos import glob
 from pyos import version
 
 
 class BaseShell(cmd2.Cmd):
+    """The pyOS shell"""
 
     def __init__(self):
         super().__init__()
-        pyos.lib.init()
+
+        try:
+            pyos.lib.init()
+        except (mincepy.ConnectionError, ValueError):
+            pass
+
         self.intro = version.BANNER
-
         self._update_prompt()
-
         self.register_cmdfinalization_hook(self.command_finalise)
 
     def command_finalise(
@@ -25,7 +31,16 @@ class BaseShell(cmd2.Cmd):
         return data
 
     def _update_prompt(self):
-        self.prompt = "{}$ ".format(pyos.os.getcwd())
+        try:
+            historian = db.get_historian()
+        except RuntimeError:
+            # Happens when there is a global historian but pyos.db.init() hasn't been called
+            historian = None
+
+        if historian is None:
+            self.prompt = '[not connected]$ '
+        else:
+            self.prompt = "{}$ ".format(pyos.os.getcwd())
 
 
 def path_complete(_cmd_set: cmd2.CommandSet,

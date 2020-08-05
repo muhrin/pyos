@@ -11,18 +11,23 @@ from . import utils
 
 __all__ = ('get_historian', 'get_meta', 'update_meta', 'set_meta', 'find_meta', 'save_one',
            'save_many', 'get_abspath', 'load', 'to_obj_id', 'get_obj_id', 'init', 'reset',
-           'get_path', 'get_paths', 'rename', 'homedir')
+           'get_path', 'get_paths', 'rename', 'homedir', 'connect')
+
+_HISTORIAN = None  # type: Optional[mincepy.Historian]
 
 
-def get_historian():
-    """Get the active historian in pyos"""
-    return mincepy.get_historian()
+def connect(uri: str = '') -> mincepy.Historian:
+    mincepy.connect(uri, use_globally=True)
+    return init()
 
 
 def init():
-    historian = get_historian()
-
     # Make sure the indexes are there
+    global _HISTORIAN  # pylint: disable=global-statement
+    historian = mincepy.get_historian()
+    if historian is _HISTORIAN:
+        return historian
+
     historian.meta.create_index([
         (config.NAME_KEY, mincepy.ASCENDING),
         (config.DIR_KEY, mincepy.ASCENDING),
@@ -34,9 +39,26 @@ def init():
     path = '/{}/'.format(getpass.getuser())
     historian.meta.sticky[config.DIR_KEY] = path
 
+    # All done
+    _HISTORIAN = historian
+    return historian
+
+
+def get_historian():
+    """Get the active historian in pyos"""
+    global _HISTORIAN  # pylint: disable=global-statement
+    historian = mincepy.get_historian(create=False)
+    if historian is not None and historian is not _HISTORIAN:
+        raise RuntimeError("PyOS has not been initialised with the current historian.  "
+                           "Call pyos.db.init()")
+    return _HISTORIAN
+
 
 def reset():
-    get_historian().meta.sticky.pop(config.DIR_KEY, None)
+    global _HISTORIAN  # pylint: disable=global-statement
+    if _HISTORIAN is not None:
+        _HISTORIAN.meta.sticky.pop(config.DIR_KEY, None)
+        _HISTORIAN = None
 
 
 # region metadata

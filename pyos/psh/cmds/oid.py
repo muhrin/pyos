@@ -3,6 +3,7 @@
 import mincepy
 
 import pyos
+from pyos import db
 
 
 @pyos.psh_lib.command()
@@ -11,7 +12,7 @@ def oid(*args):
     if not args:
         return None
 
-    hist = mincepy.get_historian()
+    hist = db.get_historian()
 
     oids = []
     for obj in args:
