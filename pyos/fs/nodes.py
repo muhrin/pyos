@@ -67,7 +67,7 @@ class FilesystemNode(BaseNode):
 
     def __init__(self, path: os.PathSpec, parent: BaseNode = None):
         """
-        :param path: the path this not represents
+        :param path: the path this node represents
         :param parent: parent node
         """
         path = pathlib.Path(path).resolve()
@@ -87,6 +87,7 @@ class ContainerNode(BaseNode):
     """A node that contains children that can be either directory nodes or object nodes"""
 
     def __contains__(self, item):
+        # pylint: disable=too-many-nested-blocks, too-many-branches, too-many-return-statements
         if isinstance(item, pathlib.PurePath):
             path = pathlib.PurePath(item)
             if path.is_absolute():

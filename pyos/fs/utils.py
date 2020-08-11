@@ -1,5 +1,3 @@
-import mincepy
-
 from pyos import os
 from pyos import db
 from pyos import pathlib
@@ -41,14 +39,12 @@ def find(*starting_point,
 
     hist = db.get_historian()
 
-    # Find the metadata
-    metas = dict(hist.meta.find(meta))
-    records = {}
-    if metas and (type is not None or state is not None):
-        # Further restrict the match
-        obj_id_filter = mincepy.q.in_(*metas.keys())
-        for record in hist.find_records(obj_id=obj_id_filter, obj_type=type, state=state):
-            records[record.obj_id] = record
+    # Get the records that match both the record and metadata criteria
+    records = {
+        record.obj_id: record for record in hist.find_records(obj_type=type, state=state, meta=meta)
+    }
+    # Now get the metadata for those objects
+    metas = dict(hist.meta.find(filter={}, obj_id=list(records.keys())))
 
     results = nodes.ResultsNode()
     results.show('relpath')
