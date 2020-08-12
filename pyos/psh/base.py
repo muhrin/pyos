@@ -10,6 +10,18 @@ from pyos import glob
 from pyos import version
 
 
+def mod() -> str:
+    """Get the message of the day string"""
+    message = [
+        version.BANNER,
+        " Powered by mincePy (v{})".format(mincepy.__version__),  # pylint: disable=no-member
+        ' https://pyos.readthedocs.io/en/latest/',
+        ''
+    ]
+
+    return "\n".join(message)
+
+
 class BaseShell(cmd2.Cmd):
     """The pyOS shell"""
 
@@ -21,7 +33,7 @@ class BaseShell(cmd2.Cmd):
         except (mincepy.ConnectionError, ValueError):
             pass
 
-        self.intro = version.BANNER
+        self.intro = mod()
         self._update_prompt()
         self.register_cmdfinalization_hook(self.command_finalise)
 
