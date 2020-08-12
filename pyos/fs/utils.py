@@ -39,18 +39,30 @@ def find(*starting_point,
 
     hist = db.get_historian()
 
-    # Get the records that match both the record and metadata criteria
-    records = {
-        record.obj_id: record for record in hist.find_records(obj_type=type, state=state, meta=meta)
-    }
-    # Now get the metadata for those objects
-    metas = dict(hist.meta.find(filter={}, obj_id=list(records.keys())))
+    entries = {}
+
+    if state or type:
+        # If we need to match state or type we have to go into the data collection, otherwise
+        # we just look up the metadata which is faster
+
+        # Get the records that match both the record and metadata criteria
+        for record in hist.find_records(obj_type=type, state=state, meta=meta):
+            entries.setdefault(record.obj_id, {})['record'] = record
+
+        # Now get the metadata for those objects
+        for obj_id, meta_dict in hist.meta.find(filter={}, obj_id=list(entries.keys())):
+            entries.setdefault(obj_id, {})['meta'] = meta_dict
+    else:
+        for obj_id, meta_dict in hist.meta.find(filter=meta):
+            entries.setdefault(obj_id, {})['meta'] = meta_dict
 
     results = nodes.ResultsNode()
     results.show('relpath')
 
-    for obj_id, record in records.items():
-        node = nodes.ObjectNode(obj_id, record=record, meta=metas[obj_id])
+    for obj_id, entry in entries.items():
+        node = nodes.ObjectNode(obj_id,
+                                record=entry.get('record', None),
+                                meta=entry.get('meta', None))
         results.append(node)
 
     return results

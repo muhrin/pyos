@@ -31,6 +31,7 @@ OPERATORS = {
     '=': lambda field, value: {
         field: value
     },
+    '!=': qops.ne_,
     '>': qops.gt_,
     '<': qops.lt_,
 }
