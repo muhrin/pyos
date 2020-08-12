@@ -34,6 +34,8 @@ def init():
     ],
                                 unique=True,
                                 where_exist=True)
+    historian.meta.create_index(config.NAME_KEY, unique=False, where_exist=True)
+    historian.meta.create_index(config.DIR_KEY, unique=False, where_exist=True)
 
     # Set the current path
     path = '/{}/'.format(getpass.getuser())

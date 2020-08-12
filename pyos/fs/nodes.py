@@ -9,7 +9,6 @@ import columnize
 import tabulate
 
 import mincepy
-import mincepy.qops
 
 from pyos import config
 from pyos import db
@@ -193,13 +192,12 @@ class DirectoryNode(ContainerNode, FilesystemNode):
         if depth == 0:
             return
 
+        path_str = str(self._abspath)
+
         # OBJECTS
-
-        # Query for objects in this directory (start depth 0, end depth 0)
-        metas = self._hist.meta.find(db.queries.subdirs(str(self._abspath), 0, 0))
+        # Query for objects in this directory
         obj_kwargs = []
-
-        for obj_id, meta in metas:
+        for obj_id, meta in self._hist.meta.find({config.DIR_KEY: path_str}):
             # This is an object in _this_ directory and not further down the hierarchy
             obj_kwargs.append(dict(obj_id=obj_id, meta=meta, parent=self))
 
@@ -209,18 +207,23 @@ class DirectoryNode(ContainerNode, FilesystemNode):
         # there may be just folders (no objects) between _abspath and the object in some deeply
         # nested directory
         directories = self._hist.meta.distinct(config.DIR_KEY,
-                                               db.queries.subdirs(str(self._abspath), 1, -1))
+                                               {config.DIR_KEY: {
+                                                   '$regex': '^' + path_str
+                                               }})
 
-        my_dirstring = str(self._abspath)
-        my_dirstring_len = len(my_dirstring)
+        len_path_str = len(path_str)
 
         child_expand_depth = depth - 1
         directories_added = set()  # type: Set[str]
 
         for dirstring in directories:
+            if dirstring == path_str:
+                # Skip over this directory
+                continue
+
             # This is an object that resides at some subdirectory so we know
             # that there must exist a subdirectory
-            dirname = dirstring[my_dirstring_len:].split(os.sep)[0]
+            dirname = dirstring[len_path_str:].split(os.sep)[0]
 
             if dirname not in directories_added:
                 directories_added.add(dirname)
