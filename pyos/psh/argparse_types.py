@@ -1,4 +1,7 @@
 import ast
+import collections
+import functools
+from typing import Callable
 
 from pytray import obj_load
 from mincepy import qops
@@ -27,11 +30,17 @@ def parse_query(value: str) -> dict:
     raise ValueError("Unknown condition: {}".format(value))
 
 
-OPERATORS = {
-    '=': lambda field, value: {
-        field: value
-    },
-    '!=': qops.ne_,
-    '>': qops.gt_,
-    '<': qops.lt_,
-}
+def apply(operator: Callable, name: str, value):
+    return {name: operator(value)}
+
+
+def _new(operator: Callable):
+    return functools.partial(apply, operator)
+
+
+OPERATORS = collections.OrderedDict([
+    ('!=', _new(qops.ne_)),
+    ('=', _new(lambda x: x)),
+    ('>', _new(qops.gt_)),
+    ('<', _new(qops.lt_)),
+])

@@ -169,6 +169,7 @@ def test_shell_find_query_state(pyos_shell):
     fiat.save()
     subaru.save()
 
+    # =
     res = pyos_shell.app_cmd('find -t {} colour=white'.format(obj_load.full_name(Car)))
     assert not res.stderr
     lines = res.stdout.split('\n')[:-1]
@@ -181,3 +182,11 @@ def test_shell_find_query_state(pyos_shell):
     lines = res.stdout.split('\n')[:-1]
     assert len(lines) == 1
     assert str(subaru.obj_id) in lines[0]
+
+    # !=
+    res = pyos_shell.app_cmd('find -t {} make!=fiat'.format(obj_load.full_name(Car)))
+    assert not res.stderr
+    lines = res.stdout.split('\n')[:-1]
+    assert len(lines) == 1
+    assert str(fiat.obj_id) not in res.stdout
+    assert str(subaru.obj_id) in res.stdout
