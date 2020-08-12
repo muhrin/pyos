@@ -1,5 +1,7 @@
+import os
 from typing import List, Callable, Optional
 
+import click
 import mincepy
 import cmd2.plugin
 
@@ -26,7 +28,8 @@ class BaseShell(cmd2.Cmd):
     """The pyOS shell"""
 
     def __init__(self):
-        super().__init__()
+        hist_path = os.path.join(click.get_app_dir('pyos'), 'psh_history')
+        super().__init__(persistent_history_file=hist_path)
 
         try:
             pyos.lib.init()
