@@ -29,7 +29,7 @@ class BaseShell(cmd2.Cmd):
 
     def __init__(self):
         hist_path = os.path.join(click.get_app_dir('pyos'), 'psh_history')
-        super().__init__(persistent_history_file=hist_path)
+        super().__init__(use_ipython=True, persistent_history_file=hist_path)
 
         try:
             pyos.lib.init()
