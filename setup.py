@@ -28,7 +28,7 @@ setup(
     keywords='database schemaless nosql object-store',
     install_requires=[
         'anytree',
-        'cmd2 >= 1.3.0',
+        'cmd2 ~= 1.3.2',
         'columnize',
         'mincepy>=0.15.4, <0.16.0',
         'click',

@@ -7,7 +7,7 @@ import cmd2.plugin
 
 import pyos
 from pyos import db
-from pyos import os
+from pyos import os as pos
 from pyos import glob
 from pyos import version
 
@@ -55,11 +55,10 @@ class BaseShell(cmd2.Cmd):
         if historian is None:
             self.prompt = '[not connected]$ '
         else:
-            self.prompt = "{}$ ".format(pyos.os.getcwd())
+            self.prompt = "{}$ ".format(pos.getcwd())
 
 
-def path_complete(_cmd_set: cmd2.CommandSet,
-                  app: BaseShell,
+def path_complete(app: BaseShell,
                   text: str,
                   _line: str,
                   _begidx: int,
@@ -69,9 +68,8 @@ def path_complete(_cmd_set: cmd2.CommandSet,
     """Performs completion of local file system paths
 
     :param app: The pyos base shell
-    :param _cmd_set: the command set
     :param text: the string prefix we are attempting to match (all matches must begin with it)
-    :param line: the current input line with leading whitespace removed
+    :param _line: the current input line with leading whitespace removed
     :param _begidx: the beginning index of the prefix text
     :param _endidx: the ending index of the prefix text
     :param path_filter: optional filter function that determines if a path belongs in the
@@ -101,7 +99,7 @@ def path_complete(_cmd_set: cmd2.CommandSet,
         matches = [c for c in matches if path_filter(c)]
 
     # Don't append a space or closing quote to directory
-    if len(matches) == 1 and os.path.isdir(matches[0]):
+    if len(matches) == 1 and pos.path.isdir(matches[0]):
         app.allow_appended_space = False
         app.allow_closing_quote = False
 
@@ -112,19 +110,17 @@ def path_complete(_cmd_set: cmd2.CommandSet,
     return matches
 
 
-def file_completer(cmd_set: cmd2.CommandSet, app: BaseShell, text: str, line: str, begidx: int,
-                   endidx: int) -> List[str]:
+def file_completer(app: BaseShell, text: str, line: str, begidx: int, endidx: int) -> List[str]:
 
     def is_file(path: str):
-        return not path.endswith(os.sep)
+        return not path.endswith(pos.sep)
 
-    return path_complete(cmd_set, app, text, line, begidx, endidx, path_filter=is_file)
+    return path_complete(app, text, line, begidx, endidx, path_filter=is_file)
 
 
-def dir_completer(cmd_set: cmd2.CommandSet, app: BaseShell, text: str, line: str, begidx: int,
-                  endidx: int) -> List[str]:
+def dir_completer(app: BaseShell, text: str, line: str, begidx: int, endidx: int) -> List[str]:
 
     def is_dir(path: str):
-        return path.endswith(os.sep)
+        return path.endswith(pos.sep)
 
-    return path_complete(cmd_set, app, text, line, begidx, endidx, path_filter=is_dir)
+    return path_complete(app, text, line, begidx, endidx, path_filter=is_dir)
