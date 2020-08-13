@@ -13,7 +13,7 @@ class Log(cmd2.CommandSet):
     parser.add_argument('level', help="the log level to set")
 
     @cmd2.with_argparser(parser)
-    def do_log(self, _app, args):  # pylint: disable=no-self-use
+    def do_log(self, args):  # pylint: disable=no-self-use
 
         if isinstance(args.level, int):
             level = args.level
@@ -28,7 +28,7 @@ def set_logging(logger: str, level: Union[int, str]):
     log = logging.getLogger(logger)
     log.setLevel(level)
 
-    formatter = logging.Formatter('%(message)s')
+    formatter = logging.Formatter('%(levelname)s: %(message)s')
 
     handler = logging.StreamHandler()
     handler.setLevel(level)

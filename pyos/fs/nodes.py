@@ -2,6 +2,7 @@ import abc
 from collections.abc import Sequence, Set
 import copy
 import functools
+import sys
 import typing
 
 import anytree
@@ -444,7 +445,10 @@ class ResultsNode(ContainerNode):
             for child in self:
                 repr_list.append("-".join(self._get_row(child)))
 
-            return columnize.columnize(repr_list, displaywidth=utils.get_terminal_width())
+            if sys.stdout.isatty():
+                return columnize.columnize(repr_list, displaywidth=utils.get_terminal_width())
+            else:
+                return "\n".join(repr_list)
 
         return super().__repr__()
 

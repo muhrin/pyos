@@ -1,6 +1,7 @@
 """The meta command"""
 import argparse
 import logging
+import sys
 
 import cmd2
 
@@ -60,11 +61,22 @@ class Meta(cmd2.CommandSet):
     parser.add_argument('path', nargs='*', type=str, completer_method=base.path_complete)
 
     @cmd2.with_argparser(parser)
-    def do_meta(self, app: cmd2.Cmd, args):  # pylint: disable=no-self-use
+    def do_meta(self, args):  # pylint: disable=no-self-use
         command = meta
         if args.u:
             command = command - psh.u
         if args.s:
             command = command - psh.s
 
-        app.poutput(command(*args.path))
+        if not args.path:
+            # Read from standard in
+            try:
+                args.path = [line.rstrip() for line in sys.stdin.readlines()]
+            except Exception:
+                logger.exception("Exception trying to readlines")
+                raise
+
+        logger.debug("Writing to %s", sys.stdout)
+        result = command(*args.path)
+        rep = repr(result)
+        print(rep, file=sys.stdout)

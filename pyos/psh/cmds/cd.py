@@ -27,5 +27,5 @@ class Cd(cmd2.CommandSet):
                         completer_method=functools.partial(base.dir_completer))
 
     @cmd2.with_argparser(parser)
-    def do_cd(self, _app: cmd2.Cmd, args):  # pylint: disable=no-self-use
+    def do_cd(self, args):  # pylint: disable=no-self-use
         cd(args.path[0])

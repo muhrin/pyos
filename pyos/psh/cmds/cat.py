@@ -1,4 +1,6 @@
 import argparse
+import logging
+import sys
 
 import cmd2
 
@@ -6,6 +8,8 @@ import pyos
 from pyos import db
 from pyos import psh
 from pyos.psh import base
+
+_LOGGER = logging.getLogger(__name__)
 
 
 @pyos.psh_lib.command()
@@ -54,7 +58,16 @@ class Cat(cmd2.CommandSet):
     ls_parser.add_argument('path', nargs='*', type=str, completer_method=base.file_completer)
 
     @cmd2.with_argparser(ls_parser)
-    def do_cat(self, app: cmd2.Cmd, args):  # pylint: disable=no-self-use
+    def do_cat(self, args):  # pylint: disable=no-self-use
         command = cat
+        if not args.path:
+            # Read from standard in
+            _LOGGER.debug("cat: getting input from stdin")
+            try:
+                args.path = [line.rstrip() for line in sys.stdin.readlines()]
+            except Exception:
+                _LOGGER.exception("Exception trying to readlines")
+                raise
+            _LOGGER.debug("cat: got input' %s' from stdin", args.path)
 
-        app.poutput(command(*args.path))
+        print(command(*args.path))

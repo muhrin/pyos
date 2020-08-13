@@ -71,7 +71,7 @@ class Ls(cmd2.CommandSet):
     parser.add_argument('path', nargs='*', type=str, completer_method=base.path_complete)
 
     @cmd2.with_argparser(parser)
-    def do_ls(self, app: cmd2.Cmd, args):  # pylint: disable=no-self-use
+    def do_ls(self, args):  # pylint: disable=no-self-use
         command = ls
         if args.l:
             command = command - psh.l
@@ -80,4 +80,4 @@ class Ls(cmd2.CommandSet):
         if args.p:
             command = command - psh.p
 
-        app.poutput(command(*args.path))
+        print(command(*args.path))

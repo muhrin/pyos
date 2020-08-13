@@ -36,6 +36,7 @@ setup(
         'ipython',
         'pyprnt',
         'pytray >= 0.3.0',
+        'stevedore',
         'tqdm',
     ],
     extras_require={
@@ -65,6 +66,6 @@ setup(
     include_package_data=True,
     test_suite='test',
     entry_points={
-        'console_scripts': ['pyos = pyos.cli:pyos'],
+        'console_scripts': ['pyos = pyos.cli:pyos', 'psh = pyos.cli:psh_'],
         'mincepy.plugins.types': ['pyos_types = pyos.provides:get_types',]
     })

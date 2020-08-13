@@ -7,6 +7,7 @@ from .find import find
 from .history import history
 from .load import load
 from .locate import locate
+from .log import Log
 from .ls import ls
 from .meta import meta
 from .mv import mv
@@ -19,4 +20,4 @@ from .tree import tree
 from . import connect
 
 __all__ = ('cat', 'cd', 'find', 'history', 'load', 'ls', 'locate', 'meta', 'mv', 'oid', 'pwd', 'rm',
-           'save', 'tree')
+           'save', 'tree', 'Log')

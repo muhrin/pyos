@@ -76,7 +76,7 @@ class Find(cmd2.CommandSet):
                         help='a constraint to apply to the state of the object')
 
     @cmd2.with_argparser(parser)
-    def do_find(self, app: cmd2.Cmd, args):  # pylint: disable=no-self-use
+    def do_find(self, args):  # pylint: disable=no-self-use
         meta = None
         state = None
         if args.meta:
@@ -90,4 +90,4 @@ class Find(cmd2.CommandSet):
                            state=state,
                            mindepth=args.mindepth,
                            maxdepth=args.maxdepth)
-        app.poutput(res)
+        print(res)

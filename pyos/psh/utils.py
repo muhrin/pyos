@@ -4,23 +4,29 @@ import contextlib
 import io
 import logging
 import os
+import sys
 import threading
-from typing import Optional, Any, Dict
+import traceback
+from typing import Optional, Union, TextIO, List, Callable, Tuple
+
+import cmd2.utils
+import stevedore  # pylint: disable=wrong-import-order
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class ThreadStreamRedirector:
+class ThreadStreamRedirector(io.TextIOBase):
     """Idea for this was found here:
     https://stackoverflow.com/questions/14890997/redirect-stdout-to-a-file-only-for-a-specific-thread
     """
 
-    def __init__(self, *, default: Optional[io.TextIOBase] = None, name=''):
+    def __init__(self, *, default: Optional[TextIO] = None, name=''):
+        super().__init__()
         self.default = default
         self._streams = {}
         self._name = name
 
-    def register(self, stream: Optional[io.TextIOBase]):
+    def register(self, stream: Optional[TextIO]):
         identity = threading.current_thread().ident
         _LOGGER.debug("(%s): Redirecting thread %s to %s", self._name, identity, stream)
         self._streams[identity] = stream
@@ -31,7 +37,7 @@ class ThreadStreamRedirector:
         self._streams.pop(identity)
 
     @contextlib.contextmanager
-    def redirect(self, stream: Optional[io.TextIOBase]):
+    def redirect(self, stream: Optional[TextIO]):
         self.register(stream)
         yield
         self.unregister()
@@ -42,9 +48,22 @@ class ThreadStreamRedirector:
     def __next__(self):
         return self._get_stream().__next__()
 
+    @property
+    def closed(self) -> bool:
+        return self._get_stream().closed
+
     def close(self):
+        if getattr(self, '_finalizing', False):
+            # We're being asked to close because of finalising but because we don't own any streams
+            # ourselves, we just redirect, we are not responsible for closing them in this case.
+            return
+
         stream = self._get_stream()
-        return stream.close()
+        logging.debug("Closing stream %s", stream)
+        if stream.name == '<stdin>':
+            logging.warning("Someone is closing the standard input: \n%s",
+                            ''.join(traceback.format_stack()))
+        stream.close()
 
     def write(self, message):
         stream = self._get_stream()
@@ -73,6 +92,9 @@ class ThreadStreamRedirector:
     def isatty(self):
         return self._get_stream().isatty()
 
+    def fileno(self):
+        return self._get_stream().fileno()
+
     def _get_stream(self):
         identity = threading.current_thread().ident
         try:
@@ -81,64 +103,199 @@ class ThreadStreamRedirector:
             return self.default
 
 
+class Piper:
+
+    def __init__(self, funcs: List[Callable], out_stream: TextIO = sys.stdout):
+        self._funcs = funcs
+        self._out_stream = out_stream
+
+        self._pipes = {}
+        self._in_steam = None
+        self._thread_pool = None
+        self._orig_stdin = sys.stdin
+        self._orig_stdout = sys.stdout
+
+        # Open up the 0th pipe and set up our input stream
+        _read, write = self._get_pipe(0)
+        self._in_steam = open(write, 'w')
+
+        # Input/Output redirectors
+        self._in_redir = ThreadStreamRedirector(name='stdin', default=self._orig_stdin)
+        self._out_redir = ThreadStreamRedirector(name='stdout', default=self._orig_stdout)
+
+    @property
+    def in_stream(self) -> TextIO:
+        return self._in_steam
+
+    @property
+    def in_redirector(self) -> TextIO:
+        return self._in_redir
+
+    @property
+    def out_redirector(self) -> TextIO:
+        return self._out_redir
+
+    def start(self, capture_this_stdout=True, capture_all_stdout=False):
+        self._thread_pool = concurrent.futures.ThreadPoolExecutor(256)
+        try:
+            # Start redirecting standard streams
+            sys.stdin = self._in_redir
+            sys.stdout = self._out_redir
+
+            if capture_this_stdout:
+                # On this thread, redirect standard out to our input stream
+                self._out_redir.register(self._in_steam)
+            if capture_all_stdout:
+                self._out_redir.default = self._in_steam
+
+            for idx, func in reversed(list(enumerate(self._funcs))):
+                # Create a pipe at the INPUT side of this func
+                read, _write = self._get_pipe(idx)
+
+                # OUTPUT: Determine what the output stream for this part should be
+                if idx == len(self._funcs) - 1:
+                    # At the end, so just go to standard out
+                    open_out_stream = contextlib.nullcontext(self._out_stream)
+                else:
+                    # Need to output to the next commands input
+                    _next_read, next_write = self._pipes[idx + 1]
+                    open_out_stream = open(next_write, 'w')
+
+                done_redirecting = threading.Event()
+
+                future = self._thread_pool.submit(self._run_func, func, open(read, 'r'),
+                                                  open_out_stream, done_redirecting)
+
+                try:
+                    done_redirecting.wait(timeout=0.1)
+                except TimeoutError:
+                    # Try checking the future first
+                    future.result(timeout=0.)
+
+                    # Didn't raise, so we need to raise ourselves
+                    raise RuntimeError("Failed to redirect streams for command '{}' in a timely "
+                                       "manner".format(func))
+                else:
+                    del done_redirecting
+
+        except Exception:
+            self.shutdown(wait=True)
+            raise
+
+    def shutdown(self, wait=True):
+        """Shutdown the pipe processor and clean up"""
+        if self._thread_pool is None:
+            return
+
+        _LOGGER.debug("Shutting down pipe processor")
+
+        # First thing is to close the input stream as this will cause it to flush
+        # and downstream commands may still be waiting for input
+        try:
+            self._in_steam.close()
+        except BrokenPipeError:
+            _LOGGER.debug("Broken pipe error")
+
+        _LOGGER.debug("Waiting for thread pool to shut down")
+        self._thread_pool.shutdown(wait=wait)
+        if self._thread_pool is None:
+            # Another thread already beat us to it
+            return
+
+        _LOGGER.debug("Thread pool shut down")
+
+        self._in_steam = None
+        sys.stdin = self._orig_stdin
+        sys.stdout = self._orig_stdout
+        self._orig_stdin = None
+        self._orig_stdout = None
+        self._in_redir = None
+        self._out_redir = None
+
+        self._funcs = None
+        self._pipes = None
+        self._thread_pool = None
+
+    # region Cmd2 compatibility
+    def send_sigint(self):
+        """Send a SIGINT to the process similar to if <Ctrl>+C were pressed"""
+        self.shutdown(wait=False)
+
+    def terminate(self):
+        """Terminate the process"""
+        self.shutdown(wait=False)
+
+    def wait(self):
+        """Wait for the process to finish"""
+        self.shutdown()
+
+    # endregion
+
+    def _run_func(self, func, open_in_stream, open_out_stream, done_redirecting: threading.Event):
+        """
+        Run a function that is part of the pipe.
+
+        :param func: the function to invoke.  Will be called without any arguments
+        :param open_in_stream: the input stream for the function
+        :param open_out_stream: the output stream for the function
+        :param done_redirecting: an event that tells the caller that redirection has been set up
+        :return: the return value of the func()
+        """
+        with open_in_stream as in_stream, open_out_stream as out_stream:
+            with self._in_redir.redirect(in_stream), self._out_redir.redirect(out_stream):
+                done_redirecting.set()
+                return func()
+
+    def _get_pipe(self, idx) -> Tuple:
+        try:
+            pipe = self._pipes[idx]
+        except KeyError:
+            pipe = os.pipe()  # pylint: disable=no-member
+            self._pipes[idx] = pipe
+            _LOGGER.debug("Created pipe %s for func %s", pipe, self._funcs[idx])
+
+        return pipe
+
+
 PipeInfo = collections.namedtuple('PipeInfo', 'pipe_in pipe_out')
 
 
-class PipingCommands:
-    """
-    Object used to keep track of pipes and a pool of threads associated to commands that are piping
-    from one to another.
-    """
+class RedirectionSavedState(cmd2.utils.RedirectionSavedState):
+    """Extension of cmd2's standard redirection saved state to support additional properties"""
 
-    def __init__(self) -> None:
-        self._thread_pool = concurrent.futures.ThreadPoolExecutor()
-        self._pipes = {}  # type: Dict[Any, PipeInfo]
-        self._futures = []
+    # pylint: disable=too-few-public-methods
 
-    def create_pipe(self, label) -> PipeInfo:
-        read_fd, write_fd = os.pipe()
-        pipe_info = PipeInfo(open(write_fd, 'w'), open(read_fd, 'r'))
+    # pylint: disable=too-many-arguments
+    def __init__(self, self_stdout: Union[cmd2.utils.StdSim,
+                                          TextIO], sys_stdout: Union[cmd2.utils.StdSim, TextIO],
+                 self_stdin: TextIO, sys_stdin: TextIO,
+                 pipe_proc_reader: Optional[cmd2.utils.ProcReader], saved_redirecting: bool):
+        super().__init__(self_stdout, sys_stdout, pipe_proc_reader, saved_redirecting)
+        self.saved_self_stdin = self_stdin
+        self.saved_sys_stdin = sys_stdin
 
-        # Insert the new pipe info
-        if label in self._pipes:
-            self._close_pipe(label)
-        self._pipes[label] = pipe_info
 
-        return pipe_info
+PLUGINS_COMMANDS_NS = 'pyos.plugins.shell'
 
-    def get_pipe(self, idx: int) -> PipeInfo:
-        return self._pipes[idx]
 
-    def submit(self, func, *args, **kwargs):
-        future = self._thread_pool.submit(func, *args, **kwargs)
-        self._futures.append(future)
-        return future
+def plugins_get_commands() -> List:
+    """Get all mincepy types and type helper instances registered as extensions"""
+    mgr = stevedore.extension.ExtensionManager(
+        namespace=PLUGINS_COMMANDS_NS,
+        invoke_on_load=False,
+    )
 
-    def send_sigint(self) -> None:
-        """Send a SIGINT to the process similar to if <Ctrl>+C were pressed"""
-        self._thread_pool.shutdown(wait=False)
-        self._close_all_pipes()
+    commands = []
 
-    def terminate(self) -> None:
-        """Terminate the process"""
-        self._thread_pool.shutdown(wait=False)
-        self._close_all_pipes()
-
-    def wait(self) -> None:
-        """Wait for the process to finish"""
-        self._thread_pool.shutdown(wait=True)
-        self._close_all_pipes()
-
-    def _close_all_pipes(self):
-        _LOGGER.debug("Closing all pipes")
-        for label in list(self._pipes):
-            self._close_pipe(label)
-
-    def _close_pipe(self, label):
+    def get_command(extension: stevedore.extension.Extension):
         try:
-            pipe_in, pipe_out = self._pipes.pop(label)
-        except KeyError:
-            pass
-        else:
-            pipe_in.close()
-            pipe_out.close()
+            commands.extend(extension.plugin())
+        except Exception:  # pylint: disable=broad-except
+            _LOGGER.exception("Failed to get command plugin from %s", extension.name)
+
+    try:
+        mgr.map(get_command)
+    except stevedore.extension.NoMatches:
+        pass
+
+    return commands
