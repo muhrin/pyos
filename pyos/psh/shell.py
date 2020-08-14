@@ -4,6 +4,7 @@ import logging
 import os
 import subprocess
 import sys
+from typing import List, Optional
 
 import click
 import mincepy
@@ -37,12 +38,19 @@ def mod() -> str:
 class PyosShell(cmd2.Cmd):
     """The pyOS shell"""
 
-    def __init__(self, startup_script=''):
+    def __init__(self,
+                 startup_script='',
+                 startup_commands: Optional[List[str]] = None,
+                 skip_intro=False):
         hist_path = os.path.join(click.get_app_dir('pyos'), 'psh_history')
         super().__init__(startup_script=startup_script,
                          allow_cli_args=False,
                          use_ipython=True,
                          persistent_history_file=hist_path)
+
+        if startup_commands:
+            self._startup_commands.extend(startup_commands)
+
         for cmd_set in utils.plugins_get_commands():
             self.unregister_command_set(cmd_set)
 
@@ -53,9 +61,20 @@ class PyosShell(cmd2.Cmd):
         except (mincepy.ConnectionError, ValueError):
             pass
 
-        self.intro = mod()
+        if not skip_intro:
+            self.intro = mod()
         self._update_prompt()
         self.register_cmdfinalization_hook(self.command_finalise)
+
+    @classmethod
+    def execute(cls, *cmd, **kwarg):
+        """Run the passed commands and return"""
+        init_args = dict(skip_intro=True)
+        init_args.update(kwarg)
+        cmd = list(cmd) + ['quit']
+        init_args['startup_commands'] = cmd
+        app = PyosShell(**init_args)
+        app.cmdloop()
 
     def command_finalise(
             self, data: cmd2.plugin.CommandFinalizationData) -> cmd2.plugin.CommandFinalizationData:
@@ -92,7 +111,7 @@ class PyosShell(cmd2.Cmd):
                 part_statement = self._input_line_to_statement(part)
                 funcs.append(functools.partial(self.onecmd, part_statement))
 
-            thread_proc = utils.Piper(funcs)
+            thread_proc = utils.Piper(funcs, out_stream=self.stdout)
             self.stdout = thread_proc.out_redirector
             self.stdin = thread_proc.in_redirector
             saved.redirecting = True
@@ -182,5 +201,4 @@ class PyosShell(cmd2.Cmd):
 
 
 if __name__ == '__main__':
-    app = PyosShell()
-    sys.exit(app.cmdloop())
+    sys.exit(PyosShell().cmdloop())

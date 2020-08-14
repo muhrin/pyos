@@ -46,3 +46,12 @@ def test_meta_many():
     psh.meta(-psh.s, car1, car2, fast=True, colour='blue')
     assert dict_in(psh.meta(car1), new_meta)
     assert dict_in(psh.meta(car2), new_meta)
+
+
+def test_shell_meta(pyos_shell):
+    car = Car()
+    car.save(meta={'reg': 123})
+
+    res = pyos_shell.app_cmd('meta {}'.format(car.obj_id))
+    assert not res.stderr
+    assert 'reg       │123 ' in res.stdout
