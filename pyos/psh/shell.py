@@ -52,7 +52,7 @@ class PyosShell(cmd2.Cmd):
             self._startup_commands.extend(startup_commands)
 
         for cmd_set in utils.plugins_get_commands():
-            self.unregister_command_set(cmd_set)
+            self.register_command_set(cmd_set)
 
         self.default_to_shell = True
 

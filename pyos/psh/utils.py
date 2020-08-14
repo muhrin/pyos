@@ -284,7 +284,7 @@ PLUGINS_COMMANDS_NS = 'pyos.plugins.shell'
 
 
 def plugins_get_commands() -> List:
-    """Get all mincepy types and type helper instances registered as extensions"""
+    """Get all plugins that implement pyOS shell commands"""
     mgr = stevedore.extension.ExtensionManager(
         namespace=PLUGINS_COMMANDS_NS,
         invoke_on_load=False,
