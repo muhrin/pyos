@@ -6,7 +6,7 @@ import sys
 import cmd2
 
 import pyos
-from pyos.psh import base
+from pyos.psh import completion
 from pyos import psh
 
 logger = logging.getLogger(__name__)
@@ -58,7 +58,7 @@ class Meta(cmd2.CommandSet):
     set_update = parser.add_mutually_exclusive_group()
     set_update.add_argument('-s', action='store_true', help="set the metadata")
     set_update.add_argument('-u', action='store_true', help="update the metadata")
-    parser.add_argument('path', nargs='*', type=str, completer_method=base.path_complete)
+    parser.add_argument('path', nargs='*', type=str, completer_method=completion.path_complete)
 
     @cmd2.with_argparser(parser)
     def do_meta(self, args):  # pylint: disable=no-self-use

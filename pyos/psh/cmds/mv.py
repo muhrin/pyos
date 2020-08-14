@@ -6,7 +6,7 @@ import cmd2
 
 import pyos
 from pyos import psh
-from pyos.psh import base
+from pyos.psh import completion
 
 
 @pyos.psh_lib.command(pass_options=True)
@@ -59,7 +59,7 @@ def mv(options, *args):  # pylint: disable=invalid-name
 class Mv(cmd2.CommandSet):
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', action='store_true', help="force - do not prompt before overwriting")
-    parser.add_argument('path', nargs='*', type=str, completer_method=base.path_complete)
+    parser.add_argument('path', nargs='*', type=str, completer_method=completion.path_complete)
 
     @cmd2.with_argparser(parser)
     def do_mv(self, app: cmd2.Cmd, args):  # pylint: disable=no-self-use

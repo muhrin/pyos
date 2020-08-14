@@ -5,8 +5,8 @@ import cmd2
 from mincepy import qops
 
 import pyos
-from pyos.psh import base
 from pyos.psh import argparse_types
+from pyos.psh import completion
 
 __all__ = ('find',)
 
@@ -52,7 +52,7 @@ class Find(cmd2.CommandSet):
                         action='append',
                         type=str,
                         default=[],
-                        completer_method=base.dir_completer,
+                        completer_method=completion.dir_completer,
                         help="starting point (path) for search")
     parser.add_argument('-m',
                         dest='meta',

@@ -7,7 +7,7 @@ import cmd2
 import pyos
 from pyos import psh
 from pyos import psh_lib
-from pyos.psh import base
+from pyos.psh import completion
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +68,7 @@ class Ls(cmd2.CommandSet):
                         action='store_true',
                         help="list directories themselves, not their contents")
     parser.add_argument('-p', action='store_true', help="print the str() value of each object")
-    parser.add_argument('path', nargs='*', type=str, completer_method=base.path_complete)
+    parser.add_argument('path', nargs='*', type=str, completer_method=completion.path_complete)
 
     @cmd2.with_argparser(parser)
     def do_ls(self, args):  # pylint: disable=no-self-use

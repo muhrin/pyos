@@ -7,7 +7,7 @@ import tqdm
 
 import pyos
 from pyos import psh
-from pyos.psh import base
+from pyos.psh import completion
 
 
 def _remove_directories(nodes):
@@ -46,7 +46,7 @@ class Rm(cmd2.CommandSet):
     parser.add_argument('-r',
                         action='store_true',
                         help="remove directories and their contents recursively")
-    parser.add_argument('path', nargs='*', type=str, completer_method=base.path_complete)
+    parser.add_argument('path', nargs='*', type=str, completer_method=completion.path_complete)
 
     @cmd2.with_argparser(parser)
     def do_rm(self, app: cmd2.Cmd, args):  # pylint: disable=no-self-use

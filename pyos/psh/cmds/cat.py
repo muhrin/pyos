@@ -7,7 +7,7 @@ import cmd2
 import pyos
 from pyos import db
 from pyos import psh
-from pyos.psh import base
+from pyos.psh import completion
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ def cat(*obj_or_ids, representer=None):
 
 class Cat(cmd2.CommandSet):
     ls_parser = argparse.ArgumentParser()
-    ls_parser.add_argument('path', nargs='*', type=str, completer_method=base.file_completer)
+    ls_parser.add_argument('path', nargs='*', type=str, completer_method=completion.file_completer)
 
     @cmd2.with_argparser(ls_parser)
     def do_cat(self, args):  # pylint: disable=no-self-use
