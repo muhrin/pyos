@@ -6,16 +6,15 @@ import subprocess
 import sys
 from typing import List, Optional
 
-import click
 import mincepy
 import cmd2.constants
 import cmd2.plugin
 import cmd2.utils
 
-import pyos
 from pyos import db
 from pyos import os as pos
 from pyos import version
+from . import constants
 from . import utils
 
 _LOGGER = logging.getLogger(__name__)
@@ -42,7 +41,9 @@ class PyosShell(cmd2.Cmd):
                  startup_script='',
                  startup_commands: Optional[List[str]] = None,
                  skip_intro=False):
-        hist_path = os.path.join(click.get_app_dir('pyos'), 'psh_history')
+
+        hist_path = os.path.join(utils.get_app_dir(), constants.HISTORY_FILE)
+        startup_script = startup_script or os.path.join(utils.get_app_dir(), constants.STARTUP_FILE)
         super().__init__(startup_script=startup_script,
                          allow_cli_args=False,
                          use_ipython=True,
@@ -55,11 +56,6 @@ class PyosShell(cmd2.Cmd):
             self.register_command_set(cmd_set)
 
         self.default_to_shell = True
-
-        try:
-            pyos.lib.init()
-        except (mincepy.ConnectionError, ValueError):
-            pass
 
         if not skip_intro:
             self.intro = mod()

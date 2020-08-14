@@ -14,6 +14,7 @@ import threading
 import traceback
 from typing import Optional, Union, TextIO, List, Callable, Tuple
 
+import click
 import cmd2.utils
 import stevedore
 
@@ -304,3 +305,9 @@ def plugins_get_commands() -> List:
         pass
 
     return commands
+
+
+def get_app_dir() -> str:
+    """Get the absolute path to the pyOS configuration file on disk.
+    This will be in the standard location for that OS e.g. on linux ~/.config/pyos/"""
+    return click.get_app_dir('pyos')

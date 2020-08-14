@@ -59,7 +59,6 @@ class Cat(cmd2.CommandSet):
 
     @cmd2.with_argparser(ls_parser)
     def do_cat(self, args):  # pylint: disable=no-self-use
-        command = cat
         if not args.path:
             # Read from standard in
             _LOGGER.debug("cat: getting input from stdin")
@@ -70,4 +69,7 @@ class Cat(cmd2.CommandSet):
                 raise
             _LOGGER.debug("cat: got input' %s' from stdin", args.path)
 
-        print(command(*args.path))
+        # Print the results one by one
+        representer = pyos.psh_lib.get_default()
+        for entry in cat(*args.path):
+            print(representer(entry))
