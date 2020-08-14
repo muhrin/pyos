@@ -40,3 +40,13 @@ def test_cat_empty():
     pyos.db.lib.save_one(mincepy.testing.Car())
     result = psh.cat()
     assert result is None
+
+
+def test_shell_cat(pyos_shell):
+    yellow = mincepy.testing.Car('ferrari', 'yellow')
+    yellow.save()
+
+    res = pyos_shell.app_cmd("cat {}".format(yellow.obj_id))
+    assert not res.stderr
+    assert '│colour          │yellow' in res.stdout
+    assert '│make            │ferrari' in res.stdout

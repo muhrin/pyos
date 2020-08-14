@@ -69,7 +69,10 @@ class Cat(cmd2.CommandSet):
                 raise
             _LOGGER.debug("cat: got input' %s' from stdin", args.path)
 
-        # Print the results one by one
-        representer = pyos.psh_lib.get_default()
-        for entry in cat(*args.path):
-            print(representer(entry))
+        results = cat(*args.path)
+
+        if isinstance(results, pyos.psh_lib.ResultsString):
+            print(results)
+        else:
+            for entry in results:
+                print(entry)
