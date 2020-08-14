@@ -1,6 +1,11 @@
 import collections
 import concurrent.futures
 import contextlib
+
+try:
+    from contextlib import nullcontext
+except ImportError:
+    from contextlib2 import nullcontext
 import io
 import logging
 import os
@@ -10,7 +15,7 @@ import traceback
 from typing import Optional, Union, TextIO, List, Callable, Tuple
 
 import cmd2.utils
-import stevedore  # pylint: disable=wrong-import-order
+import stevedore
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -155,7 +160,7 @@ class Piper:
                 # OUTPUT: Determine what the output stream for this part should be
                 if idx == len(self._funcs) - 1:
                     # At the end, so just go to standard out
-                    open_out_stream = contextlib.nullcontext(self._out_stream)
+                    open_out_stream = nullcontext(self._out_stream)
                 else:
                     # Need to output to the next commands input
                     _next_read, next_write = self._pipes[idx + 1]
@@ -250,7 +255,7 @@ class Piper:
         try:
             pipe = self._pipes[idx]
         except KeyError:
-            pipe = os.pipe()  # pylint: disable=no-member
+            pipe = os.pipe()
             self._pipes[idx] = pipe
             _LOGGER.debug("Created pipe %s for func %s", pipe, self._funcs[idx])
 
