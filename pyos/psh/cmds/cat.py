@@ -1,5 +1,6 @@
 import argparse
 import logging
+import re
 import sys
 
 import cmd2
@@ -53,8 +54,24 @@ def cat(*obj_or_ids, representer=None):
     return results
 
 
+class FstringRepresenter:
+    REGEXP = re.compile(r'{(\S*)}')
+
+    def __init__(self, fstring):
+        # Create the adapted f-string with 'obj' representing the passed object
+        self._fstring = self.REGEXP.subn('{obj\\1}', fstring)[0]
+
+    def __call__(self, obj) -> str:
+        return self._fstring.format(obj=obj)
+
+
 class Cat(cmd2.CommandSet):
     ls_parser = argparse.ArgumentParser()
+    ls_parser.add_argument('-f',
+                           dest='fstring',
+                           type=str,
+                           help="optional f-string for printing attributes e.g. -f {colour} prints "
+                           "obj.colour for each object")
     ls_parser.add_argument('path', nargs='*', type=str, completer_method=completion.file_completer)
 
     @cmd2.with_argparser(ls_parser)
@@ -69,7 +86,11 @@ class Cat(cmd2.CommandSet):
                 raise
             _LOGGER.debug("cat: got input' %s' from stdin", args.path)
 
-        results = cat(*args.path)
+        representer = None
+        if args.fstring:
+            representer = FstringRepresenter(args.fstring)
+
+        results = cat(*args.path, representer=representer)
 
         if isinstance(results, pyos.psh_lib.ResultsString):
             print(results)
