@@ -14,5 +14,8 @@ def test_oid_simple():
     for _ in range(10):
         cars.append(Car())
 
-    cmds.save(*cars)
-    assert cmds.oid(*cars) == [car.obj_id for car in cars]
+    cmds.save(*cars)  # pylint: disable=no-value-for-parameter
+    results = cmds.oid(*cars)
+    for car, result_oid in zip(cars, results):
+        assert car.obj_id == result_oid
+    assert len(cars) == len(results)

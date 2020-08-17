@@ -1,9 +1,25 @@
 """The object id command"""
+import argparse
+import logging
+import sys
 
+import cmd2
 import mincepy
 
 import pyos
 from pyos import db
+from pyos.psh_lib import CachingResults
+
+_LOGGER = logging.getLogger(__name__)
+
+
+def _yield_results(*args):
+    hist = db.get_historian()
+    for obj in args:
+        try:
+            yield hist.get_obj_id(obj)
+        except mincepy.NotFound:
+            yield None
 
 
 @pyos.psh_lib.command()
@@ -12,16 +28,28 @@ def oid(*args):
     if not args:
         return None
 
-    hist = db.get_historian()
+    result = CachingResults(_yield_results(*args), representer=str)
 
-    oids = []
-    for obj in args:
-        try:
-            oids.append(hist.get_obj_id(obj))
-        except mincepy.NotFound:
-            oids.append(None)
+    if len(result) == 1:
+        return result[0]
 
-    if len(oids) == 1:
-        return oids[0]
+    return result
 
-    return oids
+
+class Oid(cmd2.CommandSet):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('objs', nargs='*', type=str, help='the objects to get ids for')
+
+    @cmd2.with_argparser(parser)
+    def do_oid(self, args):  # pylint: disable=no-self-use
+        if not args.objs:
+            # Read from standard in
+            _LOGGER.debug("oid: getting input from stdin")
+            try:
+                args.path = [line.rstrip() for line in sys.stdin.readlines()]
+            except Exception:
+                _LOGGER.exception("Exception trying to readlines")
+                raise
+            _LOGGER.debug("oid: got input' %s' from stdin", args.path)
+
+        print(oid(*args.path))
