@@ -52,8 +52,8 @@ def chdir(file_path: types.PathSpec):
     db.get_historian().meta.sticky[config.DIR_KEY] = file_path
 
 
-def fspath(file_path: types.PathSpec):
-    """Return the pyos representation of the path.
+def fspath(file_path: types.PathSpec) -> str:
+    """Return the pyOS representation of the path.
 
     If str is passed in, it is returned unchanged.
     Otherwise __fspath__() is called and its value is returned as long as it is a str. In all other
@@ -145,7 +145,7 @@ def remove(file_path: types.PathSpec):
     if file_path.endswith(sep):
         raise exceptions.IsADirectoryError(file_path)
 
-    obj_id = db.get_obj_id(file_path)
+    obj_id = next(db.get_obj_id_from_path(file_path))
     db.get_historian().delete(obj_id)
 
 

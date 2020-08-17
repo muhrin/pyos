@@ -1,17 +1,20 @@
 from collections import abc
 import getpass
-from typing import Sequence, Iterable, Optional, Tuple, Any, Union
+from typing import Sequence, Iterable, Optional, Tuple, Any, Union, Iterator
 
+import deprecation
 import mincepy
 
 from pyos import config
 from pyos import exceptions
 from pyos import os
+from pyos import version
 from . import utils
 
 __all__ = ('get_historian', 'get_meta', 'update_meta', 'set_meta', 'find_meta', 'save_one',
            'save_many', 'get_abspath', 'load', 'to_obj_id', 'get_obj_id', 'init', 'reset',
-           'get_path', 'get_paths', 'rename', 'homedir', 'connect')
+           'get_path', 'get_paths', 'rename', 'homedir', 'connect', 'get_oid',
+           'get_obj_id_from_path')
 
 _HISTORIAN = None  # type: Optional[mincepy.Historian]
 
@@ -220,15 +223,69 @@ def load(*identifier):
 
 def to_obj_id(identifier):
     """Get the database object id from the passed identifier.  If the identifier is already a
-    mincepy object id it will be returned unaltered.  Otherwise mincepy will try and turn the type
+    mincePy object id it will be returned unaltered.  Otherwise mincePy will try and turn the type
     into an object id.  It it fails, None is returned"""
     return get_historian().to_obj_id(identifier)
 
 
+@deprecation.deprecated(deprecated_in="0.7.10",
+                        removed_in="0.8.0",
+                        current_version=version.__version__,
+                        details="Use next(get_obj_id_from_path()) instead")
 def get_obj_id(path: os.PathSpec):
     """Given a path get the id of the corresponding object.  Returns None if not found."""
-    results = find_meta(utils.path_to_meta_dict(path))
-    try:
-        return next(results)[0]
-    except StopIteration:
-        return None
+    return next(get_obj_id_from_path(path))
+
+
+def get_obj_id_from_path(*path: os.PathSpec) -> Iterator:
+    """Given a path get the id of the corresponding object.  Returns None if not found."""
+    for entry in path:
+        entry = os.fspath(entry)
+
+        # Check if the basename is an object id
+        basename = os.path.basename(entry)
+        if basename:
+            hist = get_historian()
+            try:
+                yield hist.archive.construct_archive_id(basename)
+                continue
+            except ValueError:
+                pass
+
+        results = find_meta(utils.path_to_meta_dict(entry))
+        try:
+            yield next(results)[0]
+        except StopIteration:
+            yield None
+
+
+def get_oid(*identifier) -> Iterator:
+    """Get one or more object ids.
+
+    :param identifier: can be any of the following:
+        * an object id
+        * an object instance
+        * a string representing a valid object id
+        * the path to an object
+        these will be tested in order in an attempt to get the object id.  If all fail then None
+        will be yielded.
+    """
+    hist = get_historian()
+
+    for ident in identifier:
+        obj_id = None
+
+        if ident is not None:
+            # Let the historian try to interpret it, no db access
+            obj_id = hist.to_obj_id(ident)
+
+            if obj_id is None:
+                # Maybe it is a path
+                try:
+                    path = os.fspath(ident)
+                except TypeError:
+                    pass
+                else:
+                    obj_id = next(get_obj_id_from_path(path))  # pylint: disable=stop-iteration-return
+
+        yield obj_id
