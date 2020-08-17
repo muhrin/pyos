@@ -21,6 +21,6 @@ class Connnection(cmd2.CommandSet):
         except mincepy.ConnectionError as exc:
             print("Error: {}".format(exc), file=sys.stderr)
 
-    def do_disconnect(self, _cmd):  # pylint: disable=no-self-use
+    def do_disconnect(self, _args):  # pylint: disable=no-self-use
         """Disconnect from the current archive"""
         db.reset()

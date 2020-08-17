@@ -62,9 +62,9 @@ class Mv(cmd2.CommandSet):
     parser.add_argument('path', nargs='*', type=str, completer_method=completion.path_complete)
 
     @cmd2.with_argparser(parser)
-    def do_mv(self, app: cmd2.Cmd, args):  # pylint: disable=no-self-use
+    def do_mv(self, args):  # pylint: disable=no-self-use
         command = mv
         if args.f:
             command = command - psh.f
 
-        app.poutput(command(*args.path))
+        print(command(*args.path))

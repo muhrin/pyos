@@ -30,5 +30,5 @@ class Locate(cmd2.CommandSet):
     parser.add_argument('obj_ids', nargs='*', type=str)
 
     @cmd2.with_argparser(parser)
-    def do_locate(self, app: cmd2.Cmd, args):  # pylint: disable=no-self-use
-        app.poutput(locate(*args.obj_ids))
+    def do_locate(self, args):  # pylint: disable=no-self-use
+        print(locate(*args.obj_ids))
