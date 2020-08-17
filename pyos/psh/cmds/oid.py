@@ -4,7 +4,6 @@ import logging
 import sys
 
 import cmd2
-import mincepy
 
 import pyos
 from pyos import db
@@ -13,22 +12,13 @@ from pyos.psh_lib import CachingResults
 _LOGGER = logging.getLogger(__name__)
 
 
-def _yield_results(*args):
-    hist = db.get_historian()
-    for obj in args:
-        try:
-            yield hist.get_obj_id(obj)
-        except mincepy.NotFound:
-            yield None
-
-
 @pyos.psh_lib.command()
 def oid(*args):
     """Get the object id for one or more live objects"""
     if not args:
         return None
 
-    result = CachingResults(_yield_results(*args), representer=str)
+    result = CachingResults(db.get_oid(*args), representer=str)
 
     if len(result) == 1:
         return result[0]

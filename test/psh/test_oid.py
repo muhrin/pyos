@@ -1,9 +1,10 @@
 from mincepy.testing import Car
 
+from pyos import db
 from pyos.psh import cmds
 
 
-def test_oid_simple():
+def test_oid():
     car = Car()
     car.save()
 
@@ -11,11 +12,22 @@ def test_oid_simple():
 
     # Save some more and see if the order is preserved
     cars = []
-    for _ in range(10):
+    paths = []
+    for idx in range(10):
         cars.append(Car())
+        paths.append('car_{}'.format(idx))
 
-    cmds.save(*cars)  # pylint: disable=no-value-for-parameter
+    db.save_many(zip(cars, paths))
+
     results = cmds.oid(*cars)
     for car, result_oid in zip(cars, results):
         assert car.obj_id == result_oid
+
+    assert len(cars) == len(results)
+
+    # Now check paths
+    results = cmds.oid(*paths)
+    for car, result_oid in zip(cars, results):
+        assert car.obj_id == result_oid
+
     assert len(cars) == len(results)
