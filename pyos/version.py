@@ -4,9 +4,24 @@ version_info = (0, 7, 9)
 __author__ = ", ".join("{} <{}>".format(*info) for info in author_info)
 __version__ = ".".join(map(str, version_info))
 
-__all__ = ('__version__',)  # pylint: disable=undefined-all-variable
+__all__ = ('__version__',)
 
-BANNER = """
+
+def _strip_first_and_last_lines(text: str) -> str:
+    return "\n".join(text.split("\n")[1:-1])
+
+
+LOGO = _strip_first_and_last_lines(r"""
+                  ____  ____ 
+                 / __ \/ __ /
+    ____  __  __/ / / / /_   
+   / __ \/ / / / / / /\__ \  
+  / /_/ / /_/ / /_/ /___/ /  
+ / .___/\__, /\____//____/   
+/_/    /____/                
+""")
+
+BANNER = _strip_first_and_last_lines(r"""
                   ____  ____ 
                  / __ \/ __ /
     ____  __  __/ / / / /_   
@@ -14,4 +29,4 @@ BANNER = """
   / /_/ / /_/ / /_/ /___/ /  
  / .___/\__, /\____//____/   
 /_/    /____/                 v{}                 
-""".format(__version__)
+""".format(__version__))

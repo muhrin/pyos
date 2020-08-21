@@ -24,13 +24,24 @@ __all__ = 'PyosShell', 'mod'
 
 def mod() -> str:
     """Get the message of the day string"""
-    message = [
-        version.BANNER,
-        "Powered by mincePy (v{})".format(mincepy.__version__),  # pylint: disable=no-member
-        'https://pyos.readthedocs.io/en/latest/',
-        ''
-    ]
+    banner_lines = version.LOGO.split("\n")
+    max_line_length = max(map(len, banner_lines))
 
+    second_column = [
+        '',
+        'Documentation: https://pyos.readthedocs.io/',
+        '',
+        '',
+        "Powered by mincePy (v{})".format(mincepy.__version__),  # pylint: disable=no-member,
+        'Version {}'.format(version.__version__)
+    ]
+    second_column.extend([''] * (len(banner_lines) - len(second_column)))
+
+    message = []
+    for banner, info in zip(banner_lines, second_column):
+        fmt_string = "{{:<{}}} | {{}}".format(max_line_length)
+        message.append(fmt_string.format(banner, info))
+    message.append('\n')
     return "\n".join(message)
 
 
