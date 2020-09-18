@@ -2,6 +2,7 @@ import abc
 from collections.abc import Sequence, Set
 import copy
 import functools
+import operator
 import sys
 import typing
 
@@ -246,11 +247,11 @@ class DirectoryNode(ContainerNode, FilesystemNode):
             ObjectNode(**kwargs)
 
     def delete(self):
-        with self._hist.transaction():
-            for obj_id, _meta in self._hist.meta.find(db.queries.subdirs(str(self._abspath), 0,
-                                                                         -1)):
-                self._hist.delete(obj_id)
-        self._invalidate_cache()
+        res = self._hist.meta.find(db.queries.subdirs(str(self._abspath), 0, -1))
+        obj_ids = map(operator.itemgetter(0), res)
+        if obj_ids:
+            self._hist.delete(*obj_ids)
+            self._invalidate_cache()
 
     def move(self, dest: os.PathSpec, overwrite=False):
         dest = pathlib.Path(dest).to_dir().resolve() / self.name
@@ -447,8 +448,8 @@ class ResultsNode(ContainerNode):
 
             if sys.stdout.isatty():
                 return columnize.columnize(repr_list, displaywidth=utils.get_terminal_width())
-            else:
-                return "\n".join(repr_list)
+
+            return "\n".join(repr_list)
 
         return super().__repr__()
 
