@@ -95,13 +95,10 @@ class PurePath(os.PathLike):
             else:
                 raise TypeError("Cannot join a path with a '{}'".format(type(other)))
 
-        if self.is_file_path():
-            raise ValueError("Can't join a file with another path")
-
         if other.is_absolute():
             return other
 
-        return self.__class__(str(self) + str(other))
+        return self.__class__(str(self.to_dir()) + str(other))
 
     def is_file_path(self) -> bool:
         """Returns True if this path specifies a file i.e. does not end with a training '/'"""
