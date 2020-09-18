@@ -150,10 +150,13 @@ def get_abspath(obj_id, meta: dict) -> str:
     return os.path.join(dirname, basename)
 
 
-def homedir() -> str:
-    """Return the users home directory"""
-    user_info = get_historian().get_user_info()
-    user_name = user_info[mincepy.ExtraKeys.USER]
+def homedir(user: str = '') -> str:
+    """Return the user's home directory"""
+    if not user:
+        user_info = get_historian().get_user_info()
+        user_name = user_info[mincepy.ExtraKeys.USER]
+    else:
+        user_name = user
     return "/{}/".format(user_name)
 
 

@@ -50,3 +50,15 @@ def test_cd_minus(pyos_shell):
     assert pyos.os.getcwd() == '/some/random/dir/'
     pyos_shell.app_cmd("cd -")
     assert pyos.os.getcwd() == start_dir
+
+
+def test_cd_home(pyos_shell):
+    home_dir = pyos.db.homedir()
+    rand_dir = '/some/rand/dir/'
+    pyos.os.chdir(rand_dir)
+    pyos_shell.app_cmd("cd ~")
+    assert pyos.os.getcwd() == home_dir
+
+    pyos.os.chdir(rand_dir)
+    pyos_shell.app_cmd("cd ~/")
+    assert pyos.os.getcwd() == home_dir

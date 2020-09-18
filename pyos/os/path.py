@@ -100,9 +100,17 @@ def exists(path: types.PathSpec):
 
 def expanduser(path: types.PathSpec) -> str:
     """An initial `~` is replaced with the users home directory which is '/[username]'/."""
-    homedir = db.homedir()
+    tilde = '~'
     path = pos.fspath(path)
-    return normpath(path.replace('~', homedir, 1))
+    if not path.startswith(tilde):
+        return path
+
+    i = path.find(sep, 1)
+    if i < 0:
+        i = len(path)
+
+    homedir = db.homedir(path[1:i])
+    return homedir + path[i + 1:]  # Have to add one to get past the trailing '/'
 
 
 def split(path: types.PathSpec) -> Tuple[str, str]:

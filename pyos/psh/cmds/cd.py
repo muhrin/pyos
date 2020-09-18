@@ -10,6 +10,7 @@ from pyos.psh import completion
 @pyos.psh_lib.command()
 def cd(path: pyos.os.PathSpec):  # pylint: disable=invalid-name
     """Change the current working directory"""
+    path = pyos.os.path.normpath(pyos.os.path.expanduser(path))
     path = pyos.pathlib.PurePath(path)
     if path.is_file_path():
         # Assume they just left out the slash

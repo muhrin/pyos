@@ -54,6 +54,7 @@ def test_expanduser():
     assert path.expanduser("~") == homedir
     assert path.expanduser("~/") == homedir
     assert path.expanduser("~/foo") == "{}foo".format(homedir)
+    assert path.expanduser("~root") == "/root/"
 
 
 def test_normpath():
