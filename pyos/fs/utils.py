@@ -46,7 +46,7 @@ def find(*starting_point,
         # we just look up the metadata which is faster
 
         # Get the records that match both the record and metadata criteria
-        for record in hist.find_records(obj_type=type, state=state, meta=meta):
+        for record in hist.records.find(obj_type=type, state=state, meta=meta):
             entries.setdefault(record.obj_id, {})['record'] = record
 
         # Now get the metadata for those objects

@@ -19,9 +19,17 @@ def cd(path: pyos.os.PathSpec):  # pylint: disable=invalid-name
 
 
 class Cd(cmd2.CommandSet):
+
+    def __init__(self):
+        super().__init__()
+        self._prev_dir = '~'
+
     parser = argparse.ArgumentParser()
     parser.add_argument('path', nargs=1, type=str, completer_method=completion.dir_completer)
 
     @cmd2.with_argparser(parser)
-    def do_cd(self, args):  # pylint: disable=no-self-use
-        cd(args.path[0])
+    def do_cd(self, args):
+        current_dir = pyos.os.getcwd()
+        new_dir = args.path[0] if args.path[0] != '-' else self._prev_dir
+        cd(new_dir)
+        self._prev_dir = current_dir

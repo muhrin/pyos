@@ -3,6 +3,8 @@
 import pyos
 from pyos import psh
 
+# pylint: disable=invalid-name
+
 
 def test_cd_simple():
     start = psh.pwd()
@@ -39,3 +41,12 @@ def test_reaching_root():
     psh.cd('../..')
     # Should still be at root
     assert psh.pwd() == pyos.pathlib.Path('/')
+
+
+def test_cd_minus(pyos_shell):
+    """Test changing back to last directory using 'cd -'"""
+    start_dir = pyos.os.getcwd()
+    pyos_shell.app_cmd("cd /some/random/dir/")
+    assert pyos.os.getcwd() == '/some/random/dir/'
+    pyos_shell.app_cmd("cd -")
+    assert pyos.os.getcwd() == start_dir
