@@ -1,8 +1,13 @@
+# -*- coding: utf-8 -*-
 """Tests for pyos nodes"""
+import pytest
+
+import mincepy
 from mincepy.testing import Person
 
 import pyos
 from pyos import psh
+from pyos import fs
 
 
 def test_obj_in_directory():
@@ -46,3 +51,17 @@ def test_results_slicing():
     # Now make sure the view modes were copied
     assert first_2.view_mode == first_n.view_mode
     assert first_2.showing == first_n.showing
+
+
+def test_obj_node_basics(historian):
+    # Test trying to create an object node for a deleted object
+    person = Person('martin', 34)
+    person_id = pyos.db.save_one(person, 'martin')
+    # Modify
+    person.age = 35
+    person.save()
+    # ..now delete
+    historian.delete(person)
+    # and create the object node
+    with pytest.raises(mincepy.ObjectDeleted):
+        fs.ObjectNode(person_id)

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import abc
 from collections.abc import Sequence, Set
 import copy
@@ -111,7 +112,7 @@ class ContainerNode(BaseNode):
                 # It's relative
                 parts = path.parts
                 if len(parts) > 1:
-                    subpath = pathlib.PurePath("".join(parts[1:]))
+                    subpath = pathlib.PurePath(''.join(parts[1:]))
 
                     # Check subdirs
                     for node in self.directories:
@@ -163,14 +164,14 @@ class DirectoryNode(ContainerNode, FilesystemNode):
 
     def __init__(self, path: os.PathSpec, parent: BaseNode = None):
         path = pathlib.PurePath(path)
-        assert path.is_dir_path(), "Must supply a directory path"
+        assert path.is_dir_path(), 'Must supply a directory path'
         super().__init__(path.resolve(), parent)
 
     def __repr__(self):
         rep = []
         for pre, _, node in anytree.RenderTree(self):
-            rep.append("%s%s" % (pre, node.name))
-        return "\n".join(rep)
+            rep.append('%s%s' % (pre, node.name))
+        return '\n'.join(rep)
 
     def __copy__(self):
         """Create a copy with no parent"""
@@ -239,7 +240,10 @@ class DirectoryNode(ContainerNode, FilesystemNode):
         if populate_objects:
             # Gather all the object ids
             obj_ids = [kwargs['obj_id'] for kwargs in obj_kwargs]
-            records = {record.obj_id: record for record in self._hist.archive.find(obj_id=obj_ids)}
+            records = {
+                record.obj_id: record
+                for record in self._hist.records.find(obj_id=mincepy.In(obj_ids))
+            }
             for kwargs in obj_kwargs:
                 kwargs['record'] = records[kwargs['obj_id']]
 
@@ -302,13 +306,16 @@ class ObjectNode(FilesystemNode):
             if self._meta is None:
                 # Still don't have metadata! Double check this object actually exists
                 try:
-                    record = next(self._hist.archive.find(obj_id=obj_id,
-                                                          deleted=True))  # type: mincepy.DataRecord
-                except StopIteration:
+                    record = self._hist.snapshots.records.find(
+                        obj_id=self.obj_id, sort={
+                            'version': -1
+                        }, limit=1).one()  # type: mincepy.DataRecord
+                except mincepy.NotFound:
                     raise ValueError("Object with id '{}' not found".format(obj_id))
                 else:
                     if record.is_deleted_record():
-                        raise ValueError("Object with id '{}' has been deleted".format(obj_id))
+                        raise mincepy.ObjectDeleted(
+                            "Object with id '{}' has been deleted".format(obj_id))
                     self._record = record
                     self._meta = {}
 
@@ -328,8 +335,7 @@ class ObjectNode(FilesystemNode):
     def record(self) -> mincepy.DataRecord:
         if self._record is None:
             # Lazily load
-            self._record = tuple(self._hist.archive.find(
-                self._obj_id))[0]  # type: mincepy.DataRecord
+            self._record = self._hist.records.get(self.obj_id)
 
         return self._record
 
@@ -342,8 +348,8 @@ class ObjectNode(FilesystemNode):
             return False
 
     @property
-    def obj(self) -> typing.Any:
-        return self._hist.load(self._obj_id)
+    def obj(self) -> object:
+        return self.record.load()
 
     @property
     def obj_id(self):
@@ -412,10 +418,10 @@ class ResultsNode(ContainerNode):
             rep = []
             for child in self.directories:
                 for pre, _, node in anytree.RenderTree(child):
-                    rep.append("%s%s" % (pre, node.name))
+                    rep.append('%s%s' % (pre, node.name))
             for child in self.objects:
                 rep.append(str(child))
-            return "\n".join(rep)
+            return '\n'.join(rep)
 
         if self._view_mode == TABLE_VIEW:
             rep = []
@@ -427,29 +433,29 @@ class ResultsNode(ContainerNode):
 
                 for directory in self.directories:
                     dir_repr = []
-                    dir_repr.append("{}:".format(directory.name))
+                    dir_repr.append('{}:'.format(directory.name))
                     table = self._get_table(directory)
                     dir_repr.append(tabulate.tabulate(table, tablefmt='plain'))
-                    rep.append("\n".join(dir_repr))
+                    rep.append('\n'.join(dir_repr))
             else:
                 my_repr = []
                 table = self._get_table(self.directories)
                 table.extend(self._get_table(self.objects))
                 my_repr.append(tabulate.tabulate(table, tablefmt='plain'))
-                rep.append("\n".join(my_repr))
+                rep.append('\n'.join(my_repr))
 
-            return "\n\n".join(rep)
+            return '\n\n'.join(rep)
 
         if self._view_mode == LIST_VIEW:
 
             repr_list = []
             for child in self:
-                repr_list.append("-".join(self._get_row(child)))
+                repr_list.append('-'.join(self._get_row(child)))
 
             if sys.stdout.isatty():
                 return columnize.columnize(repr_list, displaywidth=utils.get_terminal_width())
 
-            return "\n".join(repr_list)
+            return '\n'.join(repr_list)
 
         return super().__repr__()
 
@@ -575,7 +581,7 @@ def to_node(entry) -> FilesystemNode:
     if db.get_historian().is_obj_id(entry):
         return ObjectNode(entry)
 
-    raise ValueError("Unknown entry type: {}".format(entry))
+    raise ValueError('Unknown entry type: {}'.format(entry))
 
 
 @to_node.register(FilesystemNode)

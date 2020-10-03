@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 from setuptools import setup
 
-__author__ = "Martin Uhrin"
-__license__ = "GPLv3"
-__contributors__ = "Sonia Collaud"
+__author__ = 'Martin Uhrin'
+__license__ = 'GPLv3'
+__contributors__ = 'Sonia Collaud'
 
 about = {}
 with open('pyos/version.py') as f:
@@ -12,7 +12,7 @@ with open('pyos/version.py') as f:
 setup(
     name='pyos',
     version=about['__version__'],
-    description="Browse python objects as if they were files on disk",
+    description='Browse python objects as if they were files on disk',
     long_description=open('README.rst').read(),
     url='https://github.com/muhrin/pyos.git',
     author='Martin Uhrin',
@@ -30,7 +30,7 @@ setup(
         'anytree',
         'cmd2 ~= 1.3.2',
         'columnize',
-        'mincepy>=0.15.10, <0.16.0',
+        'mincepy>=0.15.17, <0.16.0',
         'click',
         'tabulate',
         'ipython',
