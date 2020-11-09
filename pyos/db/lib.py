@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from collections import abc
 import getpass
 from typing import Sequence, Iterable, Optional, Tuple, Any, Union, Iterator
@@ -14,23 +15,25 @@ from . import utils
 __all__ = ('get_historian', 'get_meta', 'update_meta', 'set_meta', 'find_meta', 'save_one',
            'save_many', 'get_abspath', 'load', 'to_obj_id', 'get_obj_id', 'init', 'reset',
            'get_path', 'get_paths', 'rename', 'homedir', 'connect', 'get_oid',
-           'get_obj_id_from_path')
+           'get_obj_id_from_path', 'set_path', 'set_paths')
 
 _HISTORIAN = None  # type: Optional[mincepy.Historian]
 
 
-def connect(uri: str = '') -> mincepy.Historian:
-    mincepy.connect(uri, use_globally=True)
-    return init()
-
-
-def init():
-    # Make sure the indexes are there
+def connect(uri: str = '', use_globally=True) -> mincepy.Historian:
     global _HISTORIAN  # pylint: disable=global-statement
-    historian = mincepy.get_historian()
-    if historian is _HISTORIAN:
-        return historian
 
+    historian = mincepy.connect(uri, use_globally=use_globally)
+    init(historian, use_globally)
+
+    return historian
+
+
+def init(historian: mincepy.Historian = None, use_globally=True):
+    """Initialise a Historian such that it is ready to be used with pyOS"""
+    global _HISTORIAN  # pylint: disable=global-statement
+    historian = historian or mincepy.get_historian()
+    # Make sure the indexes are there
     historian.meta.create_index([
         (config.NAME_KEY, mincepy.ASCENDING),
         (config.DIR_KEY, mincepy.ASCENDING),
@@ -44,18 +47,19 @@ def init():
     path = '/{}/'.format(getpass.getuser())
     historian.meta.sticky[config.DIR_KEY] = path
 
-    # All done
-    _HISTORIAN = historian
+    if use_globally:
+        _HISTORIAN = historian
+
     return historian
 
 
-def get_historian():
+def get_historian() -> mincepy.Historian:
     """Get the active historian in pyos"""
     global _HISTORIAN  # pylint: disable=global-statement
     historian = mincepy.get_historian(create=False)
     if historian is not None and historian is not _HISTORIAN:
-        raise RuntimeError("PyOS has not been initialised with the current historian.  "
-                           "Call pyos.db.init()")
+        raise RuntimeError('PyOS has not been initialised with the current historian.  '
+                           'Call pyos.db.init()')
     return _HISTORIAN
 
 
@@ -110,14 +114,18 @@ def get_path(obj_or_id) -> Optional[str]:
     return get_paths(obj_or_id)[0]
 
 
-def get_paths(*obj_or_id) -> Sequence[Optional[str]]:
+def get_paths(*obj_or_id, historian: mincepy.Historian = None) -> Sequence[Optional[str]]:
     """Given objects or identifier this will return their current paths in the order they were
     passed"""
-    hist = get_historian()
-    obj_ids = tuple(map(hist.get_obj_id, obj_or_id))
+    hist = historian or get_historian()
+    obj_ids = tuple(map(hist.to_obj_id, obj_or_id))
     metas = dict(hist.meta.find({}, obj_id=obj_ids))
     paths = []
     for obj_id in obj_ids:
+        if obj_id not in metas:
+            paths.append(None)
+            continue
+
         meta = metas.pop(obj_id)
         dirname, name = meta.get(config.DIR_KEY, None), meta.get(config.NAME_KEY, None)
         path = []
@@ -128,6 +136,26 @@ def get_paths(*obj_or_id) -> Sequence[Optional[str]]:
         paths.append(os.path.join(*path))
 
     return paths
+
+
+def set_path(obj_id, path: os.PathSpec) -> str:
+    """Given an object or object id set the current path and return the new abspath"""
+    return set_paths((obj_id, path))[0]
+
+
+def set_paths(*obj_id_path: Tuple[Any, os.PathSpec],
+              historian: mincepy.Historian = None) -> Sequence[os.PathSpec]:
+    """Set the path for one or more objects.  This function expects (object id, path) tuples and returns the new
+    abspaths in the same order that they were passed in"""
+    hist = historian or get_historian()
+    update_dict = {}
+    abspaths = []
+    for obj_or_id, path in obj_id_path:
+        obj_id = hist.to_obj_id(obj_or_id)
+        update_dict[obj_id] = utils.path_to_meta_dict(path)
+        abspaths.append(os.path.abspath(path))
+    hist.meta.update_many(update_dict)
+    return abspaths
 
 
 def rename(obj_or_id, dest: os.PathSpec):
@@ -144,7 +172,7 @@ def rename(obj_or_id, dest: os.PathSpec):
 def get_abspath(obj_id, meta: dict) -> str:
     """Given an object id and metadata dictionary this method will return a string representing
     the absolute path of the object"""
-    assert obj_id, "Must provide a valid obj id"
+    assert obj_id, 'Must provide a valid obj id'
     dirname = meta[config.DIR_KEY]
     basename = meta.get(config.NAME_KEY, str(obj_id))
     return os.path.join(dirname, basename)
@@ -157,7 +185,7 @@ def homedir(user: str = '') -> str:
         user_name = user_info[mincepy.ExtraKeys.USER]
     else:
         user_name = user
-    return "/{}/".format(user_name)
+    return '/{}/'.format(user_name)
 
 
 # endregion
@@ -209,7 +237,7 @@ def save_many(to_save: Iterable[Union[Any, Tuple[Any, os.PathSpec]]],
         path = None
         if isinstance(entry, abc.Sequence):
             if len(entry) > 2:
-                raise ValueError("Can only pass sequences of at most length 2")
+                raise ValueError('Can only pass sequences of at most length 2')
             obj, path = entry[0], entry[1]
         else:
             # Assume it's just the object
@@ -231,10 +259,10 @@ def to_obj_id(identifier):
     return get_historian().to_obj_id(identifier)
 
 
-@deprecation.deprecated(deprecated_in="0.7.10",
-                        removed_in="0.8.0",
+@deprecation.deprecated(deprecated_in='0.7.10',
+                        removed_in='0.8.0',
                         current_version=version.__version__,
-                        details="Use next(get_obj_id_from_path()) instead")
+                        details='Use next(get_obj_id_from_path()) instead')
 def get_obj_id(path: os.PathSpec):
     """Given a path get the id of the corresponding object.  Returns None if not found."""
     return next(get_obj_id_from_path(path))

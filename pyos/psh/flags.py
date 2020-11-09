@@ -1,8 +1,9 @@
+# -*- coding: utf-8 -*-
 """Module containig flags"""
 
 from pyos import psh_lib
 
-__all__ = 'f', 'l', 'L', 'n', 'p', 'd', 'u', 'r', 's'
+__all__ = 'f', 'l', 'L', 'n', 'p', 'd', 'u', 'r', 's', 'v'
 
 # pylint: disable=invalid-name
 
@@ -16,3 +17,4 @@ p = psh_lib.Option('p')
 r = psh_lib.Option('r')
 s = psh_lib.Option('s')
 u = psh_lib.Option('u')
+v = psh_lib.Option('v')

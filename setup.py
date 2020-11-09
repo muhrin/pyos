@@ -30,7 +30,7 @@ setup(
         'anytree',
         'cmd2 ~= 1.3.2',
         'columnize',
-        'mincepy>=0.15.17, <0.16.0',
+        'mincepy>=0.15.18, <0.16.0',
         'click',
         'tabulate',
         'ipython',
@@ -38,6 +38,7 @@ setup(
         'pytray >= 0.3.0',
         'stevedore',
         'tqdm',
+        'yarl',
     ],
     extras_require={
         'gui': ['mincepy[gui]'],

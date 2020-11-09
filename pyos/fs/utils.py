@@ -1,7 +1,9 @@
+# -*- coding: utf-8 -*-
+import mincepy
+
 from pyos import os
 from pyos import db
 from pyos import pathlib
-
 from . import nodes
 
 __all__ = ('find',)
@@ -13,7 +15,8 @@ def find(*starting_point,
          state: dict = None,
          type=None,
          mindepth=0,
-         maxdepth=-1) -> nodes.ResultsNode:
+         maxdepth=-1,
+         historian: mincepy.Historian = None) -> nodes.ResultsNode:
     """
     Find objects matching the given criteria
 
@@ -23,6 +26,7 @@ def find(*starting_point,
     :param type: restrict the search to this type (can be a tuple of types)
     :param mindepth: the minimum depth from the starting point(s) to search in
     :param maxdepth: the maximum depth from the starting point(s) to search in
+    :param historian: the Historian to use
     :return: results node
     """
     if not starting_point:
@@ -37,7 +41,7 @@ def find(*starting_point,
     subdirs_query = (db.queries.subdirs(point, mindepth, maxdepth) for point in spoints)
     meta.update(db.queries.or_(*subdirs_query))
 
-    hist = db.get_historian()
+    hist = historian or db.get_historian()
 
     entries = {}
 

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Module for built-in commands"""
 
 # Commands:
@@ -14,10 +15,11 @@ from .mv import mv
 from .oid import oid
 from .pwd import pwd
 from .rm import rm
+from .rsync import rsync
 from .save import save
 from .tree import tree
 
 from . import connect
 
 __all__ = ('cat', 'cd', 'find', 'history', 'load', 'ls', 'locate', 'meta', 'mv', 'oid', 'pwd', 'rm',
-           'save', 'tree', 'Log')
+           'rsync', 'save', 'tree', 'Log')

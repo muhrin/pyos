@@ -31,12 +31,13 @@ TABLE_VIEW = 'table'
 
 
 class BaseNode(Sequence, anytree.NodeMixin, results.BaseResults, metaclass=abc.ABCMeta):
+    """Base node for the object system in pyos"""
 
-    def __init__(self, name: str, parent=None):
+    def __init__(self, name: str, parent=None, historian: mincepy.Historian = None):
         super().__init__()
         self._name = name
         self.parent = parent
-        self._hist = db.get_historian()
+        self._hist = historian or db.get_historian()
 
     def __getitem__(self, item):
         return self.children.__getitem__(item)
@@ -67,13 +68,16 @@ class BaseNode(Sequence, anytree.NodeMixin, results.BaseResults, metaclass=abc.A
 class FilesystemNode(BaseNode):
     """Base node for representing an object in the virtual filesystem"""
 
-    def __init__(self, path: os.PathSpec, parent: BaseNode = None):
+    def __init__(self,
+                 path: os.PathSpec,
+                 parent: BaseNode = None,
+                 historian: mincepy.Historian = None):
         """
         :param path: the path this node represents
         :param parent: parent node
         """
         path = pathlib.Path(path).resolve()
-        super().__init__(path.name, parent)
+        super().__init__(path.name, parent, historian=historian)
         self._abspath = path
 
     @property
@@ -161,11 +165,15 @@ class ContainerNode(BaseNode):
 
 
 class DirectoryNode(ContainerNode, FilesystemNode):
+    """A node representing an object system directory"""
 
-    def __init__(self, path: os.PathSpec, parent: BaseNode = None):
+    def __init__(self,
+                 path: os.PathSpec,
+                 parent: BaseNode = None,
+                 historian: mincepy.Historian = None):
         path = pathlib.PurePath(path)
         assert path.is_dir_path(), 'Must supply a directory path'
-        super().__init__(path.resolve(), parent)
+        super().__init__(path.resolve(), parent, historian=historian)
 
     def __repr__(self):
         rep = []
@@ -254,7 +262,7 @@ class DirectoryNode(ContainerNode, FilesystemNode):
         res = self._hist.meta.find(db.queries.subdirs(str(self._abspath), 0, -1))
         obj_ids = map(operator.itemgetter(0), res)
         if obj_ids:
-            self._hist.delete(*obj_ids)
+            self._hist.delete(*obj_ids, imperative=False)
             self._invalidate_cache()
 
     def move(self, dest: os.PathSpec, overwrite=False):
@@ -272,7 +280,7 @@ class ObjectNode(FilesystemNode):
     """A node that represents an object"""
 
     @classmethod
-    def from_path(cls, path: os.PathLike):
+    def from_path(cls, path: os.PathLike, historian: mincepy.Historian = None):
         path = pathlib.PurePath(path)
         if path.is_dir_path():
             raise exceptions.IsADirectoryError(path)
@@ -289,13 +297,18 @@ class ObjectNode(FilesystemNode):
 
             obj_id, meta = res[0]
 
-        return ObjectNode(obj_id, meta=meta)
+        return ObjectNode(obj_id, meta=meta, historian=historian)
 
-    def __init__(self, obj_id, record: mincepy.DataRecord = None, meta=None, parent=None):
+    def __init__(self,
+                 obj_id,
+                 record: mincepy.DataRecord = None,
+                 meta=None,
+                 parent=None,
+                 historian: mincepy.Historian = None):
         if record:
             assert obj_id == record.obj_id, "Obj id and record don't match!"
 
-        self._hist = db.get_historian()
+        self._hist = historian or db.get_historian()
         self._obj_id = obj_id
         self._record = record  # This will be lazily loaded if None
 
@@ -321,7 +334,7 @@ class ObjectNode(FilesystemNode):
 
         # Set up the abspath
         abspath = db.get_abspath(obj_id, self._meta)
-        super().__init__(abspath, parent)
+        super().__init__(abspath, parent, historian=historian)
 
     def __contains__(self, item):
         """Object nodes have no children and so do not contain anything"""
@@ -387,7 +400,7 @@ class ObjectNode(FilesystemNode):
         return self._meta
 
     def delete(self):
-        self._hist.delete(self._obj_id)
+        self._hist.delete(self._obj_id, imperative=False)
 
     def move(self, dest: os.PathSpec, overwrite=False):
         dest = pathlib.Path(dest).to_dir().resolve() / self.name
@@ -408,8 +421,8 @@ class ObjectNode(FilesystemNode):
 class ResultsNode(ContainerNode):
     VIEW_PROPERTIES = ('loaded', 'type', 'creator', 'version', 'ctime', 'mtime', 'name', 'str')
 
-    def __init__(self, name='results', parent=None):
-        super().__init__(name, parent)
+    def __init__(self, name='results', parent=None, historian: mincepy.Historian = None):
+        super().__init__(name, parent, historian=historian)
         self._view_mode = TABLE_VIEW
         self._show = {'name'}
 
@@ -571,7 +584,7 @@ class ResultsNode(ContainerNode):
 
 
 @functools.singledispatch
-def to_node(entry) -> FilesystemNode:
+def to_node(entry, historian: mincepy.Historian = None) -> FilesystemNode:
     """Get the node for a given object.  This can be either:
 
     1.  An object id -> ObjectNode
@@ -579,22 +592,22 @@ def to_node(entry) -> FilesystemNode:
     3.  An object path -> ObjectNode
     """
     if db.get_historian().is_obj_id(entry):
-        return ObjectNode(entry)
+        return ObjectNode(entry, historian=historian)
 
     raise ValueError('Unknown entry type: {}'.format(entry))
 
 
 @to_node.register(FilesystemNode)
-def _(entry: FilesystemNode):
+def _(entry: FilesystemNode, historian: mincepy.Historian = None):
     return entry
 
 
 @to_node.register(os.PathLike)
-def _(entry: os.PathLike):
+def _(entry: os.PathLike, historian: mincepy.Historian = None):
     # Make sure we've got a pure path so we don't actually check that database
     entry = pathlib.PurePath(entry)
 
     if entry.is_dir_path():
-        return DirectoryNode(entry)
+        return DirectoryNode(entry, historian=historian)
 
-    return ObjectNode.from_path(entry)
+    return ObjectNode.from_path(entry, historian=historian)
