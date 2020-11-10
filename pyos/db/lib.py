@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import collections
 from collections import abc
 import getpass
 from typing import Sequence, Iterable, Optional, Tuple, Any, Union, Iterator
@@ -108,54 +109,62 @@ def find_meta(filter: dict = None, obj_ids=None):  # pylint: disable=redefined-b
 
 # region paths
 
+PathInfo = collections.namedtuple('PathInfo', 'obj_id path')
+
 
 def get_path(obj_or_id) -> Optional[str]:
     """Given an object or object id get the current path"""
-    return get_paths(obj_or_id)[0]
+    return get_paths(obj_or_id)[0].path
 
 
-def get_paths(*obj_or_id, historian: mincepy.Historian = None) -> Sequence[Optional[str]]:
-    """Given objects or identifier this will return their current paths in the order they were
-    passed"""
+def get_paths(*obj_or_id, historian: mincepy.Historian = None) -> Sequence[PathInfo]:
+    """Given objects or identifier this will return their current paths as PathInfo tuples in the order that they were
+    passed in.  A PathInfo consists of the object id and the corresponding path.
+
+    This choice of return value makes it easy to construct dictionaries, e.g.:
+    >>> obj_paths = dict(get_path('obj123', 'obj456'))
+    where object ids have been passed in as strings.  It is important to note, that when constructing such a dictionary
+    duplicate values will be joined.  Whether this is desired will depend on the use case.
+    """
     hist = historian or get_historian()
     obj_ids = tuple(map(hist.to_obj_id, obj_or_id))
     metas = dict(hist.meta.find({}, obj_id=obj_ids))
     paths = []
     for obj_id in obj_ids:
         if obj_id not in metas:
-            paths.append(None)
+            paths.append(PathInfo(obj_id, None))
             continue
 
-        meta = metas.pop(obj_id)
+        meta = metas.get(obj_id, {})
         dirname, name = meta.get(config.DIR_KEY, None), meta.get(config.NAME_KEY, None)
         path = []
         if dirname:
             path.append(dirname)
         path.append(name or str(obj_id))
 
-        paths.append(os.path.join(*path))
+        paths.append(PathInfo(obj_id, os.path.join(*path)))
 
     return paths
 
 
 def set_path(obj_id, path: os.PathSpec) -> str:
     """Given an object or object id set the current path and return the new abspath"""
-    return set_paths((obj_id, path))[0]
+    return set_paths((obj_id, path))[0].path
 
 
 def set_paths(*obj_id_path: Tuple[Any, os.PathSpec],
-              historian: mincepy.Historian = None) -> Sequence[os.PathSpec]:
-    """Set the path for one or more objects.  This function expects (object id, path) tuples and returns the new
-    abspaths in the same order that they were passed in"""
+              historian: mincepy.Historian = None) -> Sequence[PathInfo]:
+    """Set the path for one or more objects.  This function expects (object or identifier, path) tuples and returns
+    the corresponding PathInfo objects with absolute paths in the same order as the arguments"""
     hist = historian or get_historian()
     update_dict = {}
-    abspaths = []
+    paths = []
     for obj_or_id, path in obj_id_path:
         obj_id = hist.to_obj_id(obj_or_id)
         update_dict[obj_id] = utils.path_to_meta_dict(path)
-        abspaths.append(os.path.abspath(path))
+        paths.append(PathInfo(obj_id, os.path.abspath(path)))
     hist.meta.update_many(update_dict)
-    return abspaths
+    return paths
 
 
 def rename(obj_or_id, dest: os.PathSpec):

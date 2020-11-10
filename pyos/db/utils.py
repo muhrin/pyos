@@ -1,7 +1,10 @@
+# -*- coding: utf-8 -*-
+from typing import Optional
+
 from pyos import config
 from pyos import os
 
-__all__ = ('path_to_meta_dict', 'get_obj_name')
+__all__ = 'path_to_meta_dict', 'get_obj_name', 'path_from_meta_entry'
 
 
 def new_meta(orig: dict, new: dict) -> dict:
@@ -39,6 +42,21 @@ def path_to_meta_dict(path: os.PathSpec) -> dict:
             meta[config.DIR_KEY] = os.path.abspath(dirname)
 
     return meta
+
+
+def path_from_meta_entry(obj_id, meta: dict) -> Optional[str]:
+    parts = []
+    if config.DIR_KEY in meta:
+        parts.append(meta[config.DIR_KEY])
+    if config.NAME_KEY in meta:
+        parts.append(meta[config.NAME_KEY])
+    else:
+        parts.append(str(obj_id))
+
+    if not parts:
+        return None
+
+    return ''.join(parts)
 
 
 def get_obj_name(obj_id, meta: dict) -> str:

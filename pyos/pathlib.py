@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Module that deals with directories and paths"""
 import contextlib
 from typing import Sequence, Iterable, Tuple, Optional
@@ -5,7 +6,6 @@ import uuid
 
 import mincepy
 
-from pyos import db
 from pyos import exceptions
 from pyos import fs
 from pyos import os
@@ -68,7 +68,7 @@ class PurePath(os.PathLike):
 
     @property
     def root(self) -> str:
-        return "/"
+        return '/'
 
     def __fspath__(self):
         return self._path
@@ -178,7 +178,7 @@ class Path(PurePath, mincepy.SimpleSavable):
         Path('docs/_static')
         """
         if not self.is_dir_path():
-            raise exceptions.NotADirectoryError("Not a directory: {}".format(os.path.relpath(self)))
+            raise exceptions.NotADirectoryError('Not a directory: {}'.format(os.path.relpath(self)))
         if not self.exists():
             raise exceptions.FileNotFoundError("No such directory: '{}'".format(
                 os.path.relpath(self)))
@@ -204,14 +204,3 @@ def working_path(path: os.PathSpec):
         yield path
     finally:
         os.chdir(orig)
-
-
-def get_path(obj_or_id) -> Optional[Path]:
-    """Given an object or object id get the current path"""
-    return Path(db.get_path(obj_or_id))
-
-
-def get_paths(*obj_or_id) -> Sequence[Path]:
-    """Given objects or identifier this will return their current paths in the order they were
-    passed"""
-    return list(map(Path, db.get_paths(*obj_or_id)))
