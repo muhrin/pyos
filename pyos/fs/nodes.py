@@ -40,7 +40,15 @@ class BaseNode(Sequence, anytree.NodeMixin, results.BaseResults, metaclass=abc.A
         self._hist = historian or db.get_historian()
 
     def __getitem__(self, item):
-        return self.children.__getitem__(item)
+        if isinstance(item, (int, slice)):
+            return self.children.__getitem__(item)
+        if isinstance(item, str):
+            for child in self.children:
+                if child.name == item:
+                    return child
+            raise ValueError('No child has name {}'.format(item))
+
+        raise TypeError("Got unsupported item type '{}'".format(item.__class__.__name__))
 
     def __len__(self):
         return self.children.__len__()
@@ -186,6 +194,18 @@ class DirectoryNode(ContainerNode, FilesystemNode):
         dir_node = DirectoryNode(self.abspath)
         dir_node.children = [copy.copy(child) for child in self.children]
         return dir_node
+
+    def __contains__(self, item):
+        # Have to expand if we're not already already otherwise contains could incorrectly fail
+        if not self.children:
+            self.expand()
+        return super().__contains__(item)
+
+    def __getitem__(self, item):
+        # Have to expand if we're not already already otherwise contains could incorrectly fail
+        if not self.children:
+            self.expand()
+        return super().__getitem__(item)
 
     def _invalidate_cache(self):
         self.children = []
