@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 __all__ = 'PyOSError', 'IsADirectoryError', 'NotADirectoryError', 'FileNotFoundError'
 
 # pylint: disable=redefined-builtin
@@ -7,11 +8,11 @@ class PyOSError(Exception):
     """Raised when there is a PyOS exception"""
 
 
-class IsADirectoryError(PyOSError):
+class IsADirectoryError(PyOSError):  # pylint: disable=redefined-builtin
     """Raise when a file is expected but a directory was passed"""
 
 
-class NotADirectoryError(PyOSError):
+class NotADirectoryError(PyOSError):  # pylint: disable=redefined-builtin
     """Raise when a directory is expected but a file was passed"""
 
 

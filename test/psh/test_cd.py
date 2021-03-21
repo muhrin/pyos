@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Tests for the change directory command"""
 
 import pyos
@@ -46,9 +47,9 @@ def test_reaching_root():
 def test_cd_minus(pyos_shell):
     """Test changing back to last directory using 'cd -'"""
     start_dir = pyos.os.getcwd()
-    pyos_shell.app_cmd("cd /some/random/dir/")
+    pyos_shell.app_cmd('cd /some/random/dir/')
     assert pyos.os.getcwd() == '/some/random/dir/'
-    pyos_shell.app_cmd("cd -")
+    pyos_shell.app_cmd('cd -')
     assert pyos.os.getcwd() == start_dir
 
 
@@ -56,9 +57,9 @@ def test_cd_home(pyos_shell):
     home_dir = pyos.db.homedir()
     rand_dir = '/some/rand/dir/'
     pyos.os.chdir(rand_dir)
-    pyos_shell.app_cmd("cd ~")
+    pyos_shell.app_cmd('cd ~')
     assert pyos.os.getcwd() == home_dir
 
     pyos.os.chdir(rand_dir)
-    pyos_shell.app_cmd("cd ~/")
+    pyos_shell.app_cmd('cd ~/')
     assert pyos.os.getcwd() == home_dir

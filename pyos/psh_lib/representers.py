@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Module for representers which are used to convert objects into strings"""
 
 import functools
@@ -76,10 +77,10 @@ def to_simple_repr(obj):
     if isinstance(obj, mincepy.File):
         return obj.read_text()
 
-    if isinstance(obj, Sequence):
+    if isinstance(obj, Sequence):  # pylint: disable=isinstance-second-argument-not-valid-type
         return obj
 
     if isinstance(obj, Exception):
-        return "{}: {}".format(obj.__class__.__name__, obj)
+        return '{}: {}'.format(obj.__class__.__name__, obj)
 
     return fmt.obj_dict(obj)

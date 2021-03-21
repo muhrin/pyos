@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Module that tests the pyOS shell piping functionality"""
 import argparse
 import sys
@@ -19,7 +20,7 @@ class Echo(cmd2.CommandSet):
             if not args.msg:
                 args.msg.append('')
 
-        print("{}: {}".format(args.tag, args.msg[0]))
+        print('{}: {}'.format(args.tag, args.msg[0]))
 
 
 def test_shell_piping(pyos_shell):

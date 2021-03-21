@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from mincepy.testing import Car
 
 import pyos

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """The locate command"""
 import argparse
 from typing import Optional, Union, Sequence

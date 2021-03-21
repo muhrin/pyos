@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from . import version
+from .version import __version__
+# pylint: disable=anomalous-backslash-in-string
 """
 
                   ____  ____
@@ -19,7 +21,7 @@ except they take on a new, more powerful form because you're in a fully fledged 
 and not restricted to just two types (file and directories) like on a traditional filesystem but
 indeed any python type that can be stored by PyOS's backend.
 """.format(version.__version__)
-
+# pylint: disable=wrong-import-position
 # Order is important here, first we list all the 'base' modules, then the rest
 from . import exceptions
 from . import os
@@ -30,16 +32,16 @@ from . import fs
 from . import config
 from . import fmt
 from . import lib
+from .pathlib import PurePath, Path, working_path
 from . import psh
 from . import psh_lib
 
 from .version import *
 from .lib import *
-from .exceptions import *
-from .pathlib import PurePath, Path
+from .exceptions import *  # pylint: disable=redefined-builtin
 
 _MODULES = 'os', 'config', 'db', 'fmt', 'fs', 'pathlib', 'psh_lib', 'psh'
 _DEPRECATED = ('working_path',)
-_ADDITIONAL = ('PurePath', 'Path')
+_ADDITIONAL = ('PurePath', 'Path', '__version__')
 
 __all__ = version.__all__ + lib.__all__ + exceptions.__all__ + _MODULES + _DEPRECATED + _ADDITIONAL

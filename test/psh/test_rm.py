@@ -1,13 +1,15 @@
-import pytest
-
+# -*- coding: utf-8 -*-
 import mincepy
-from mincepy.testing import Car, Garage
+from mincepy.testing import Car
 
 from pyos import psh
+
+# pylint: disable=no-value-for-parameter
 
 
 def test_rm_basic():
     """Delete by the various identifier"""
+
     car = Car()
     psh.save(car)
 
@@ -26,7 +28,7 @@ def test_rm_basic():
     assert len(psh.ls()) == 0
 
 
-def test_rm_multiple(historian: mincepy.Historian):
+def test_rm_multiple(historian: mincepy.Historian):  # pylint: disable=unused-argument
     car1 = Car()
     car2 = Car()
     car3 = Car()
@@ -83,6 +85,6 @@ def test_rm_objects_with_references():
 
     psh.cd('/')
     # Delete the folder
-    psh.rm - psh.r('/cars/')
+    psh.rm - psh.r('/cars/')  # pylint: disable=expression-not-assigned
 
     assert len(psh.ls('/cars/')) == 0

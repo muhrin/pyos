@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Module with convenience functions for building queries"""
 from typing import Iterable
 
@@ -64,7 +65,7 @@ def subdirs(root: str, start_depth=1, end_depth=1) -> dict:
 def dirmatch(directory: str) -> dict:
     """Get the query dictionary to search in a particular directory"""
     query = {pyos.config.DIR_KEY: str(directory)}
-    if directory == "/":
+    if directory == '/':
         # Special case for root: all objects that have no DIR_KEY are by default
         # considered to be in the root
         query = or_(query, {pyos.config.DIR_KEY: {'$exists': False}})

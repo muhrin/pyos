@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """The connection commands"""
 import argparse
 import sys
@@ -17,9 +18,9 @@ class Connnection(cmd2.CommandSet):
         """Connect to a mincepy archive"""
         try:
             db.connect(args.uri)
-            print("Connected to {}".format(args.uri))
+            print('Connected to {}'.format(args.uri))
         except mincepy.ConnectionError as exc:
-            print("Error: {}".format(exc), file=sys.stderr)
+            print('Error: {}'.format(exc), file=sys.stderr)
 
     def do_disconnect(self, _args):  # pylint: disable=no-self-use
         """Disconnect from the current archive"""

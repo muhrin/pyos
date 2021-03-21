@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """This module is for entry points that extend PyOS' functionality"""
 
 import pyos

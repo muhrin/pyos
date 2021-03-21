@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Module that deals with directories and paths"""
 import contextlib
-from typing import Sequence, Iterable, Tuple, Optional
+from typing import Sequence, Iterable, Tuple
 import uuid
 
 import mincepy

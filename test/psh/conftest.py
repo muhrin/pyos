@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import cmd2_ext_test
 import pytest
 

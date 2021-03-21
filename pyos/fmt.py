@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import datetime
 import inspect
 import typing
@@ -12,14 +13,14 @@ def pretty_type_string(obj_type: typing.Type) -> str:
 
     parts = type_str.split('.')
     if len(parts) > 2:
-        return "|".join([parts[0], parts[-1]])
+        return '|'.join([parts[0], parts[-1]])
 
     return type_str
 
 
 def obj_dict(obj):
     """Given an object return a dictionary that represents it"""
-    if isinstance(obj, Mapping):
+    if isinstance(obj, Mapping):  # pylint: disable=isinstance-second-argument-not-valid-type
         return dict(obj)
 
     repr_dict = {}
@@ -40,9 +41,9 @@ def pretty_datetime(value) -> str:
         return pretty_type_string(value)
     if isinstance(value, datetime.datetime):
         if value.year == datetime.datetime.now().year:
-            fmt = "%b %d %H:%M"
+            fmt = '%b %d %H:%M'
         else:
-            fmt = "%b %d %Y"
+            fmt = '%b %d %Y'
 
         return value.strftime(fmt)
 

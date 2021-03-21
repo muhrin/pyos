@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """The object id command"""
 import argparse
 import logging
@@ -34,11 +35,11 @@ class Oid(cmd2.CommandSet):
     def do_oid(self, args):  # pylint: disable=no-self-use
         if not args.objs:
             # Read from standard in
-            _LOGGER.debug("oid: getting input from stdin")
+            _LOGGER.debug('oid: getting input from stdin')
             try:
                 args.path = [line.rstrip() for line in sys.stdin.readlines()]
             except Exception:
-                _LOGGER.exception("Exception trying to readlines")
+                _LOGGER.exception('Exception trying to readlines')
                 raise
             _LOGGER.debug("oid: got input' %s' from stdin", args.path)
 

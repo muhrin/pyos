@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from mincepy.testing import Person
 
 import pyos
@@ -5,6 +6,8 @@ from pyos import psh
 
 
 def test_working_path():
+    # pylint: disable=no-value-for-parameter
+
     home = psh.pwd()
     address_book = pyos.pathlib.Path('address_book/').resolve()
     with pyos.pathlib.working_path(address_book):

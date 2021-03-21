@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Module that contains classes used to provide results to the user"""
 import collections.abc
 from typing import Callable, Iterator
@@ -35,7 +36,7 @@ class CachingResults(collections.abc.Sequence, pyos.results.BaseResults):
         return len(self._cache)
 
     def __repr__(self):
-        return "\n".join([self._representer(item) for item in self])
+        return '\n'.join([self._representer(item) for item in self])
 
     def _iter_generator(self, at_end=False):
         idx = 0 if not at_end else len(self._cache)

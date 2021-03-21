@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*-
 from mincepy.testing import Car
 
 from pyos import psh
+
+# pylint: disable=no-value-for-parameter
 
 
 def test_tree_basic():

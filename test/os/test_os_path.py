@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import re
 
 from mincepy.testing import Car
@@ -25,10 +26,10 @@ def test_exists():
 
 
 def test_normpath_parent_dir():
-    assert os.path.normpath('a/b/../') == "a/"
-    assert os.path.normpath('a/b/..') == "a/"
+    assert os.path.normpath('a/b/../') == 'a/'
+    assert os.path.normpath('a/b/..') == 'a/'
 
 
 def test_normpah_current_dir():
-    assert os.path.normpath('a/b/./') == "a/b/"
-    assert os.path.normpath('a/b/.') == "a/b/"
+    assert os.path.normpath('a/b/./') == 'a/b/'
+    assert os.path.normpath('a/b/.') == 'a/b/'

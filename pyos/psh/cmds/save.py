@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """The save command"""
 
 import pyos
@@ -5,7 +6,7 @@ from pyos import psh
 
 
 @pyos.psh_lib.command(pass_options=True)
-@pyos.psh_lib.flag(psh.f, help="Force - overwrite files with the same name")
+@pyos.psh_lib.flag(psh.f, help='Force - overwrite files with the same name')
 def save(options, *args):
     """Save one or more objects"""
     objs = args

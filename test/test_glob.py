@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import functools
 from typing import List
 
@@ -7,6 +8,8 @@ from pyos import glob
 from pyos import os
 from pyos import psh
 from . import support
+
+# pylint: disable=invalid-name, redefined-outer-name
 
 
 def norm(tempdir, *parts) -> str:
@@ -27,7 +30,7 @@ change_cwd = support.change_cwd
 
 @pytest.fixture
 def test_dir():
-    tempdir = "globtest_dir"
+    tempdir = 'globtest_dir'
     mktemp(tempdir, 'a', 'D')
     mktemp(tempdir, 'aab', 'F')
     mktemp(tempdir, '.aa', 'G')
@@ -39,8 +42,7 @@ def test_dir():
     mktemp(tempdir, 'a', 'bcd', 'efg', 'ha')
 
     yield tempdir
-    # TODO: Remove directory
-    psh.rm - psh.r(tempdir)
+    psh.rm - psh.r(tempdir)  # pylint: disable=expression-not-assigned
 
 
 def check_glob(tempdir, *parts, **kwargs):

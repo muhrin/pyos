@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """The find command"""
 import argparse
 
@@ -46,14 +47,14 @@ class Find(cmd2.CommandSet):
     parser.add_argument('-t',
                         dest='type',
                         type=argparse_types.type_string,
-                        help="the type to search for")
+                        help='the type to search for')
     parser.add_argument('-s',
                         dest='paths',
                         action='append',
                         type=str,
                         default=[],
                         completer_method=completion.dir_completer,
-                        help="starting point (path) for search")
+                        help='starting point (path) for search')
     parser.add_argument('-m',
                         dest='meta',
                         action='append',

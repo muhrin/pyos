@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import re
 from typing import List, Iterator
 
@@ -188,7 +189,7 @@ def get_regex(pattern: str, recursive=False):
         if char in '/$^+.()=!|':
             re_str += '\\' + char
 
-        elif char == "?":
+        elif char == '?':
             re_str += '[^/]'
 
         elif char == '*':

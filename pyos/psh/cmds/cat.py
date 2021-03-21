@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import argparse
 import logging
 import re
@@ -38,7 +39,7 @@ def cat(*obj_or_ids, representer=None):
         for node in to_cat:
             try:
                 if isinstance(node, pyos.fs.DirectoryNode):
-                    yield "cat: {}: Is a directory".format(node.abspath.name)
+                    yield 'cat: {}: Is a directory'.format(node.abspath.name)
                 elif isinstance(node, pyos.fs.ObjectNode):
                     yield representer(node.obj)
                 else:
@@ -70,19 +71,19 @@ class Cat(cmd2.CommandSet):
     ls_parser.add_argument('-f',
                            dest='fstring',
                            type=str,
-                           help="optional f-string for printing attributes e.g. -f {colour} prints "
-                           "obj.colour for each object")
+                           help='optional f-string for printing attributes e.g. -f {colour} prints '
+                           'obj.colour for each object')
     ls_parser.add_argument('path', nargs='*', type=str, completer_method=completion.file_completer)
 
     @cmd2.with_argparser(ls_parser)
     def do_cat(self, args):  # pylint: disable=no-self-use
         if not args.path:
             # Read from standard in
-            _LOGGER.debug("cat: getting input from stdin")
+            _LOGGER.debug('cat: getting input from stdin')
             try:
                 args.path = [line.rstrip() for line in sys.stdin.readlines()]
             except Exception:
-                _LOGGER.exception("Exception trying to readlines")
+                _LOGGER.exception('Exception trying to readlines')
                 raise
             _LOGGER.debug("cat: got input' %s' from stdin", args.path)
 

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Print working directory command"""
 import argparse
 

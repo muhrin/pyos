@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import collections
 import concurrent.futures
 import contextlib
@@ -34,12 +35,12 @@ class ThreadStreamRedirector(io.TextIOBase):
 
     def register(self, stream: Optional[TextIO]):
         identity = threading.current_thread().ident
-        _LOGGER.debug("(%s): Redirecting thread %s to %s", self._name, identity, stream)
+        _LOGGER.debug('(%s): Redirecting thread %s to %s', self._name, identity, stream)
         self._streams[identity] = stream
 
     def unregister(self):
         identity = threading.current_thread().ident
-        _LOGGER.debug("(%s): Unregistering thread %s", self._name, identity)
+        _LOGGER.debug('(%s): Unregistering thread %s', self._name, identity)
         self._streams.pop(identity)
 
     @contextlib.contextmanager
@@ -65,15 +66,15 @@ class ThreadStreamRedirector(io.TextIOBase):
             return
 
         stream = self._get_stream()
-        logging.debug("Closing stream %s", stream)
+        logging.debug('Closing stream %s', stream)
         if stream.name == '<stdin>':
-            logging.warning("Someone is closing the standard input: \n%s",
+            logging.warning('Someone is closing the standard input: \n%s',
                             ''.join(traceback.format_stack()))
         stream.close()
 
     def write(self, message):
         stream = self._get_stream()
-        logging.debug("Writing %s from thread %s to %s", message,
+        logging.debug('Writing %s from thread %s to %s', message,
                       threading.current_thread().ident, stream)
         stream.write(message)
 
@@ -174,13 +175,13 @@ class Piper:
 
                 try:
                     done_redirecting.wait(timeout=0.1)
-                except TimeoutError:
+                except TimeoutError as timeout:
                     # Try checking the future first
                     future.result(timeout=0.)
 
                     # Didn't raise, so we need to raise ourselves
                     raise RuntimeError("Failed to redirect streams for command '{}' in a timely "
-                                       "manner".format(func))
+                                       'manner'.format(func)) from timeout
                 else:
                     del done_redirecting
 
@@ -193,22 +194,22 @@ class Piper:
         if self._thread_pool is None:
             return
 
-        _LOGGER.debug("Shutting down pipe processor")
+        _LOGGER.debug('Shutting down pipe processor')
 
         # First thing is to close the input stream as this will cause it to flush
         # and downstream commands may still be waiting for input
         try:
             self._in_steam.close()
         except BrokenPipeError:
-            _LOGGER.debug("Broken pipe error")
+            _LOGGER.debug('Broken pipe error')
 
-        _LOGGER.debug("Waiting for thread pool to shut down")
+        _LOGGER.debug('Waiting for thread pool to shut down')
         self._thread_pool.shutdown(wait=wait)
         if self._thread_pool is None:
             # Another thread already beat us to it
             return
 
-        _LOGGER.debug("Thread pool shut down")
+        _LOGGER.debug('Thread pool shut down')
 
         self._in_steam = None
         sys.stdin = self._orig_stdin
@@ -258,7 +259,7 @@ class Piper:
         except KeyError:
             pipe = os.pipe()
             self._pipes[idx] = pipe
-            _LOGGER.debug("Created pipe %s for func %s", pipe, self._funcs[idx])
+            _LOGGER.debug('Created pipe %s for func %s', pipe, self._funcs[idx])
 
         return pipe
 
@@ -297,7 +298,7 @@ def plugins_get_commands() -> List:
         try:
             commands.extend(extension.plugin())
         except Exception:  # pylint: disable=broad-except
-            _LOGGER.exception("Failed to get command plugin from %s", extension.name)
+            _LOGGER.exception('Failed to get command plugin from %s', extension.name)
 
     try:
         mgr.map(get_command)

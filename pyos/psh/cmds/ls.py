@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """List command"""
 import argparse
 import logging
@@ -13,9 +14,9 @@ logger = logging.getLogger(__name__)
 
 
 @psh_lib.command(pass_options=True)
-@psh_lib.flag(psh.l, help="use a long listing format")
-@psh_lib.flag(psh.d, help="list directories themselves, not their contents")
-@psh_lib.flag(psh.p, help="print the str() value of each object")
+@psh_lib.flag(psh.l, help='use a long listing format')
+@psh_lib.flag(psh.d, help='list directories themselves, not their contents')
+@psh_lib.flag(psh.p, help='print the str() value of each object')
 def ls(options, *args) -> pyos.fs.ResultsNode:  # pylint: disable=invalid-name, too-many-branches
     """List the contents of a directory
 
@@ -63,11 +64,11 @@ def ls(options, *args) -> pyos.fs.ResultsNode:  # pylint: disable=invalid-name, 
 
 class Ls(cmd2.CommandSet):
     parser = argparse.ArgumentParser()
-    parser.add_argument('-l', action='store_true', help="use a long listing format")
+    parser.add_argument('-l', action='store_true', help='use a long listing format')
     parser.add_argument('-d',
                         action='store_true',
-                        help="list directories themselves, not their contents")
-    parser.add_argument('-p', action='store_true', help="print the str() value of each object")
+                        help='list directories themselves, not their contents')
+    parser.add_argument('-p', action='store_true', help='print the str() value of each object')
     parser.add_argument('path', nargs='*', type=str, completer_method=completion.path_complete)
 
     @cmd2.with_argparser(parser)

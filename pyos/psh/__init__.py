@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from pyos.db import queries
 from .flags import *
 from .cmds import *

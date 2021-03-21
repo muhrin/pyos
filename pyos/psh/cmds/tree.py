@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """The tree command"""
 import argparse
 
@@ -23,7 +24,7 @@ def tree(options, *paths):
 
 class Tree(cmd2.CommandSet):
     parser = argparse.ArgumentParser()
-    parser.add_argument('-L', type=int, help="max display depth of the directory tree")
+    parser.add_argument('-L', type=int, help='max display depth of the directory tree')
     parser.add_argument('path', nargs='*', type=str, completer_method=completion.path_complete)
 
     @cmd2.with_argparser(parser)

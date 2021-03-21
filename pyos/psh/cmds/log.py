@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Print working directory command"""
 import argparse
 import logging
@@ -10,7 +11,7 @@ class Log(cmd2.CommandSet):
     parser = argparse.ArgumentParser()
     parser.add_argument('logger',
                         help='the logger to set loglevel for, can be empty string for root')
-    parser.add_argument('level', help="the log level to set")
+    parser.add_argument('level', help='the log level to set')
 
     @cmd2.with_argparser(parser)
     def do_log(self, args):  # pylint: disable=no-self-use

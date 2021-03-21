@@ -27,6 +27,7 @@ repos:
             '--disable=too-few-public-methods',
             '--disable=too-many-arguments',
             '--disable=too-many-instance-attributes',
+            '--disable=cyclic-import'
         ]
         exclude: *exclude_files
 

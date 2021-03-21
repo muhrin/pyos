@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Functions and constants that emulate python's os module"""
 from typing import List
 
@@ -69,12 +70,12 @@ def fspath(file_path: types.PathSpec) -> str:
         if hasattr(path_type, '__fspath__'):
             raise
 
-        raise TypeError("expected str or os.PathLike object, not " + path_type.__name__)
+        raise TypeError('expected str or os.PathLike object, not ' + path_type.__name__) from None
 
     if isinstance(path_repr, str):
         return path_repr
 
-    raise TypeError("expected {}.__fspath__() to return str, not {}".format(
+    raise TypeError('expected {}.__fspath__() to return str, not {}'.format(
         path_type.__name__,
         type(path_repr).__name__))
 
@@ -110,8 +111,11 @@ def listdir(lsdir: types.PathSpec = '.') -> List[str]:
     return list(contents)
 
 
-# pylint: disable=redefined-builtin
-def open(file: types.PathSpec, mode='r', encoding: str = None) -> mincepy.File:
+def open(
+        # pylint: disable=redefined-builtin
+        file: types.PathSpec,
+        mode='r',
+        encoding: str = None) -> mincepy.File:
     """
     Open file and return a corresponding file object.
 
@@ -129,7 +133,7 @@ def open(file: types.PathSpec, mode='r', encoding: str = None) -> mincepy.File:
         obj_id = next(results)['obj_id']
         fileobj = db.load(obj_id)
         if not isinstance(file, mincepy.File):
-            raise ValueError("open: {}: is not a file".format(fileobj))
+            raise ValueError('open: {}: is not a file'.format(fileobj))
     except StopIteration:
         # Create a new one
         fileobj = db.get_historian().create_file(file_path, encoding=encoding)
@@ -189,7 +193,7 @@ def rename(src: types.PathSpec, dest: types.PathSpec):
             # Check if the source corresponds to an object id
             obj_id = historian.to_obj_id(path.basename(src))
             if obj_id is None:
-                raise exceptions.FileNotFoundError(src)
+                raise exceptions.FileNotFoundError(src) from None
             meta = historian.meta.get(obj_id)
 
         # Update the metadata

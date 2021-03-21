@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from pytray import obj_load
 
 from mincepy.testing import Car, Person
@@ -80,7 +81,7 @@ def test_find_starting_point():
     num_subdirs = len(subdirs)
 
     for idx, _subdir in enumerate(subdirs):
-        start_point = "/".join(subdirs[:idx + 1])
+        start_point = '/'.join(subdirs[:idx + 1])
         found = psh.find(start_point)
         assert len(found) == num_subdirs - idx
         dirs = {psh.meta(meta_dict)['mydir'] for meta_dict in found}
@@ -132,7 +133,7 @@ def test_shell_find_starting_point(pyos_shell):
     num_subdirs = len(subdirs)
 
     for idx, _subdir in enumerate(subdirs):
-        start_point = "/".join(subdirs[:idx + 1])
+        start_point = '/'.join(subdirs[:idx + 1])
         res = pyos_shell.app_cmd('find -s {}'.format(start_point))
         assert not res.stderr
 

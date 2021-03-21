@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from pyos import db
 from pyos import os
 from pyos import pathlib

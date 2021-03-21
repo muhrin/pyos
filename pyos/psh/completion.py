@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from typing import Iterable, List, Optional, Callable
 
 import pyos
@@ -57,7 +58,7 @@ class PathCompletion(pyos.os.PathLike):
                 try:
                     return super().__getattr__(item)
                 except AttributeError:
-                    raise AttributeError("Path does not exist: '{}'".format(item))
+                    raise AttributeError("Path does not exist: '{}'".format(item)) from None
 
         return PathCompletion(path)
 

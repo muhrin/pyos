@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Database related classes, functions and constants"""
 
 from .lib import *

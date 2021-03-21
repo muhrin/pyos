@@ -1,7 +1,12 @@
+# -*- coding: utf-8 -*-
 from mincepy.testing import Car, Person
 
 import pyos
 from pyos import psh
+
+# Disable this here because, e.g., ls() causes the linter to warn because it is the
+# decorator that takes care of passing the first argument
+# pylint: disable=no-value-for-parameter
 
 
 def test_ls_basic():
@@ -46,7 +51,7 @@ def test_ls_path():
 
     res = psh.ls()
     assert len(res) == 1  # Should have the directory in home
-    assert "a/" in repr(res)
+    assert 'a/' in repr(res)
 
     res = psh.ls('a/')
     assert len(res) == 1
@@ -113,7 +118,7 @@ def test_ls_minus_l():
     res = psh.ls(-psh.l)
     assert len(res) == 3
     res_repr = repr(res)
-    assert "garage" in res_repr
+    assert 'garage' in res_repr
     assert str(car1_id) in res_repr
     assert str(car2_id) in res_repr
     assert str(car3_id) not in res_repr
@@ -122,7 +127,7 @@ def test_ls_minus_l():
     res = psh.ls(-psh.l, 'garage/')
     assert len(res) == 2
     res_repr = repr(res)
-    assert "garage" not in res_repr
+    assert 'garage' not in res_repr
     assert str(car1_id) not in res_repr
     assert str(car2_id) not in res_repr
     assert str(car3_id) in res_repr

@@ -154,7 +154,7 @@ class ContainerNode(BaseNode):
         return False
 
     def __getitem__(self, item):
-        items = super(ContainerNode, self).__getitem__(item)
+        items = super().__getitem__(item)
         if isinstance(item, slice):
             res = ResultsNode()
             for entry in items:
@@ -343,8 +343,8 @@ class ObjectNode(FilesystemNode):
                         obj_id=self.obj_id, sort={
                             'version': -1
                         }, limit=1).one()  # type: mincepy.DataRecord
-                except mincepy.NotFound:
-                    raise ValueError("Object with id '{}' not found".format(obj_id))
+                except mincepy.NotFound as not_found:
+                    raise ValueError("Object with id '{}' not found".format(obj_id)) from not_found
                 else:
                     if record.is_deleted_record():
                         raise mincepy.ObjectDeleted(
@@ -435,7 +435,7 @@ class ObjectNode(FilesystemNode):
         try:
             db.rename(self._obj_id, new_name)
         except mincepy.DuplicateKeyError:
-            raise RuntimeError("File with the name '{}' already exists".format(new_name))
+            raise RuntimeError("File with the name '{}' already exists".format(new_name)) from None
 
 
 class ResultsNode(ContainerNode):
@@ -493,7 +493,7 @@ class ResultsNode(ContainerNode):
         return super().__repr__()
 
     def __getitem__(self, item):
-        result = super(ResultsNode, self).__getitem__(item)
+        result = super().__getitem__(item)
         if isinstance(result, ResultsNode):
             # Transfer the view mode
             result.show(*self._show, mode=self._view_mode)

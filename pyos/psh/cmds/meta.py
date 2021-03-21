@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """The meta command"""
 import argparse
 import logging
@@ -13,8 +14,8 @@ logger = logging.getLogger(__name__)
 
 
 @pyos.psh_lib.command(pass_options=True)
-@pyos.psh_lib.flag(psh.s, "Set the metadata")
-@pyos.psh_lib.flag(psh.u, "Update the metadata")
+@pyos.psh_lib.flag(psh.s, 'Set the metadata')
+@pyos.psh_lib.flag(psh.u, 'Update the metadata')
 def meta(options, *obj_or_ids, **updates):
     """Get, set or update the metadata on one or more objects"""
     if not obj_or_ids:
@@ -41,7 +42,7 @@ def meta(options, *obj_or_ids, **updates):
     else:
         # In 'getting' mode
         if updates:
-            logging.warning("Keywords supplied to meta without -s/-u flags: %s", updates)
+            logging.warning('Keywords supplied to meta without -s/-u flags: %s', updates)
 
         if len(obj_ids) == 1:
             # Special case for a single parameter
@@ -56,8 +57,8 @@ class Meta(cmd2.CommandSet):
     parser = argparse.ArgumentParser()
 
     set_update = parser.add_mutually_exclusive_group()
-    set_update.add_argument('-s', action='store_true', help="set the metadata")
-    set_update.add_argument('-u', action='store_true', help="update the metadata")
+    set_update.add_argument('-s', action='store_true', help='set the metadata')
+    set_update.add_argument('-u', action='store_true', help='update the metadata')
     parser.add_argument('path', nargs='*', type=str, completer_method=completion.path_complete)
 
     @cmd2.with_argparser(parser)
@@ -73,10 +74,10 @@ class Meta(cmd2.CommandSet):
             try:
                 args.path = [line.rstrip() for line in sys.stdin.readlines()]
             except Exception:
-                logger.exception("Exception trying to readlines")
+                logger.exception('Exception trying to readlines')
                 raise
 
-        logger.debug("Writing to %s", sys.stdout)
+        logger.debug('Writing to %s', sys.stdout)
         result = command(*args.path)
         rep = repr(result)
         print(rep, file=sys.stdout)

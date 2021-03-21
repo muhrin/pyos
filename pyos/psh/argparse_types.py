@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import ast
 import collections
 import functools
@@ -27,7 +28,7 @@ def parse_query(value: str) -> dict:
 
             return func(left.strip(), right)
 
-    raise ValueError("Unknown condition: {}".format(value))
+    raise ValueError('Unknown condition: {}'.format(value))
 
 
 def apply(operator: Callable, name: str, value):

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """The remove command"""
 import argparse
 import copy
@@ -23,8 +24,8 @@ def _remove_directories(nodes):
 
 
 @pyos.psh_lib.command(pass_options=True)
-@pyos.psh_lib.flag(psh.p, help="show progress bar")
-@pyos.psh_lib.flag(psh.r, help="remove directories and their contents recursively")
+@pyos.psh_lib.flag(psh.p, help='show progress bar')
+@pyos.psh_lib.flag(psh.r, help='remove directories and their contents recursively')
 def rm(options, *obj_or_ids):  # pylint: disable=invalid-name
     """Remove objects"""
     to_delete = psh.ls(-psh.d, *obj_or_ids)
@@ -34,7 +35,7 @@ def rm(options, *obj_or_ids):  # pylint: disable=invalid-name
 
     if to_delete:
         if options.pop(psh.flags.p):
-            to_delete = tqdm.tqdm(to_delete, desc="rm")
+            to_delete = tqdm.tqdm(to_delete, desc='rm')
 
         for node in to_delete:
             node.delete()
@@ -42,10 +43,10 @@ def rm(options, *obj_or_ids):  # pylint: disable=invalid-name
 
 class Rm(cmd2.CommandSet):
     parser = argparse.ArgumentParser()
-    parser.add_argument('-p', action='store_true', help="show progress bar")
+    parser.add_argument('-p', action='store_true', help='show progress bar')
     parser.add_argument('-r',
                         action='store_true',
-                        help="remove directories and their contents recursively")
+                        help='remove directories and their contents recursively')
     parser.add_argument('path', nargs='*', type=str, completer_method=completion.path_complete)
 
     @cmd2.with_argparser(parser)

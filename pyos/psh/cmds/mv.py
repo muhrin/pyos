@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """The move command"""
 import argparse
 
@@ -10,7 +11,7 @@ from pyos.psh import completion
 
 
 @pyos.psh_lib.command(pass_options=True)
-@pyos.psh_lib.flag(psh.f, help="force - do not prompt before overwriting")
+@pyos.psh_lib.flag(psh.f, help='force - do not prompt before overwriting')
 def mv(options, *args):  # pylint: disable=invalid-name
     """Take one or more files or directories with the final parameter being interpreted as
      destination
@@ -32,7 +33,7 @@ def mv(options, *args):  # pylint: disable=invalid-name
     For now, files will not be overwritten.
     """
     if len(args) < 2:
-        raise ValueError("mv: missing destination")
+        raise ValueError('mv: missing destination')
 
     args = list(args)
     dest = pyos.Path(args.pop())
@@ -58,7 +59,7 @@ def mv(options, *args):  # pylint: disable=invalid-name
 
 class Mv(cmd2.CommandSet):
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f', action='store_true', help="force - do not prompt before overwriting")
+    parser.add_argument('-f', action='store_true', help='force - do not prompt before overwriting')
     parser.add_argument('path', nargs='*', type=str, completer_method=completion.path_complete)
 
     @cmd2.with_argparser(parser)

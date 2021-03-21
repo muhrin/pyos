@@ -1,9 +1,12 @@
+# -*- coding: utf-8 -*-
 import io
 
 from mincepy.testing import Car
 
 import pyos
 from pyos import psh
+
+# pylint: disable=no-value-for-parameter
 
 
 def test_mv_basic():

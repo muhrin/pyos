@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import sys
 
 import click
@@ -7,7 +8,7 @@ from pyos import psh
 
 @click.command(name='psh')
 @click.argument('script', default='')
-@click.option('-c', '--cmd', required=False, help="commands to be invoked directly")
+@click.option('-c', '--cmd', required=False, help='commands to be invoked directly')
 def psh_(script, cmd):
     headless_cmds = None
     if cmd:

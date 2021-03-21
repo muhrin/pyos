@@ -118,4 +118,3 @@ This software follows `Semantic Versioning`_
 
 
 .. _Semantic Versioning: http://semver.org/
-

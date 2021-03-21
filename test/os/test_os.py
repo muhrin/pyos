@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from mincepy import testing
 
 from pyos import db

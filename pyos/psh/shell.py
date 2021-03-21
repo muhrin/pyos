@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import argparse
 import functools
 import logging
@@ -24,7 +25,7 @@ __all__ = 'PyosShell', 'mod'
 
 def mod() -> str:
     """Get the message of the day string"""
-    banner_lines = version.LOGO.split("\n")
+    banner_lines = version.LOGO.split('\n')
     max_line_length = max(map(len, banner_lines))
 
     second_column = [
@@ -32,17 +33,17 @@ def mod() -> str:
         'Documentation: https://pyos.readthedocs.io/',
         '',
         '',
-        "Powered by mincePy (v{})".format(mincepy.__version__),  # pylint: disable=no-member,
+        'Powered by mincePy (v{})'.format(mincepy.__version__),  # pylint: disable=no-member,
         'Version {}'.format(version.__version__)
     ]
     second_column.extend([''] * (len(banner_lines) - len(second_column)))
 
     message = []
     for banner, info in zip(banner_lines, second_column):
-        fmt_string = "{{:<{}}} | {{}}".format(max_line_length)
+        fmt_string = '{{:<{}}} | {{}}'.format(max_line_length)
         message.append(fmt_string.format(banner, info))
     message.append('\n')
-    return "\n".join(message)
+    return '\n'.join(message)
 
 
 class PyosShell(cmd2.Cmd):
@@ -98,16 +99,16 @@ class PyosShell(cmd2.Cmd):
         if historian is None:
             self.prompt = '[not connected]$ '
         else:
-            self.prompt = "{}$ ".format(pos.getcwd())
+            self.prompt = '{}$ '.format(pos.getcwd())
 
     def _redirect_output(self, statement: cmd2.Statement) -> cmd2.utils.RedirectionSavedState:
         if statement.pipe_to:
             # Initialize the redirection saved state
             saved = self._create_redirection_save()
 
-            _LOGGER.debug("Attempting piped command:\n"
-                          "%s\n"
-                          "stdin=%s, stdout=%s", statement.pipe_to, saved.saved_sys_stdin,
+            _LOGGER.debug('Attempting piped command:\n'
+                          '%s\n'
+                          'stdin=%s, stdout=%s', statement.pipe_to, saved.saved_sys_stdin,
                           saved.saved_self_stdout)
 
             funcs = []
@@ -136,7 +137,7 @@ class PyosShell(cmd2.Cmd):
 
             return saved
 
-        return super(PyosShell, self)._redirect_output(statement)
+        return super()._redirect_output(statement)
 
     # Preserve quotes since we are passing these strings to the shell
     @cmd2.with_argparser(cmd2.Cmd.shell_parser, preserve_quotes=True)
@@ -162,7 +163,7 @@ class PyosShell(cmd2.Cmd):
                 stderr=subprocess.PIPE if isinstance(sys.stderr, cmd2.utils.StdSim) else sys.stderr,
                 shell=True)
 
-            _LOGGER.debug("Starting shell command: %s. Capturing stdin: %s", expanded_command,
+            _LOGGER.debug('Starting shell command: %s. Capturing stdin: %s', expanded_command,
                           self._redirecting)
             proc = subprocess.Popen(expanded_command, **kwargs)
 
@@ -188,7 +189,7 @@ class PyosShell(cmd2.Cmd):
             # If we redirected output to the clipboard
             if statement.output and not statement.output_to:
                 # Fallback to default behaviour
-                super(PyosShell, self)._restore_output(statement, saved_redir_state)
+                super()._restore_output(statement, saved_redir_state)
             else:
                 # Check if we need to wait for the process being piped
                 if self._cur_pipe_proc_reader is not None:
@@ -201,7 +202,7 @@ class PyosShell(cmd2.Cmd):
                 self._cur_pipe_proc_reader = saved_redir_state.saved_pipe_proc_reader
                 self._redirecting = saved_redir_state.saved_redirecting
         else:
-            super(PyosShell, self)._restore_output(statement, saved_redir_state)
+            super()._restore_output(statement, saved_redir_state)
 
         if isinstance(saved_redir_state, utils.RedirectionSavedState):
             sys.stdin = saved_redir_state.saved_sys_stdin

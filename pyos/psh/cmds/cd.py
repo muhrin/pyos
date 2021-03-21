@@ -1,4 +1,6 @@
+# -*- coding: utf-8 -*-
 """Change directory command"""
+# pylint: disable=cyclic-import
 import argparse
 
 import cmd2

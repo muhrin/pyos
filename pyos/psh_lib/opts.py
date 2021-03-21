@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import abc
 import functools
 from typing import Callable
@@ -14,20 +15,20 @@ class Option:
         self._params_stack = call_params
 
     def __str__(self):
-        parts = ["-", self.name]
+        parts = ['-', self.name]
         for params in self._params_stack:
             args = params[0]
             kwargs = params[1]
 
             params = list(str(arg) for arg in args)
-            params.extend(tuple("{}={}".format(key, value) for key, value in kwargs.items()))
-            parts.extend(('(', ",".join(params), ')'))
+            params.extend(tuple('{}={}'.format(key, value) for key, value in kwargs.items()))
+            parts.extend(('(', ','.join(params), ')'))
 
-        return "".join(parts)
+        return ''.join(parts)
 
     def __call__(self, *args, **kwargs):
         if len(self._params_stack) == 2:
-            raise RuntimeError("Option already has filled parameters")
+            raise RuntimeError('Option already has filled parameters')
 
         params = list(self._params_stack)
         params.append((args, kwargs))
@@ -70,7 +71,7 @@ class Options:
         self._opts = {}  # typing.MutableMapping[str, Option]
 
     def __str__(self):
-        return " ".join((str(val) for val in self._opts.values()))
+        return ' '.join((str(val) for val in self._opts.values()))
 
     def __contains__(self, item):
         if isinstance(item, Option):
@@ -87,7 +88,7 @@ class Options:
         if not isinstance(opt, Option):
             raise TypeError("Unsupported option type '{}'".format(opt))
         if len(default) > 1:
-            raise ValueError("Can only pass at most one default")
+            raise ValueError('Can only pass at most one default')
 
         name = opt.name
         return self._opts.pop(name, default[0] if default else None)
@@ -186,13 +187,13 @@ class Command(CommandLike):
         return builder - other
 
     def _create_docstring(self):
-        doc = [self.func.__doc__ or "Call {}".format(self.name)]
+        doc = [self.func.__doc__ or 'Call {}'.format(self.name)]
         if self.accepts:
-            doc.append("FLAGS")
+            doc.append('FLAGS')
             for name, spec in sorted(self.accepts.items()):
-                doc.append("\t-{}\t{}".format(name, spec.help))
+                doc.append('\t-{}\t{}'.format(name, spec.help))
 
-        self.__call__.__func__.__doc__ = "\n".join(doc)
+        self.__call__.__func__.__doc__ = '\n'.join(doc)  # pylint: disable=no-member
 
 
 class CommandBuilder(CommandLike):
@@ -209,7 +210,7 @@ class CommandBuilder(CommandLike):
         return self.execute(*args, **kwargs)
 
     def __sub__(self, other: Option):
-        unsupported = ValueError("Command does not accept option: {}".format(other))
+        unsupported = ValueError('Command does not accept option: {}'.format(other))
 
         if isinstance(other, Option):
             # We have an option instance so it could be an option with a value or the
@@ -217,7 +218,7 @@ class CommandBuilder(CommandLike):
             try:
                 spec = self.command.accepts[other.name]
             except KeyError:
-                raise unsupported
+                raise unsupported from None
             else:
                 params_stack = list(other.params_stack)
 
@@ -246,7 +247,7 @@ class CommandBuilder(CommandLike):
         raise unsupported
 
     def __str__(self) -> str:
-        return " ".join((self.command.name, str(self.options)))
+        return ' '.join((self.command.name, str(self.options)))
 
 
 # endregion

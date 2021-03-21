@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import inspect
 
 from pyos.psh_lib import opts
@@ -23,4 +24,4 @@ def test_command_docstring():
 
 def test_command_name():
     command = opts.Command(my_fn)
-    assert command.name == "my_fn"
+    assert command.name == 'my_fn'

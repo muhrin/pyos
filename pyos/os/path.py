@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Pyos versions os python's os.path methods"""
 import posixpath
 from typing import Iterable, Tuple
@@ -148,7 +149,7 @@ def relpath(path: types.PathSpec, start=curdir) -> str:
     :param start: the start directory
     """
     if not path:
-        raise ValueError("no path specified")
+        raise ValueError('no path specified')
 
     path = pos.fspath(path)
     is_dir = path.endswith(sep)
