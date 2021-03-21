@@ -54,7 +54,6 @@ setup(
             'sphinx',
             'sphinx-autobuild',
             'yapf',
-            'prospector',
             'pylint',
             'twine',
         ],
