@@ -1,0 +1,72 @@
+name: continuous-integration
+
+on: [push, pull_request]
+
+
+jobs:
+
+  pre-commit:
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Install python dependencies
+      run: |
+        pip install -e .[dev,gui]
+        pip freeze
+    - name: Run pre-commit
+      run:
+        pre-commit run --all-files || ( git status --short ; git diff ; exit 1 )
+
+
+  tests:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.6, 3.7, 3.8, 3.9]
+        rabbitmq: [latest]
+        include:
+        - python-version: 3.8
+          rabbitmq: 3.6
+        - python-version: 3.8
+          rabbitmq: 3.8
+
+    services:
+      rabbitmq:
+        image: rabbitmq:${{ matrix.rabbitmq }}
+        ports:
+          - 5672:5672
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install python dependencies
+        run: pip install -e .[dev,gui]
+
+      - name: Run pytest
+        run: pytest --cov=pyos -sv -p no:nb_regression test
+
+      - name: Create xml coverage
+        run: coverage xml
+
+      - name: Upload coverage to Codecov
+        if: github.repository == 'muhrin/pyos'
+        uses: codecov/codecov-action@v1
+        with:
+            file: ./coverage.xml
+            name: pyos
