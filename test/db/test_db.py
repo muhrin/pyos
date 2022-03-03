@@ -32,4 +32,10 @@ def test_getting_obj_id():
     assert next(db.get_oid(car)) == car_id
     assert next(db.get_oid(str(car_id))) == car_id
     assert next(db.get_oid('my_car')) == car_id
-    assert next(db.get_oid('./{}'.format(car_id))) == car_id
+    assert next(db.get_oid(f'./{car_id}')) == car_id
+
+
+def test_save_meta():
+    car = Car()
+    car_id = db.save_one(car, 'my_car', meta=dict(license='abcdef'))
+    assert db.get_meta(car_id)['license'] == 'abcdef'

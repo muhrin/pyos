@@ -22,8 +22,6 @@ _HISTORIAN = None  # type: Optional[mincepy.Historian]
 
 
 def connect(uri: str = '', use_globally=True) -> mincepy.Historian:
-    global _HISTORIAN  # pylint: disable=global-statement
-
     historian = mincepy.connect(uri, use_globally=use_globally)
     init(historian, use_globally)
 
@@ -45,7 +43,7 @@ def init(historian: mincepy.Historian = None, use_globally=True):
     historian.meta.create_index(config.DIR_KEY, unique=False, where_exist=True)
 
     # Set the current path
-    path = '/{}/'.format(getpass.getuser())
+    path = f'/{getpass.getuser()}/'
     historian.meta.sticky[config.DIR_KEY] = path
 
     if use_globally:
@@ -56,7 +54,7 @@ def init(historian: mincepy.Historian = None, use_globally=True):
 
 def get_historian() -> mincepy.Historian:
     """Get the active historian in pyos"""
-    global _HISTORIAN  # pylint: disable=global-statement
+    global _HISTORIAN  # pylint: disable=global-statement, global-variable-not-assigned
     historian = mincepy.get_historian(create=False)
     if historian is not None and historian is not _HISTORIAN:
         raise RuntimeError('PyOS has not been initialised with the current historian.  '
@@ -194,19 +192,21 @@ def homedir(user: str = '') -> str:
         user_name = user_info[mincepy.ExtraKeys.USER]
     else:
         user_name = user
-    return '/{}/'.format(user_name)
+    return f'/{user_name}/'
 
 
 # endregion
 
 
-def save_one(obj, path: os.PathSpec = None, overwrite=False, historian=None):
+def save_one(obj, path: os.PathSpec = None, overwrite=False, meta=None, historian=None):
     """Save one object to a the given path.  The path can be a filename or a directory or a filename
     in a directory
 
     :param obj: the object to save
     :param path: the optional path to save it to
     :param overwrite: overwrite if there is already an object at that path
+    :param meta: an optional dictionary of metadata to store with the object
+    :param historian: the historian to use for saving
     """
     hist = historian or get_historian()
 
@@ -215,10 +215,10 @@ def save_one(obj, path: os.PathSpec = None, overwrite=False, historian=None):
         if hist.get_obj_id(obj) is None:
             path = os.getcwd()
 
-    meta = None
+    meta = meta or {}
     if path is not None:
         path = os.path.abspath(path)
-        meta = utils.path_to_meta_dict(path)
+        meta.update(utils.path_to_meta_dict(path))
 
     try:
         return hist.save_one(obj, meta=meta)
