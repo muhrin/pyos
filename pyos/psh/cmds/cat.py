@@ -39,7 +39,7 @@ def cat(*obj_or_ids, representer=None):
         for node in to_cat:
             try:
                 if isinstance(node, pyos.fs.DirectoryNode):
-                    yield 'cat: {}: Is a directory'.format(node.abspath.name)
+                    yield f'cat: {node.abspath.name}: Is a directory'
                 elif isinstance(node, pyos.fs.ObjectNode):
                     yield representer(node.obj)
                 else:

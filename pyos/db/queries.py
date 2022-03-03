@@ -42,9 +42,9 @@ def subdirs(root: str, start_depth=1, end_depth=1) -> dict:
     start and end depths
     """
     if start_depth in [0, 1] and end_depth == -1:
-        match_root = '^{}'.format(root)
+        match_root = f'^{root}'
         and_below = '' if start_depth == 0 else '.+'
-        regex = '{}{}'.format(match_root, and_below)
+        regex = f'{match_root}{and_below}'
     else:
         if end_depth == -1:
             end_depth = ''  # This will cause the regex to allow any number of repetitions
@@ -57,7 +57,7 @@ def subdirs(root: str, start_depth=1, end_depth=1) -> dict:
         # )
         # {{{start_depth},{end_depth}}} repeated a minimum of start depth and a maximum of
         # end_depth times
-        regex = '^{}([^/]+/){{{},{}}}$'.format(root, start_depth, end_depth)
+        regex = f'^{root}([^/]+/){{{start_depth},{end_depth}}}$'
 
     return {pyos.config.DIR_KEY: {'$regex': regex}}
 

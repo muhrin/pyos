@@ -83,7 +83,7 @@ class PurePath(os.PathLike):
         return self._path == other._path
 
     def __repr__(self):
-        return "{}('{}')".format(self.__class__.__name__, self._path)
+        return f"{self.__class__.__name__}('{self._path}')"
 
     def __str__(self):
         return self._path
@@ -93,7 +93,7 @@ class PurePath(os.PathLike):
             if isinstance(other, str):
                 other = self.__class__(other)
             else:
-                raise TypeError("Cannot join a path with a '{}'".format(type(other)))
+                raise TypeError(f"Cannot join a path with a '{type(other)}'")
 
         if other.is_absolute():
             return other
@@ -159,7 +159,7 @@ class Path(PurePath, mincepy.SimpleSavable):
         if not self.exists():
             if missing_ok:
                 return
-            raise exceptions.FileNotFoundError("Can't delete '{}', it does not exist".format(self))
+            raise exceptions.FileNotFoundError(f"Can't delete '{self}', it does not exist")
 
         os.unlink(self)
 
@@ -178,10 +178,9 @@ class Path(PurePath, mincepy.SimpleSavable):
         Path('docs/_static')
         """
         if not self.is_dir_path():
-            raise exceptions.NotADirectoryError('Not a directory: {}'.format(os.path.relpath(self)))
+            raise exceptions.NotADirectoryError(f'Not a directory: {os.path.relpath(self)}')
         if not self.exists():
-            raise exceptions.FileNotFoundError("No such directory: '{}'".format(
-                os.path.relpath(self)))
+            raise exceptions.FileNotFoundError(f"No such directory: '{os.path.relpath(self)}'")
 
         node = fs.DirectoryNode(self)
         node.expand(1)

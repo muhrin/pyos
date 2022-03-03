@@ -27,7 +27,7 @@ def meta(options, *obj_or_ids, **updates):
         if isinstance(node, pyos.fs.ObjectNode):
             obj_ids.append(node.obj_id)
         else:
-            print("Can't set metadata on '{}'".format(node))
+            print(f"Can't set metadata on '{node}'")
 
     if options.pop(psh.u, False):
         # In 'update' mode

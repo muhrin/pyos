@@ -18,7 +18,7 @@ def parse_arg(arg) -> Sequence:
     if obj_id is not None:
         return (obj_id,)
 
-    raise TypeError("Unknown type '{}'".format(arg))
+    raise TypeError(f"Unknown type '{arg}'")
 
 
 @parse_arg.register(fs.ObjectNode)
@@ -51,7 +51,7 @@ def _(arg: str):
         # Assume it's a path
         return (pathlib.Path(arg),)
 
-    raise TypeError("Unknown type '{}'".format(arg))
+    raise TypeError(f"Unknown type '{arg}'")
 
 
 def parse_args(*args) -> Sequence:

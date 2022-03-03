@@ -22,7 +22,7 @@ class Log(cmd2.CommandSet):
             level = logging.getLevelName(args.level)
 
         set_logging(args.logger, level)
-        print("Log level for '{}' set to {}".format(args.logger, args.level))
+        print(f"Log level for '{args.logger}' set to {args.level}")
 
 
 def set_logging(logger: str, level: Union[int, str]):

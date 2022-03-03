@@ -69,7 +69,7 @@ def test_shell_rsync(historian, test_utils, pyos_shell):
     with test_utils.temporary_historian('test-rsync') as (uri, remote):
         dest_path = '/home/'
         dest = get_uri_with_objsys_path(uri, dest_path)
-        res = pyos_shell.app_cmd('rsync ./ {}'.format(dest))
+        res = pyos_shell.app_cmd(f'rsync ./ {dest}')
         assert not res.stderr
         assert remote.objects.find(obj_id=[car_id, person_id]).count() == 2
         ensure_at_path(car_id, person_id, path=dest_path, historian=remote)
@@ -77,7 +77,7 @@ def test_shell_rsync(historian, test_utils, pyos_shell):
         # Make a mutation and see if it is synced
         person.age = 36
         person.save()
-        res = pyos_shell.app_cmd('rsync ./ {}'.format(dest))
+        res = pyos_shell.app_cmd(f'rsync ./ {dest}')
         assert not res.stderr
         assert remote.objects.records.find(obj_id=person_id, version=1).count() == 1
 

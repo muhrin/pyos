@@ -16,7 +16,7 @@ def test_oid():
     paths = []
     for idx in range(10):
         cars.append(Car())
-        paths.append('car_{}'.format(idx))
+        paths.append(f'car_{idx}')
 
     db.save_many(zip(cars, paths))
 

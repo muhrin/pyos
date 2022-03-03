@@ -31,7 +31,7 @@ def obj_dict(obj):
                 if not inspect.isroutine(value):
                     repr_dict[name] = value
             except Exception as exc:  # pylint: disable=broad-except
-                repr_dict[name] = '{}: {}'.format(type(exc).__name__, exc)
+                repr_dict[name] = f'{type(exc).__name__}: {exc}'
 
     return repr_dict
 

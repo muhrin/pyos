@@ -111,7 +111,7 @@ def test_shell_find(pyos_shell):
     car.save(meta={'group': 'cars'})
 
     # Look for it
-    res = pyos_shell.app_cmd('find -t {} -m group=cars'.format(obj_load.full_name(Car)))
+    res = pyos_shell.app_cmd(f'find -t {obj_load.full_name(Car)} -m group=cars')
     assert not res.stderr
     assert str(car.obj_id) in res.stdout
 
@@ -120,7 +120,7 @@ def test_shell_find(pyos_shell):
     car2.save(meta={'group': 'cars'})
 
     # Look for them
-    res = pyos_shell.app_cmd('find -t {} -m group=cars'.format(obj_load.full_name(Car)))
+    res = pyos_shell.app_cmd(f'find -t {obj_load.full_name(Car)} -m group=cars')
     assert not res.stderr
     assert str(car.obj_id) in res.stdout
     assert str(car2.obj_id) in res.stdout
@@ -134,7 +134,7 @@ def test_shell_find_starting_point(pyos_shell):
 
     for idx, _subdir in enumerate(subdirs):
         start_point = '/'.join(subdirs[:idx + 1])
-        res = pyos_shell.app_cmd('find -s {}'.format(start_point))
+        res = pyos_shell.app_cmd(f'find -s {start_point}')
         assert not res.stderr
 
         paths = res.stdout.split('\n')[:-1]
@@ -151,13 +151,13 @@ def test_shell_find_by_type_simple(pyos_shell):
     person = Person('martin', 34)
     person.save()
 
-    res = pyos_shell.app_cmd('find -t {}'.format(obj_load.full_name(Car)))
+    res = pyos_shell.app_cmd(f'find -t {obj_load.full_name(Car)}')
     assert not res.stderr
     lines = res.stdout.split('\n')[:-1]
     assert len(lines) == 1
     assert str(car.obj_id) in lines[0]
 
-    res = pyos_shell.app_cmd('find -t {}'.format(obj_load.full_name(Person)))
+    res = pyos_shell.app_cmd(f'find -t {obj_load.full_name(Person)}')
     assert not res.stderr
     lines = res.stdout.split('\n')[:-1]
     assert len(lines) == 1
@@ -171,7 +171,7 @@ def test_shell_find_query_state(pyos_shell):
     subaru.save()
 
     # =
-    res = pyos_shell.app_cmd('find -t {} colour=white'.format(obj_load.full_name(Car)))
+    res = pyos_shell.app_cmd(f'find -t {obj_load.full_name(Car)} colour=white')
     assert not res.stderr
     lines = res.stdout.split('\n')[:-1]
     assert len(lines) == 2
@@ -185,7 +185,7 @@ def test_shell_find_query_state(pyos_shell):
     assert str(subaru.obj_id) in lines[0]
 
     # !=
-    res = pyos_shell.app_cmd('find -t {} make!=fiat'.format(obj_load.full_name(Car)))
+    res = pyos_shell.app_cmd(f'find -t {obj_load.full_name(Car)} make!=fiat')
     assert not res.stderr
     lines = res.stdout.split('\n')[:-1]
     assert len(lines) == 1

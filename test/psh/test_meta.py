@@ -53,6 +53,6 @@ def test_shell_meta(pyos_shell):
     car = Car()
     car.save(meta={'reg': 123})
 
-    res = pyos_shell.app_cmd('meta {}'.format(car.obj_id))
+    res = pyos_shell.app_cmd(f'meta {car.obj_id}')
     assert not res.stderr
     assert 'reg       │123 ' in res.stdout

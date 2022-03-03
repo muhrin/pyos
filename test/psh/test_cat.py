@@ -21,7 +21,7 @@ def test_cat_file(historian: mincepy.Historian):
             file_id,  # Obj id
     ):
         catted = psh.cat(descriptor)
-        assert catted == "'sup dawg?", 'Problem with {}'.format(descriptor)
+        assert catted == "'sup dawg?", f'Problem with {descriptor}'
 
 
 def test_cat_object():
@@ -47,7 +47,7 @@ def test_shell_cat(pyos_shell):
     yellow = mincepy.testing.Car('ferrari', 'yellow')
     yellow.save()
 
-    res = pyos_shell.app_cmd('cat {}'.format(yellow.obj_id))
+    res = pyos_shell.app_cmd(f'cat {yellow.obj_id}')
     assert not res.stderr
     assert '│colour          │yellow' in res.stdout
     assert '│make            │ferrari' in res.stdout

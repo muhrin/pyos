@@ -17,7 +17,7 @@ class PathCompletion(pyos.os.PathLike):
         self._path = pyos.pathlib.Path(path)
 
     def __repr__(self):
-        return "{}('{}')".format(self.__class__.__name__, self._path)
+        return f"{self.__class__.__name__}('{self._path}')"
 
     def __fspath__(self):
         return str(self._path)
@@ -58,7 +58,7 @@ class PathCompletion(pyos.os.PathLike):
                 try:
                     return super().__getattr__(item)
                 except AttributeError:
-                    raise AttributeError("Path does not exist: '{}'".format(item)) from None
+                    raise AttributeError(f"Path does not exist: '{item}'") from None
 
         return PathCompletion(path)
 
@@ -73,7 +73,7 @@ class PathCompletion(pyos.os.PathLike):
         if path.exists():
             return PathCompletion(path)
 
-        raise FileNotFoundError("Path does not exist: '{}'".format(item))
+        raise FileNotFoundError(f"Path does not exist: '{item}'")
 
 
 def path_complete(app: shell.PyosShell,

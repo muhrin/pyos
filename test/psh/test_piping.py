@@ -20,7 +20,7 @@ class Echo(cmd2.CommandSet):
             if not args.msg:
                 args.msg.append('')
 
-        print('{}: {}'.format(args.tag, args.msg[0]))
+        print(f'{args.tag}: {args.msg[0]}')
 
 
 def test_shell_piping(pyos_shell):

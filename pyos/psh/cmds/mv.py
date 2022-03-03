@@ -46,7 +46,7 @@ def mv(options, *args):  # pylint: disable=invalid-name
     if dest.is_file_path():
         # Renaming
         if dest.exists():
-            if -psh.f in options or click.confirm("Overwrite '{}'?".format(dest)):
+            if -psh.f in options or click.confirm(f"Overwrite '{dest}'?"):
                 dest.unlink()
             else:
                 return

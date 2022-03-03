@@ -75,9 +75,8 @@ def fspath(file_path: types.PathSpec) -> str:
     if isinstance(path_repr, str):
         return path_repr
 
-    raise TypeError('expected {}.__fspath__() to return str, not {}'.format(
-        path_type.__name__,
-        type(path_repr).__name__))
+    raise TypeError(
+        f'expected {path_type.__name__}.__fspath__() to return str, not {type(path_repr).__name__}')
 
 
 def getcwd() -> str:
@@ -133,7 +132,7 @@ def open(
         obj_id = next(results)['obj_id']
         fileobj = db.load(obj_id)
         if not isinstance(file, mincepy.File):
-            raise ValueError('open: {}: is not a file'.format(fileobj))
+            raise ValueError(f'open: {fileobj}: is not a file')
     except StopIteration:
         # Create a new one
         fileobj = db.get_historian().create_file(file_path, encoding=encoding)
@@ -169,7 +168,7 @@ def rename(src: types.PathSpec, dest: types.PathSpec):
 
         if path.exists(dest):
             # In pyOS a directory must have something in it to exist
-            raise OSError("The destination directory '{}' is not empty.".format(dest))
+            raise OSError(f"The destination directory '{dest}' is not empty.")
 
         historian = db.get_historian()
         with historian.transaction():

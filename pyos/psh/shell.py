@@ -33,14 +33,14 @@ def mod() -> str:
         'Documentation: https://pyos.readthedocs.io/',
         '',
         '',
-        'Powered by mincePy (v{})'.format(mincepy.__version__),  # pylint: disable=no-member,
-        'Version {}'.format(version.__version__)
+        f'Powered by mincePy (v{mincepy.__version__})',  # pylint: disable=no-member,
+        f'Version {version.__version__}'
     ]
     second_column.extend([''] * (len(banner_lines) - len(second_column)))
 
     message = []
     for banner, info in zip(banner_lines, second_column):
-        fmt_string = '{{:<{}}} | {{}}'.format(max_line_length)
+        fmt_string = f'{{:<{max_line_length}}} | {{}}'
         message.append(fmt_string.format(banner, info))
     message.append('\n')
     return '\n'.join(message)
@@ -99,7 +99,7 @@ class PyosShell(cmd2.Cmd):
         if historian is None:
             self.prompt = '[not connected]$ '
         else:
-            self.prompt = '{}$ '.format(pos.getcwd())
+            self.prompt = f'{pos.getcwd()}$ '
 
     def _redirect_output(self, statement: cmd2.Statement) -> cmd2.utils.RedirectionSavedState:
         if statement.pipe_to:
@@ -165,13 +165,12 @@ class PyosShell(cmd2.Cmd):
 
             _LOGGER.debug('Starting shell command: %s. Capturing stdin: %s', expanded_command,
                           self._redirecting)
-            proc = subprocess.Popen(expanded_command, **kwargs)
+            with subprocess.Popen(expanded_command, **kwargs) as proc:
+                proc_reader = cmd2.utils.ProcReader(proc, self.stdout, sys.stderr)
+                proc_reader.wait()
 
-            proc_reader = cmd2.utils.ProcReader(proc, self.stdout, sys.stderr)
-            proc_reader.wait()
-
-            # Save the return code of the application for use in a pyscript
-            self.last_result = proc.returncode
+                # Save the return code of the application for use in a pyscript
+                self.last_result = proc.returncode
 
     def _create_redirection_save(self):
         """Save the current state of the steams and members related to redirection"""

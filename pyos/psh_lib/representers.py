@@ -22,7 +22,7 @@ _DEFAULT_REPRESENTER = None
 
 
 def get_default():
-    global _DEFAULT_REPRESENTER  # pylint: disable=global-statement
+    global _DEFAULT_REPRESENTER  # pylint: disable=global-statement, global-variable-not-assigned
     if _DEFAULT_REPRESENTER is None:
         try:
             # We try importing here just in case the user has since installed pyprnt
@@ -81,6 +81,6 @@ def to_simple_repr(obj):
         return obj
 
     if isinstance(obj, Exception):
-        return '{}: {}'.format(obj.__class__.__name__, obj)
+        return f'{obj.__class__.__name__}: {obj}'
 
     return fmt.obj_dict(obj)

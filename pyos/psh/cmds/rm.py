@@ -15,7 +15,7 @@ def _remove_directories(nodes):
     filtered = pyos.fs.ResultsNode()
     for node in nodes:
         if isinstance(node, pyos.fs.DirectoryNode):
-            print("rm: cannot remove '{}': Is a directory".format(node.abspath.name))
+            print(f"rm: cannot remove '{node.abspath.name}': Is a directory")
         elif isinstance(node, pyos.fs.ResultsNode):
             filtered.extend(_remove_directories(node))
         else:

@@ -21,7 +21,7 @@ class Option:
             kwargs = params[1]
 
             params = list(str(arg) for arg in args)
-            params.extend(tuple('{}={}'.format(key, value) for key, value in kwargs.items()))
+            params.extend(tuple(f'{key}={value}' for key, value in kwargs.items()))
             parts.extend(('(', ','.join(params), ')'))
 
         return ''.join(parts)
@@ -86,7 +86,7 @@ class Options:
 
     def pop(self, opt: Option, *default):
         if not isinstance(opt, Option):
-            raise TypeError("Unsupported option type '{}'".format(opt))
+            raise TypeError(f"Unsupported option type '{opt}'")
         if len(default) > 1:
             raise ValueError('Can only pass at most one default')
 
@@ -98,7 +98,7 @@ class Options:
             if name not in self._opts:
                 self._opts[name] = opt
             else:
-                raise ValueError("Option '{}' alreday specified!".format(name))
+                raise ValueError(f"Option '{name}' alreday specified!")
 
 
 def separate_opts(*args) -> [Options, list]:
@@ -187,11 +187,11 @@ class Command(CommandLike):
         return builder - other
 
     def _create_docstring(self):
-        doc = [self.func.__doc__ or 'Call {}'.format(self.name)]
+        doc = [self.func.__doc__ or f'Call {self.name}']
         if self.accepts:
             doc.append('FLAGS')
             for name, spec in sorted(self.accepts.items()):
-                doc.append('\t-{}\t{}'.format(name, spec.help))
+                doc.append(f'\t-{name}\t{spec.help}')
 
         self.__call__.__func__.__doc__ = '\n'.join(doc)  # pylint: disable=no-member
 
@@ -210,7 +210,7 @@ class CommandBuilder(CommandLike):
         return self.execute(*args, **kwargs)
 
     def __sub__(self, other: Option):
-        unsupported = ValueError('Command does not accept option: {}'.format(other))
+        unsupported = ValueError(f'Command does not accept option: {other}')
 
         if isinstance(other, Option):
             # We have an option instance so it could be an option with a value or the
@@ -227,7 +227,7 @@ class CommandBuilder(CommandLike):
                     if params_stack:
                         # Assume the parameters are for the command, but make sure only one
                         assert len(params_stack) == 1, \
-                            "Flag '{}' does not take any parameters".format(other.name)
+                            f"Flag '{other.name}' does not take any parameters"
                 else:
                     option_params = params_stack.pop(0)  # tuple of (args, kwargs)
                     assert not option_params[1], "Can't supply kwargs to an option"

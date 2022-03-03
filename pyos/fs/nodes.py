@@ -46,9 +46,9 @@ class BaseNode(Sequence, anytree.NodeMixin, results.BaseResults, metaclass=abc.A
             for child in self.children:
                 if child.name == item:
                     return child
-            raise ValueError('No child has name {}'.format(item))
+            raise ValueError(f'No child has name {item}')
 
-        raise TypeError("Got unsupported item type '{}'".format(item.__class__.__name__))
+        raise TypeError(f"Got unsupported item type '{item.__class__.__name__}'")
 
     def __len__(self):
         return self.children.__len__()
@@ -186,7 +186,7 @@ class DirectoryNode(ContainerNode, FilesystemNode):
     def __repr__(self):
         rep = []
         for pre, _, node in anytree.RenderTree(self):
-            rep.append('%s%s' % (pre, node.name))
+            rep.append(f'{pre}{node.name}')
         return '\n'.join(rep)
 
     def __copy__(self):
@@ -313,7 +313,7 @@ class ObjectNode(FilesystemNode):
             # Ok, have to do a lookup
             res = tuple(db.find_meta(db.path_to_meta_dict(path)))
             if not res:
-                raise ValueError("'{}' is not a valid object path".format(path))
+                raise ValueError(f"'{path}' is not a valid object path")
 
             obj_id, meta = res[0]
 
@@ -344,11 +344,10 @@ class ObjectNode(FilesystemNode):
                             'version': -1
                         }, limit=1).one()  # type: mincepy.DataRecord
                 except mincepy.NotFound as not_found:
-                    raise ValueError("Object with id '{}' not found".format(obj_id)) from not_found
+                    raise ValueError(f"Object with id '{obj_id}' not found") from not_found
                 else:
                     if record.is_deleted_record():
-                        raise mincepy.ObjectDeleted(
-                            "Object with id '{}' has been deleted".format(obj_id))
+                        raise mincepy.ObjectDeleted(f"Object with id '{obj_id}' has been deleted")
                     self._record = record
                     self._meta = {}
 
@@ -435,7 +434,7 @@ class ObjectNode(FilesystemNode):
         try:
             db.rename(self._obj_id, new_name)
         except mincepy.DuplicateKeyError:
-            raise RuntimeError("File with the name '{}' already exists".format(new_name)) from None
+            raise RuntimeError(f"File with the name '{new_name}' already exists") from None
 
 
 class ResultsNode(ContainerNode):
@@ -451,7 +450,7 @@ class ResultsNode(ContainerNode):
             rep = []
             for child in self.directories:
                 for pre, _, node in anytree.RenderTree(child):
-                    rep.append('%s%s' % (pre, node.name))
+                    rep.append(f'{pre}{node.name}')
             for child in self.objects:
                 rep.append(str(child))
             return '\n'.join(rep)
@@ -466,7 +465,7 @@ class ResultsNode(ContainerNode):
 
                 for directory in self.directories:
                     dir_repr = []
-                    dir_repr.append('{}:'.format(directory.name))
+                    dir_repr.append(f'{directory.name}:')
                     table = self._get_table(directory)
                     dir_repr.append(tabulate.tabulate(table, tablefmt='plain'))
                     rep.append('\n'.join(dir_repr))
@@ -614,7 +613,7 @@ def to_node(entry, historian: mincepy.Historian = None) -> FilesystemNode:
     if db.get_historian().is_obj_id(entry):
         return ObjectNode(entry, historian=historian)
 
-    raise ValueError('Unknown entry type: {}'.format(entry))
+    raise ValueError(f'Unknown entry type: {entry}')
 
 
 @to_node.register(FilesystemNode)

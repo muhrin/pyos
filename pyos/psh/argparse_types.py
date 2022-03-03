@@ -28,7 +28,7 @@ def parse_query(value: str) -> dict:
 
             return func(left.strip(), right)
 
-    raise ValueError('Unknown condition: {}'.format(value))
+    raise ValueError(f'Unknown condition: {value}')
 
 
 def apply(operator: Callable, name: str, value):
