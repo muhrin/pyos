@@ -12,6 +12,7 @@ import cmd2.constants
 import cmd2.plugin
 import cmd2.utils
 
+import pyos
 from pyos import db
 from pyos import os as pos
 from pyos import version
@@ -171,6 +172,56 @@ class PyosShell(cmd2.Cmd):
 
                 # Save the return code of the application for use in a pyscript
                 self.last_result = proc.returncode
+
+    # Only include the do_ipy() method if IPython is available on the system
+    if cmd2.cmd2.ipython_available:  # pragma: no cover
+
+        @cmd2.with_argparser(cmd2.cmd2.Cmd.ipython_parser)
+        def do_ipy(self, _: argparse.Namespace) -> Optional[bool]:
+            """
+            Enter an interactive IPython shell
+
+            :return: True if running of commands should stop
+            """
+            from cmd2.py_bridge import PyBridge
+
+            # noinspection PyUnusedLocal
+            def load_ipy(cmd2_app: PyosShell, py_bridge: PyBridge):
+                """
+                Embed an IPython shell in an environment that is restricted to only the variables in this function
+
+                :param cmd2_app: instance of the cmd2 app
+                :param py_bridge: a PyBridge
+                """
+                # Create a variable pointing to py_bridge and name it using the value of py_bridge_name
+                exec(f'{cmd2_app.py_bridge_name} = py_bridge')  # pylint: disable=exec-used
+
+                # Add self variable pointing to cmd2_app, if allowed
+                if cmd2_app.self_in_py:
+                    exec('self = cmd2_app')  # pylint: disable=exec-used
+
+                # Delete these names from the environment so IPython can't use them
+                del cmd2_app
+                del py_bridge
+
+                cmd2.cmd2.embed(
+                    banner1=('Entering an pyOS IPython shell. Type quit or <Ctrl>-d to exit.\n'
+                             'Run Python code from external files with: run filename.py\n'),
+                    user_module=pyos.psh,
+                    exit_msg=f'Leaving IPython, back to {sys.argv[0]}')
+
+            if self.in_pyscript():
+                self.perror('Recursively entering interactive Python shells is not allowed')
+            else:
+                try:
+                    self._in_py = True
+                    new_py_bridge = PyBridge(self)
+                    load_ipy(self, new_py_bridge)
+                    return new_py_bridge.stop
+                finally:
+                    self._in_py = False
+
+            return None
 
     def _create_redirection_save(self):
         """Save the current state of the steams and members related to redirection"""
