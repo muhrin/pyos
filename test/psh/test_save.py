@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import pytest
 
-import mincepy
 from mincepy.testing import Car
 
 import pyos
+import pyos.os
 from pyos import psh
 
 
@@ -25,6 +25,8 @@ def test_save_with_name():
 
 
 def test_save_to_dir():
+    pyos.os.makedirs('test/')
+
     for _ in range(10):
         psh.save(Car(), 'test/')
 
@@ -33,14 +35,14 @@ def test_save_to_dir():
 
     # Now check that save will promote a file to a directory
     psh.save(Car(), 'test')
-    assert len(psh.ls('test/')) == 10
+    assert len(psh.ls('test/')) == 11
 
 
 def test_save_same_name():
     car = Car()
     car_id = psh.save(car, 'my_car')
     car2 = Car()
-    with pytest.raises(mincepy.DuplicateKeyError):
+    with pytest.raises(pyos.exceptions.FileExistsError):
         # For now this raises but this may change in the future
         psh.save(car2, 'my_car')
 
@@ -51,6 +53,8 @@ def test_save_same_name():
 
 def test_resave_doesnt_move():
     """Test that saving an object whilst in a new path doesn't automatically move it"""
+    pyos.os.makedirs('sub/')
+
     car = Car()
     car.make = 'ferrari'
     home = pyos.Path().resolve()

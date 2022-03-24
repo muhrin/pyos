@@ -2,18 +2,20 @@
 from mincepy.testing import Car
 
 import pyos
+import pyos.os
 from pyos import psh
 from pyos import pathlib
 
 
 def test_root():
     """Make sure that root is represented as '/' always"""
-    assert str(pathlib.PurePath('/')) == '/'
-    assert str(pathlib.PurePath('//').resolve()) == '/'
+    assert str(pathlib.Path('/')) == '/'
+    assert str(pathlib.Path('//').resolve()) == '/'
 
 
 def test_iterdir():
     psh.save(Car(), 'my_car')
+    pyos.os.makedirs('sub/')
     with pathlib.working_path('sub/'):
         psh.save(Car(), 'my_sub_car')
     cwd = pathlib.Path()
@@ -22,7 +24,7 @@ def test_iterdir():
     assert len(content) == 2
 
     assert 'my_car' in content
-    assert 'sub/' in content
+    assert 'sub' in content
 
 
 def test_resolve_parent_dir():

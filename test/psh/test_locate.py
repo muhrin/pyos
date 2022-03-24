@@ -2,6 +2,7 @@
 from mincepy.testing import Car
 
 import pyos
+import pyos.os
 from pyos import psh
 
 
@@ -15,6 +16,10 @@ def test_simple():
 def test_locate_multiple():
     car1 = Car()
     car2 = Car()
+
+    pyos.os.makedirs('garage1/')
+    pyos.os.makedirs('garage2/')
+
     car1_path = (pyos.Path('garage1/') / str(car1.obj_id)).resolve()
     car2_path = (pyos.Path('garage2/') / str(car2.obj_id)).resolve()
     pyos.db.save_many([(car1, car1_path), (car2, car2_path)])

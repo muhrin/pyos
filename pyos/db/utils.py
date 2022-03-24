@@ -1,12 +1,19 @@
 # -*- coding: utf-8 -*-
 from typing import Optional
 
+import deprecation
+
 from pyos import config
 from pyos import os
+from pyos import version
 
 __all__ = 'path_to_meta_dict', 'get_obj_name', 'path_from_meta_entry'
 
 
+@deprecation.deprecated(deprecated_in='0.8.0',
+                        removed_in='0.9.0',
+                        current_version=version.__version__,
+                        details='No longer use metadata to store filesystem location')
 def new_meta(orig: dict, new: dict) -> dict:
     merged = new.copy()
     if not orig:
@@ -23,6 +30,10 @@ def new_meta(orig: dict, new: dict) -> dict:
     return merged
 
 
+@deprecation.deprecated(deprecated_in='0.8.0',
+                        removed_in='0.9.0',
+                        current_version=version.__version__,
+                        details='No longer use metadata to store filesystem location')
 def path_to_meta_dict(path: os.PathSpec) -> dict:
     """
     :param path: the path to get a dictionary for
@@ -44,6 +55,10 @@ def path_to_meta_dict(path: os.PathSpec) -> dict:
     return meta
 
 
+@deprecation.deprecated(deprecated_in='0.8.0',
+                        removed_in='0.9.0',
+                        current_version=version.__version__,
+                        details='No longer use metadata to store filesystem location')
 def path_from_meta_entry(obj_id, meta: dict) -> Optional[str]:
     parts = []
     if config.DIR_KEY in meta:
@@ -59,6 +74,10 @@ def path_from_meta_entry(obj_id, meta: dict) -> Optional[str]:
     return ''.join(parts)
 
 
+@deprecation.deprecated(deprecated_in='0.8.0',
+                        removed_in='0.9.0',
+                        current_version=version.__version__,
+                        details='No longer use metadata to store filesystem location')
 def get_obj_name(obj_id, meta: dict) -> str:
     """Get the name of an object.  This will be the name that is used to represent this object on
     the virtual filesystem and is stored in the metadata"""

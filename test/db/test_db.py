@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
+
 import pytest
 
 import mincepy
 from mincepy.testing import Car
 
+import pyos.exceptions
 from pyos import db
 
 
@@ -12,7 +14,7 @@ def test_overwrite(historian: mincepy.Historian):
     car_id = db.save_one(car, 'car')
     del car
 
-    with pytest.raises(mincepy.DuplicateKeyError):
+    with pytest.raises(pyos.exceptions.FileExistsError):
         db.save_one(Car(), 'car')
 
     # Now use the overwrite settings

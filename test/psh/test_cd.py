@@ -2,12 +2,15 @@
 """Tests for the change directory command"""
 
 import pyos
+import pyos.os
 from pyos import psh
 
 # pylint: disable=invalid-name
 
 
 def test_cd_simple():
+    pyos.os.makedirs('a/b/')
+
     start = psh.pwd()
     assert isinstance(start, pyos.pathlib.Path)
 
@@ -46,18 +49,23 @@ def test_reaching_root():
 
 def test_cd_minus(pyos_shell):
     """Test changing back to last directory using 'cd -'"""
+    pyos.os.makedirs('/some/random/dir/')
     start_dir = pyos.os.getcwd()
     pyos_shell.app_cmd('cd /some/random/dir/')
-    assert pyos.os.getcwd() == '/some/random/dir/'
+    assert pyos.os.getcwd() == '/some/random/dir'
     pyos_shell.app_cmd('cd -')
     assert pyos.os.getcwd() == start_dir
 
 
 def test_cd_home(pyos_shell):
     home_dir = pyos.db.homedir()
-    rand_dir = '/some/rand/dir/'
+    rand_dir = '/some/rand/dir'
+    pyos.os.makedirs(rand_dir)
+    pyos.os.makedirs(home_dir)
+
     pyos.os.chdir(rand_dir)
     pyos_shell.app_cmd('cd ~')
+
     assert pyos.os.getcwd() == home_dir
 
     pyos.os.chdir(rand_dir)

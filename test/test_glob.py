@@ -4,7 +4,8 @@ from typing import List
 
 import pytest
 
-from pyos import glob
+# from pyos import glob
+from pyos import new_glob as glob
 from pyos import os
 from pyos import psh
 from . import support
@@ -22,6 +23,9 @@ def joins(tempdir, *tuples) -> List[str]:
 
 def mktemp(tempdir, *parts):
     filename = norm(tempdir, *parts)
+    base, file = os.path.split(filename)
+    if not os.path.exists(base):
+        os.makedirs(base)
     support.create_empty_file(filename)
 
 
@@ -68,13 +72,11 @@ def test_glob_literal(test_dir):
     do_check = functools.partial(check_glob, test_dir)
     do_norm = functools.partial(norm, test_dir)
 
-    # orig: eq(do_check(test_dir, 'a'), [norm(test_dir, 'a')])
-    eq(do_check('a/'), [do_norm('a/')])
+    eq(do_check('a'), [do_norm('a')])
 
     eq(do_check('a', 'D'), [do_norm('a', 'D')])
 
-    # orig: eq(do_check(test_dir, 'aab'), [norm(test_dir, 'aab')])
-    eq(do_check('aab/'), [do_norm('aab/')])
+    eq(do_check('aab'), [do_norm('aab')])
 
     eq(do_check('zymurgy'), [])
 
@@ -89,13 +91,12 @@ def test_glob_one_directory(test_dir):
     do_norm = functools.partial(norm, test_dir)
     do_check = functools.partial(check_glob, test_dir)
 
-    # originals had aaa and aab etc (without '/') as posix doesn't enforce trailing '/' for directories
-    eq(do_check('a*'), map(do_norm, ['a/', 'aab/', 'aaa/']))
-    eq(do_check('*a'), map(do_norm, ['a/', 'aaa/']))
-    eq(do_check('.*'), map(do_norm, ['.aa/', '.bb/']))
-    eq(do_check('?aa'), map(do_norm, ['aaa/']))
-    eq(do_check('aa?'), map(do_norm, ['aaa/', 'aab/']))
-    eq(do_check('aa[ab]'), map(do_norm, ['aaa/', 'aab/']))
+    eq(do_check('a*'), map(do_norm, ['a', 'aab', 'aaa']))
+    eq(do_check('*a'), map(do_norm, ['a', 'aaa']))
+    eq(do_check('.*'), map(do_norm, ['.aa', '.bb']))
+    eq(do_check('?aa'), map(do_norm, ['aaa']))
+    eq(do_check('aa?'), map(do_norm, ['aaa', 'aab']))
+    eq(do_check('aa[ab]'), map(do_norm, ['aaa', 'aab']))
     eq(do_check('*q'), [])
 
 
@@ -104,8 +105,8 @@ def test_glob_nested_directory(test_dir):
     do_norm = functools.partial(norm, test_dir)
     do_check = functools.partial(check_glob, test_dir)
 
-    eq(do_check('a', 'bcd', 'E*'), [do_norm('a/', 'bcd/', 'EF')])
-    eq(do_check('a', 'bcd', '*g'), [do_norm('a/', 'bcd/', 'efg/')])
+    eq(do_check('a', 'bcd', 'E*'), [do_norm('a', 'bcd', 'EF')])
+    eq(do_check('a', 'bcd', '*g'), [do_norm('a', 'bcd', 'efg')])
 
 
 def test_glob_directory_names(test_dir):
@@ -161,19 +162,15 @@ def test_recursive_glob(test_dir):
     full = [
         ('EF',),
         ('ZZZ',),
-        ('a/',),
+        ('a',),
         ('a', 'D'),
-
-        # orig: ('a', 'bcd'),
-        ('a', 'bcd/'),
+        ('a', 'bcd'),
         ('a', 'bcd', 'EF'),
-
-        # orig: ('a', 'bcd', 'efg'),
-        ('a', 'bcd', 'efg/'),
+        ('a', 'bcd', 'efg'),
         ('a', 'bcd', 'efg', 'ha'),
-        ('aaa/',),
+        ('aaa',),
         ('aaa', 'zzzF'),
-        ('aab/',),
+        ('aab',),
         ('aab', 'F'),
     ]
     eq(rglob(test_dir, '**'), joins(test_dir, ('',), *full))
@@ -185,9 +182,9 @@ def test_recursive_glob(test_dir):
 
     eq(
         rglob(test_dir, 'a', '**'),
-        joins(test_dir, ('a', ''), ('a', 'D'), ('a', 'bcd/'), ('a', 'bcd', 'EF'),
-              ('a', 'bcd', 'efg/'), ('a', 'bcd', 'efg', 'ha')))
-    eq(rglob(test_dir, 'a**/'), joins(test_dir, ('a/',), ('aaa/',), ('aab/',)))
+        joins(test_dir, ('a', ''), ('a', 'D'), ('a', 'bcd'), ('a', 'bcd', 'EF'),
+              ('a', 'bcd', 'efg'), ('a', 'bcd', 'efg', 'ha')))
+    eq(rglob(test_dir, 'a**'), joins(test_dir, ('a',), ('aaa',), ('aab',)))
     expect = [('a', 'bcd', 'EF'), ('EF',)]
 
     eq(rglob(test_dir, '**', 'EF'), joins(test_dir, *expect))
@@ -195,8 +192,8 @@ def test_recursive_glob(test_dir):
 
     eq(rglob(test_dir, '**', '*F'), joins(test_dir, *expect))
     eq(rglob(test_dir, '**', '*F', ''), [])
-    eq(rglob(test_dir, '**', 'bcd', '*'), joins(test_dir, ('a', 'bcd', 'EF'), ('a', 'bcd', 'efg/')))
-    eq(rglob(test_dir, 'a', '**', 'bcd'), joins(test_dir, ('a', 'bcd/')))
+    eq(rglob(test_dir, '**', 'bcd', '*'), joins(test_dir, ('a', 'bcd', 'EF'), ('a', 'bcd', 'efg')))
+    eq(rglob(test_dir, 'a', '**', 'bcd'), joins(test_dir, ('a', 'bcd')))
 
     with change_cwd(test_dir):
         join = os.path.join

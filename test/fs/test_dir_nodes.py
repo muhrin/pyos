@@ -14,6 +14,7 @@ from pyos import psh
 def test_dir_in_directory():
     home = psh.pwd()
     address_book = pyos.pathlib.Path('address_book/').resolve()
+    pyos.os.makedirs(address_book)
     with pyos.pathlib.working_path(address_book):
         person_id = psh.save(Person('martin', 34), 'martin')
 
@@ -31,6 +32,7 @@ def test_dir_in_directory():
 def test_dir_delete(historian: mincepy.Historian):
     """Test deleting directory (and all contents)"""
     address_book = pyos.pathlib.Path('address_book/').resolve()
+    pyos.os.makedirs('address_book/sub/')
     with pyos.pathlib.working_path(address_book):
         martin_id = psh.save(Person('martin', 34), 'martin')
         sonia_id = psh.save(Person('sonia', 31), 'sub/sonia')
@@ -48,6 +50,9 @@ def test_dir_delete(historian: mincepy.Historian):
 
 def test_move_dir(historian: mincepy.Historian):
     """Test moving a directory node"""
+    pyos.os.makedirs('address_book/')
+    pyos.os.makedirs('sub/')
+
     path = pyos.pathlib.Path('address_book/').resolve()
     with pyos.pathlib.working_path(path):
         martin_id = psh.save(Person('martin', 34), 'martin')
@@ -63,6 +68,7 @@ def test_move_dir(historian: mincepy.Historian):
 def test_rename_dir(historian: mincepy.Historian):
     """Test renaming a directory node"""
     path = pyos.pathlib.Path('address_book/').resolve()
+    pyos.os.makedirs(path)
     with pyos.pathlib.working_path(path):
         martin_id = psh.save(Person('martin', 34), 'martin')
 

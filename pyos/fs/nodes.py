@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 import abc
-from collections.abc import Sequence, Set
+import collections.abc
 import copy
 import functools
-import operator
 import sys
-import typing
+from typing import Dict, Sequence, Optional
 
 import anytree
 import columnize
@@ -13,7 +12,6 @@ import tabulate
 
 import mincepy
 
-from pyos import config
 from pyos import db
 from pyos import exceptions
 from pyos import fmt
@@ -29,8 +27,13 @@ LIST_VIEW = 'list'
 TREE_VIEW = 'tree'
 TABLE_VIEW = 'table'
 
+CHILDREN = 'children'
 
-class BaseNode(Sequence, anytree.NodeMixin, results.BaseResults, metaclass=abc.ABCMeta):
+
+class BaseNode(collections.abc.Sequence,
+               anytree.NodeMixin,
+               results.BaseResults,
+               metaclass=abc.ABCMeta):
     """Base node for the object system in pyos"""
 
     def __init__(self, name: str, parent=None, historian: mincepy.Historian = None):
@@ -76,17 +79,49 @@ class BaseNode(Sequence, anytree.NodeMixin, results.BaseResults, metaclass=abc.A
 class FilesystemNode(BaseNode):
     """Base node for representing an object in the virtual filesystem"""
 
+    # Either give me:
+    # * object id
+    # * entry dict
+    # * path
+
     def __init__(self,
-                 path: os.PathSpec,
+                 path: os.PathSpec = None,
                  parent: BaseNode = None,
+                 entry_id=None,
+                 entry: Dict = None,
+                 *,
                  historian: mincepy.Historian = None):
         """
         :param path: the path this node represents
         :param parent: parent node
         """
+        historian = historian or db.get_historian()
+
+        # First we have to try and get a filesystem entry
+        if entry is None:
+            if entry_id is not None:
+                entry = db.fs.get_entry(entry_id, include_path=True, historian=historian)  # DB HIT
+                if entry is None:
+                    raise exceptions.FileNotFoundError(entry_id)
+            elif path is not None:
+                entry = db.fs.find_entry(os.withdb.to_fs_path(path), historian=historian)  # DB HIT
+                if entry is None:
+                    raise exceptions.FileNotFoundError(path)
+            else:
+                raise ValueError('Must supply filesystem entry, an entry id or a path')
+
+        if path is None:
+            entry_path = db.fs.Entry.path(entry)
+            if entry_path is None:
+                path = os.withdb.from_fs_path(db.fs.get_paths(db.fs.Entry.id(entry)))[0]
+            else:
+                path = os.withdb.from_fs_path(entry_path)
+
         path = pathlib.Path(path).resolve()
         super().__init__(path.name, parent, historian=historian)
         self._abspath = path
+        self._entry = entry
+        self._hist = historian
 
     @property
     def abspath(self) -> 'pathlib.Path':
@@ -96,6 +131,10 @@ class FilesystemNode(BaseNode):
     def rename(self, new_name: str):
         """Rename this filesystem node"""
 
+    @property
+    def entry_id(self):
+        return db.fs.Entry.id(self._entry)
+
 
 class ContainerNode(BaseNode):
     """A node that contains children that can be either directory nodes or object nodes"""
@@ -103,9 +142,9 @@ class ContainerNode(BaseNode):
     def __contains__(self, item):
         # pylint: disable=too-many-nested-blocks, too-many-branches, too-many-return-statements
         if isinstance(item, pathlib.PurePath):
-            path = pathlib.PurePath(item)
+            path = pathlib.Path(item)
             if path.is_absolute():
-                if path.is_dir_path():
+                if path.is_dir():
                     # It's a directory
                     for node in self.directories:
                         if path == node.abspath:
@@ -131,7 +170,7 @@ class ContainerNode(BaseNode):
                         if node.abspath.name == parts[0] and subpath in node:
                             return True
                 else:
-                    if path.is_dir_path():
+                    if path.is_dir():
                         # It's a directory
                         for node in self.directories:
                             if node.abspath.name == parts[0]:
@@ -178,10 +217,13 @@ class DirectoryNode(ContainerNode, FilesystemNode):
     def __init__(self,
                  path: os.PathSpec,
                  parent: BaseNode = None,
+                 entry: Dict = None,
+                 *,
                  historian: mincepy.Historian = None):
-        path = pathlib.PurePath(path)
-        assert path.is_dir_path(), 'Must supply a directory path'
-        super().__init__(path.resolve(), parent, historian=historian)
+        path = pathlib.Path(path)
+        super().__init__(path=path.resolve(), parent=parent, entry=entry, historian=historian)
+        if not db.fs.Entry.is_dir(self._entry):
+            raise exceptions.NotADirectoryError(path)
 
     def __repr__(self):
         rep = []
@@ -191,12 +233,12 @@ class DirectoryNode(ContainerNode, FilesystemNode):
 
     def __copy__(self):
         """Create a copy with no parent"""
-        dir_node = DirectoryNode(self.abspath)
+        dir_node = DirectoryNode(self.abspath, self._entry)
         dir_node.children = [copy.copy(child) for child in self.children]
         return dir_node
 
     def __contains__(self, item):
-        # Have to expand if we're not already already otherwise contains could incorrectly fail
+        # Have to expand if we're not already otherwise contains could incorrectly fail
         if not self.children:
             self.expand()
         return super().__contains__(item)
@@ -210,7 +252,7 @@ class DirectoryNode(ContainerNode, FilesystemNode):
     def _invalidate_cache(self):
         self.children = []
 
-    def expand(self, depth=1, populate_objects=False):
+    def expand(self, depth=1, populate_objects=False):  # pylint: disable=unused-argument
         """Populate the children with what is currently in the database
 
         :param depth: expand to the given depth, 0 means no expansion, 1 means my child nodes, etc
@@ -223,75 +265,60 @@ class DirectoryNode(ContainerNode, FilesystemNode):
         if depth == 0:
             return
 
-        path_str = str(self._abspath)
+        if depth > 0:
+            child_expand_depth = depth - 1
+        else:
+            child_expand_depth = -1
 
-        # OBJECTS
-        # Query for objects in this directory
-        obj_kwargs = []
-        for obj_id, meta in self._hist.meta.find({config.DIR_KEY: path_str}):
-            # This is an object in _this_ directory and not further down the hierarchy
-            obj_kwargs.append(dict(obj_id=obj_id, meta=meta, parent=self))
+        if CHILDREN not in self._entry:
+            self._entry[CHILDREN] = list(db.fs.find_children(self.entry_id, historian=self._hist))
 
-        # DIRECTORIES
-
-        # Search for objects in directories below this one (depth 1) to any depth (-1) as
-        # there may be just folders (no objects) between _abspath and the object in some deeply
-        # nested directory
-        directories = self._hist.meta.distinct(config.DIR_KEY,
-                                               {config.DIR_KEY: {
-                                                   '$regex': '^' + path_str
-                                               }})
-
-        len_path_str = len(path_str)
-
-        child_expand_depth = depth - 1
-        directories_added = set()  # type: Set[str]
-
-        for dirstring in directories:
-            if dirstring == path_str:
-                # Skip over this directory
-                continue
-
-            # This is an object that resides at some subdirectory so we know
-            # that there must exist a subdirectory
-            dirname = dirstring[len_path_str:].split(os.sep)[0]
-
-            if dirname not in directories_added:
-                directories_added.add(dirname)
-                # Get the subdirectory relative to us
-                path = (self._abspath / dirname).to_dir()
-
-                dir_node = DirectoryNode(path, parent=self)
+        added = []
+        for descendent in self._entry[CHILDREN]:
+            path = (self._abspath / db.fs.Entry.name(descendent))
+            if db.fs.Entry.is_dir(descendent):
+                dir_node = DirectoryNode(
+                    path,
+                    # parent=self,
+                    entry=descendent,
+                    historian=self._hist)
+                added.append(dir_node)
                 if abs(child_expand_depth) > 0:
                     dir_node.expand(child_expand_depth)
+            else:
+                obj_node = ObjectNode(
+                    db.fs.Entry.id(descendent),
+                    path=path,
+                    # parent=self,
+                    entry=descendent,
+                    historian=self._hist)
+                added.append(obj_node)
 
-        if populate_objects:
-            # Gather all the object ids
-            obj_ids = [kwargs['obj_id'] for kwargs in obj_kwargs]
-            records = {
-                record.obj_id: record
-                for record in self._hist.records.find(obj_id=mincepy.In(obj_ids))
-            }
-            for kwargs in obj_kwargs:
-                kwargs['record'] = records[kwargs['obj_id']]
-
-        for kwargs in obj_kwargs:
-            ObjectNode(**kwargs)
+        self.children = added
 
     def delete(self):
-        res = self._hist.meta.find(db.queries.subdirs(str(self._abspath), 0, -1))
-        obj_ids = map(operator.itemgetter(0), res)
+        # 1. Find all the objects at or below this directory
+        res = db.fs.iter_descendents(self.entry_id,
+                                     of_type=db.fs.Schema.TYPE_OBJ,
+                                     historian=self._hist)
+        obj_ids = [db.fs.Entry.id(entry) for _, entry in res]
+
+        # 2. Delete them
         if obj_ids:
-            self._hist.delete(*obj_ids, imperative=False)
-            self._invalidate_cache()
+            self._hist.delete(*obj_ids)
+
+        # 3. Delete myself
+        db.fs.remove_dir(self.entry_id, recursive=True, historian=self._hist)
+
+        self._invalidate_cache()
 
     def move(self, dest: os.PathSpec, overwrite=False):
-        dest = pathlib.Path(dest).to_dir().resolve() / self.name
+        dest = pathlib.Path(dest).resolve() / self.name
         os.rename(self._abspath, dest)
         self._abspath = dest
 
     def rename(self, new_name: str):
-        new_path = pathlib.Path(self.abspath.parent / new_name).to_dir()
+        new_path = pathlib.Path(self.abspath.parent / new_name)
         os.rename(self.abspath, new_path)
         self._abspath = new_path
 
@@ -301,59 +328,46 @@ class ObjectNode(FilesystemNode):
 
     @classmethod
     def from_path(cls, path: os.PathLike, historian: mincepy.Historian = None):
-        path = pathlib.PurePath(path)
-        if path.is_dir_path():
+        full_path = pathlib.Path(path).resolve()
+
+        entry = db.fs.find_entry(os.withdb.to_fs_path(full_path), historian=historian)
+        if entry is None:
+            raise ValueError(f"'{full_path}' is not a valid object path")
+
+        if db.fs.Entry.is_dir(entry):
             raise exceptions.IsADirectoryError(path)
 
-        path = path.resolve()
-        meta = None
-        # Let's find the object id
-        obj_id = db.to_obj_id(path.name)
-        if obj_id is None:
-            # Ok, have to do a lookup
-            res = tuple(db.find_meta(db.path_to_meta_dict(path)))
-            if not res:
-                raise ValueError(f"'{path}' is not a valid object path")
-
-            obj_id, meta = res[0]
-
-        return ObjectNode(obj_id, meta=meta, historian=historian)
+        obj_id = db.fs.Entry.id(entry)
+        return ObjectNode(obj_id, entry=entry, historian=historian)
 
     def __init__(self,
                  obj_id,
+                 path=None,
                  record: mincepy.DataRecord = None,
                  meta=None,
                  parent=None,
+                 entry: Dict = None,
                  historian: mincepy.Historian = None):
         if record:
             assert obj_id == record.obj_id, "Obj id and record don't match!"
 
-        self._hist = historian or db.get_historian()
         self._obj_id = obj_id
+
+        super().__init__(entry_id=obj_id,
+                         path=path,
+                         parent=parent,
+                         entry=entry,
+                         historian=historian)
+        if not db.fs.Entry.is_obj(self._entry):
+            raise exceptions.FileNotFoundError(path)
+        if not db.fs.Entry.id(self._entry) == obj_id:
+            raise ValueError(
+                f'Object id ({obj_id}) and entry id ({db.fs.Entry.id(self._entry)}) mismatch')
+
         self._record = record  # This will be lazily loaded if None
 
         # Set up the meta
         self._meta = meta
-        if self._meta is None:
-            self._meta = self._hist.meta.get(obj_id)
-            if self._meta is None:
-                # Still don't have metadata! Double check this object actually exists
-                try:
-                    record = self._hist.snapshots.records.find(
-                        obj_id=self.obj_id, sort={
-                            'version': -1
-                        }, limit=1).one()  # type: mincepy.DataRecord
-                except mincepy.NotFound as not_found:
-                    raise ValueError(f"Object with id '{obj_id}' not found") from not_found
-                else:
-                    if record.is_deleted_record():
-                        raise mincepy.ObjectDeleted(f"Object with id '{obj_id}' has been deleted")
-                    self._record = record
-                    self._meta = {}
-
-        # Set up the abspath
-        abspath = db.get_abspath(obj_id, self._meta)
-        super().__init__(abspath, parent, historian=historian)
 
     def __contains__(self, item):
         """Object nodes have no children and so do not contain anything"""
@@ -361,7 +375,11 @@ class ObjectNode(FilesystemNode):
 
     def __copy__(self):
         """Make a copy with no parent"""
-        return ObjectNode(self._obj_id, meta=self._meta, record=self._record)
+        return ObjectNode(self._obj_id,
+                          path=self._abspath,
+                          entry=self._entry,
+                          meta=self._meta,
+                          record=self._record)
 
     @property
     def record(self) -> mincepy.DataRecord:
@@ -400,34 +418,34 @@ class ObjectNode(FilesystemNode):
 
     @property
     def ctime(self):
-        return self.record.creation_time
+        return db.fs.Entry.ctime(self._entry)
 
     @property
     def version(self):
-        return self.record.version
+        return db.fs.Entry.ver(self._entry)
 
     @property
     def mtime(self):
-        return self.record.snapshot_time
+        return db.fs.Entry.mtime(self._entry)
 
     @property
     def creator(self):
         return self.record.get_extra(mincepy.ExtraKeys.CREATED_BY)
 
     @property
-    def meta(self) -> dict:
-        return self._meta
+    def meta(self) -> Optional[Dict]:
+        self._hist.meta.get(self._obj_id)
 
     def delete(self):
         self._hist.delete(self._obj_id, imperative=False)
 
     def move(self, dest: os.PathSpec, overwrite=False):
-        dest = pathlib.Path(dest).to_dir().resolve() / self.name
+        dest = pathlib.Path(dest).resolve() / self.name
         db.rename(self.obj_id, dest)
         self._abspath = dest
 
     def rename(self, new_name: str):
-        new_name = self.abspath.parent / new_name
+        new_name: pathlib.Path = self.abspath.parent / new_name
         if new_name.is_dir():
             raise exceptions.IsADirectoryError(new_name)
 
@@ -530,7 +548,7 @@ class ResultsNode(ContainerNode):
         if properties:
             self._show = set(properties)
 
-    def _get_row(self, child) -> typing.Sequence[str]:
+    def _get_row(self, child) -> Sequence[str]:
         # pylint: disable=too-many-branches
         empty = ''
         row = []
@@ -622,11 +640,16 @@ def _(entry: FilesystemNode, historian: mincepy.Historian = None):
 
 
 @to_node.register(os.PathLike)
-def _(entry: os.PathLike, historian: mincepy.Historian = None):
+def _(path: os.PathLike, historian: mincepy.Historian = None):
     # Make sure we've got a pure path so we don't actually check that database
-    entry = pathlib.PurePath(entry)
+    path = pathlib.Path(path).resolve()
 
-    if entry.is_dir_path():
-        return DirectoryNode(entry, historian=historian)
+    fs_entry = db.fs.find_entry(os.withdb.to_fs_path(path), historian=historian)
+    if fs_entry is None:
+        raise ValueError(f"'{path}' is not a valid object path")
 
-    return ObjectNode.from_path(entry, historian=historian)
+    if db.fs.Entry.is_dir(fs_entry):
+        return DirectoryNode(path, entry=fs_entry, historian=historian)
+
+    # Must be object
+    return ObjectNode(db.fs.Entry.id(fs_entry), path=path, entry=fs_entry, historian=historian)

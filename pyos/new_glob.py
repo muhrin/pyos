@@ -2,11 +2,11 @@
 """Filename globbing utility."""
 
 import contextlib
+from pyos import os
 import re
 import fnmatch
 import itertools
 
-from pyos import os
 from pyos import exceptions
 
 __all__ = ['glob', 'iglob', 'escape']
@@ -45,15 +45,15 @@ def iglob(pathname, *, root_dir=None, recursive=False, include_hidden=False):
         root_dir = os.fspath(root_dir)
     else:
         root_dir = pathname[:0]
-    itr = _iglob(pathname, root_dir, recursive, False, include_hidden=include_hidden)
+    iter = _iglob(pathname, root_dir, recursive, False, include_hidden=include_hidden)
     if not pathname or recursive and _isrecursive(pathname[:2]):
         try:
-            s = next(itr)  # skip empty string
+            s = next(iter)  # skip empty string
             if s:
-                itr = itertools.chain((s,), itr)
+                iter = itertools.chain((s,), iter)
         except StopIteration:
             pass
-    return itr
+    return iter
 
 
 def _iglob(pathname, root_dir, recursive, dironly, include_hidden=False):
@@ -209,8 +209,8 @@ def _ishidden(path):
 def _isrecursive(pattern):
     if isinstance(pattern, bytes):
         return pattern == b'**'
-
-    return pattern == '**'
+    else:
+        return pattern == '**'
 
 
 def escape(pathname):

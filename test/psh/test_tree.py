@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from mincepy.testing import Car
 
+import pyos.os
 from pyos import psh
 
 # pylint: disable=no-value-for-parameter
@@ -13,17 +14,15 @@ def test_tree_basic():
 
 
 def test_tree_depth():
+    pyos.os.makedirs('sub/sub/')
+
     Car().save()
     psh.save(Car(), 'sub/')
     psh.save(Car(), 'sub/sub/')
     psh.save(Car(), 'sub/sub/sub')
 
     def check_depth(results):
-        depth = 0
-        while results:
-            results = results[0]
-            depth += 1
-        return depth
+        return results.height
 
     results = psh.tree()
     assert check_depth(results) == 4

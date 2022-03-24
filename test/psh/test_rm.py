@@ -2,6 +2,7 @@
 import mincepy
 from mincepy.testing import Car
 
+import pyos.os
 from pyos import psh
 
 # pylint: disable=no-value-for-parameter
@@ -44,6 +45,8 @@ def test_rm_multiple(historian: mincepy.Historian):  # pylint: disable=unused-ar
 
 
 def test_rm_directory():
+    pyos.os.makedirs('/cars/')
+
     car1 = Car()
     psh.save(car1)
     psh.cd('/cars/')
@@ -70,6 +73,8 @@ def test_rm_directory():
 
 def test_rm_objects_with_references():
     """Test deleting objects in a directory that reference each other"""
+    pyos.os.makedirs('/cars/garage/')
+
     num_cars = 10
     psh.cd('/cars/garage/')
     for _ in range(num_cars):

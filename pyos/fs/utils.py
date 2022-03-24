@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
+import concurrent.futures
+
 import mincepy
 
 from pyos import os
 from pyos import db
-from pyos import pathlib
 from . import nodes
 
 __all__ = ('find',)
@@ -31,34 +32,42 @@ def find(*starting_point,
     """
     if not starting_point:
         starting_point = (os.getcwd(),)
+
     meta = (meta or {}).copy()
     state = (state or {}).copy()
 
-    # Converting starting points to abspaths
-    spoints = [str(pathlib.PurePath(path).to_dir().resolve()) for path in starting_point]
+    obj_ids = set()
 
-    # Add the directory search criteria to the meta search
-    subdirs_query = (db.queries.subdirs(point, mindepth, maxdepth) for point in spoints)
-    meta.update(db.queries.or_(*subdirs_query))
+    def populate_object_ids(path):
+        entry = db.fs.find_entry(os.withdb.to_fs_path(path), historian=historian)
+        if db.fs.Entry.is_obj(entry):
+            if mindepth == 0:
+                obj_ids.add(db.fs.Entry.id(entry))
+        else:
+            for depth, descendent in db.fs.iter_descendents(
+                    db.fs.Entry.id(entry),
+                    max_depth=maxdepth if maxdepth != -1 else None,
+                    historian=historian):
+                if db.fs.Entry.is_obj(descendent) and depth >= mindepth:
+                    obj_ids.add(db.fs.Entry.id(descendent))
+
+    # Can use as many executors as paths because this operation is limited by the server and not the
+    # python code
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(starting_point)) as executor:
+        executor.map(populate_object_ids, starting_point)
+
+    match = mincepy.DataRecord.obj_id.in_(*obj_ids)
 
     hist = historian or db.get_historian()
-
     entries = {}
 
-    if state or type:
-        # If we need to match state or type we have to go into the data collection, otherwise
-        # we just look up the metadata which is faster
+    # Get the records that match both the record and metadata criteria
+    for record in hist.records.find(match, obj_type=type, state=state, meta=meta):
+        entries.setdefault(record.obj_id, {})['record'] = record
 
-        # Get the records that match both the record and metadata criteria
-        for record in hist.records.find(obj_type=type, state=state, meta=meta):
-            entries.setdefault(record.obj_id, {})['record'] = record
-
-        # Now get the metadata for those objects
-        for obj_id, meta_dict in hist.meta.find(filter={}, obj_id=list(entries.keys())):
-            entries.setdefault(obj_id, {})['meta'] = meta_dict
-    else:
-        for obj_id, meta_dict in hist.meta.find(filter=meta):
-            entries.setdefault(obj_id, {})['meta'] = meta_dict
+    # Now get the metadata for those objects
+    for obj_id, meta_dict in hist.meta.find(filter={}, obj_id=list(entries.keys())):
+        entries.setdefault(obj_id, {})['meta'] = meta_dict
 
     results = nodes.ResultsNode()
     results.show('relpath')

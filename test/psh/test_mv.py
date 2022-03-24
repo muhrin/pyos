@@ -4,12 +4,16 @@ import io
 from mincepy.testing import Car
 
 import pyos
+import pyos.os
 from pyos import psh
 
 # pylint: disable=no-value-for-parameter
 
 
 def test_mv_basic():
+    pyos.os.makedirs('test/')
+    pyos.os.makedirs('sub/')
+
     car = Car()
     car.save()
 
@@ -26,14 +30,16 @@ def test_mv_basic():
     psh.mv('test/', 'sub/')
     contents = psh.ls()
     assert len(contents) == 1
-    assert contents[0].name == 'sub/'
+    assert contents[0].name == 'sub'
 
     contents = psh.ls('sub/')
     assert len(contents) == 1
-    assert contents[0].name == 'test/'
+    assert contents[0].name == 'test'
 
 
 def test_mv_from_str():
+    pyos.os.makedirs('test/')
+
     car = Car()
     car.save()
 
@@ -44,6 +50,8 @@ def test_mv_from_str():
 
 
 def test_mv_from_path():
+    pyos.os.makedirs('test/')
+
     car = Car()
     car.save()
 
@@ -54,6 +62,8 @@ def test_mv_from_path():
 
 
 def test_mv_from_obj_id():
+    pyos.os.makedirs('test/')
+
     car = Car()
     car.save()
 
@@ -64,6 +74,8 @@ def test_mv_from_obj_id():
 
 
 def test_mv_dest_as_path():
+    pyos.os.makedirs('test/')
+
     car = Car()
     car.save()
 
@@ -75,6 +87,9 @@ def test_mv_dest_as_path():
 
 def test_mv_remote():
     """Test moving an object from one remote path to another"""
+    pyos.os.makedirs('/test/path_a/')
+    pyos.os.makedirs('/a/different/path/')
+
     car = Car()
     psh.save(car, '/test/path_a/')
     psh.mv(car, '/a/different/path/')
@@ -118,18 +133,22 @@ def test_mv_overwrite_prompt(monkeypatch):
 
 
 def test_mv_multiple():
+    pyos.os.makedirs('garage/')
+
     ferrari = Car()
     psh.save(ferrari, 'ferrari')
     skoda = Car()
     psh.save(skoda, 'skoda')
 
-    assert len(psh.ls()) == 2
+    assert len(psh.ls()) == 3
 
     psh.mv('skoda', 'ferrari', 'garage/')
     assert psh.ls('garage/') | len == 2
 
 
 def test_mv_rename_directory():
+    pyos.os.makedirs('cars/')
+
     psh.cd('cars/')
     car_id = Car().save()
     psh.cd('../')

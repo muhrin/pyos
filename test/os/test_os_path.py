@@ -9,13 +9,14 @@ from pyos import os
 
 def test_normpath_curdir():
     """Using normpath(curdir), i.e. '.' should normalise to './'"""
-    assert pyos.os.path.normpath('.') == './'
+    assert pyos.os.path.normpath('.') == '.'
 
 
 def test_exists():
     """Check some properties of the exists function"""
     car = Car()
     car_path = '/home/sub/subsub/my_car'
+    os.makedirs('/home/sub/subsub/')
     pyos.db.save_one(car, car_path)
 
     # Make sure the car and all subdirectories exist
@@ -26,10 +27,10 @@ def test_exists():
 
 
 def test_normpath_parent_dir():
-    assert os.path.normpath('a/b/../') == 'a/'
-    assert os.path.normpath('a/b/..') == 'a/'
+    assert os.path.normpath('a/b/../') == 'a'
+    assert os.path.normpath('a/b/..') == 'a'
 
 
 def test_normpah_current_dir():
-    assert os.path.normpath('a/b/./') == 'a/b/'
-    assert os.path.normpath('a/b/.') == 'a/b/'
+    assert os.path.normpath('a/b/./') == 'a/b'
+    assert os.path.normpath('a/b/.') == 'a/b'

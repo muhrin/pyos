@@ -13,5 +13,15 @@ class PyosShellTester(cmd2_ext_test.ExternalTestMixin, psh.PyosShell):
 def pyos_shell():
     app = PyosShellTester()
     app.fixture_setup()
+
+    # Make sure that exceptions bubble up
+    old_pexcept = app.pexcept
+
+    def new_pexcept(*args, **kwargs):
+        old_pexcept(*args, **kwargs)
+        raise
+
+    app.pexcept = new_pexcept
+
     yield app
     app.fixture_teardown()

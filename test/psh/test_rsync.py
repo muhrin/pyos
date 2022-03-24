@@ -25,7 +25,7 @@ def test_rsync_basic(historian, test_utils):
     historian.save(car, person)
 
     with test_utils.temporary_historian('test-rsync') as (uri, remote):
-        dest_path = '/home/'
+        dest_path = '/home'
         dest = get_uri_with_objsys_path(uri, dest_path)
         result = psh.rsync('./', dest)
         assert car.obj_id in result
@@ -49,7 +49,7 @@ def test_rsync_history(historian, test_utils):
     car.save()
 
     with test_utils.temporary_historian('test-rsync') as (uri, remote):
-        dest_path = '/home/'
+        dest_path = '/home'
         dest = get_uri_with_objsys_path(uri, dest_path)
         result = psh.rsync('./', dest)
         assert car.obj_id in result
@@ -67,7 +67,7 @@ def test_shell_rsync(historian, test_utils, pyos_shell):
     car_id, person_id = historian.save(car, person)
 
     with test_utils.temporary_historian('test-rsync') as (uri, remote):
-        dest_path = '/home/'
+        dest_path = '/home'
         dest = get_uri_with_objsys_path(uri, dest_path)
         res = pyos_shell.app_cmd(f'rsync ./ {dest}')
         assert not res.stderr

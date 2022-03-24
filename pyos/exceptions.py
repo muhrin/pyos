@@ -18,3 +18,11 @@ class NotADirectoryError(PyOSError):  # pylint: disable=redefined-builtin
 
 class FileNotFoundError(PyOSError):  # pylint: disable=redefined-builtin
     """A file was not found"""
+
+
+class FileExistsError(PyOSError):  # pylint: disable=redefined-builtin
+    """Raised when trying to create a file or directory which already exists"""
+
+    def __init__(self, obj_id, *args):
+        super().__init__(*args)
+        self.obj_id = obj_id

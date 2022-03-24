@@ -2,7 +2,6 @@
 """Tests for pyos nodes"""
 import pytest
 
-import mincepy
 from mincepy.testing import Person
 
 import pyos
@@ -13,6 +12,7 @@ from pyos import fs
 def test_obj_in_directory():
     home = psh.pwd()
     address_book = pyos.pathlib.Path('address_book/').resolve()
+    pyos.os.makedirs(address_book)
     with pyos.pathlib.working_path(address_book):
         person_id = pyos.db.save_one(Person('martin', 34), 'martin')
         assert psh.pwd() == home / address_book
@@ -57,11 +57,19 @@ def test_obj_node_basics(historian):
     # Test trying to create an object node for a deleted object
     person = Person('martin', 34)
     person_id = pyos.db.save_one(person, 'martin')
+
+    obj_node = fs.ObjectNode(person_id)
+    record = historian.records.find(obj_id=person_id).one()
+    assert obj_node.type_id == Person.TYPE_ID
+    assert obj_node.version == record.version
+    assert obj_node.ctime == record.creation_time
+    assert obj_node.mtime == record.snapshot_time
+
     # Modify
     person.age = 35
     person.save()
     # ..now delete
     historian.delete(person)
     # and create the object node
-    with pytest.raises(mincepy.ObjectDeleted):
+    with pytest.raises(pyos.exceptions.FileNotFoundError):
         fs.ObjectNode(person_id)

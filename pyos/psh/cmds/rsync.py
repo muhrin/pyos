@@ -69,8 +69,9 @@ def rsync(options, *args, progress=False, history=False, meta=None):  # pylint: 
         else:
             dest = db.get_historian()
     except pymongo.errors.OperationFailure as exc:
-        print("Error trying to connect with src '{} {}', and dest '{} {}'".format(
-            src_url, src_paths, dest_url, dest_path))
+        print(
+            f"Error trying to connect with src '{src_url} {src_paths}', and dest '{dest_url} {dest_path}'"
+        )
         print(exc)
         return 1
     else:
@@ -107,7 +108,7 @@ def _sync_objects(src: mincepy.Historian,
     """
     # Get the object ids at the source path
     path = os.path.abspath(src_path)
-    obj_ids = tuple(entry.obj_id for entry in fs.find(path, historian=src).objects)  # DB HIT
+    obj_ids = set(entry.obj_id for entry in fs.find(path, historian=src).objects)  # DB HIT
 
     # This is the set of objects we will be syncing
     src_collection = src.snapshots if history else src.objects
@@ -115,11 +116,32 @@ def _sync_objects(src: mincepy.Historian,
     sync_set = src_collection.find(mincepy.DataRecord.obj_id.in_(*obj_ids))
 
     def batch_merged(progress, result):
-        """Callback called when a batch si merged"""
+        """Callback called when a batch is merged"""
         # Now we have to put the newly transferred objects into the correct path
         # first get the paths for each of the merged objects
         all_obj_ids = set(sid.obj_id for sid in result.all)
 
+        # 1. Get all paths
+        paths = dict(pyos.db.get_paths(*all_obj_ids))
+
+        # 2. Create the new abspaths
+        new_paths = {
+            obj_id: os.path.abspath(os.path.join(dest_path, os.path.relpath(objpath, src_path)))
+            for obj_id, objpath in paths.items()
+        }
+
+        # 3. Get the set of folders we need to have in place
+        dirs = set(os.path.dirname(objpath) for objpath in new_paths.values())
+
+        # 4. Create the directories
+        for objdir in dirs:
+            db.fs.make_dirs(os.withdb.to_fs_path(objdir), exists_ok=True, historian=dest)
+
+        # 5. Set the paths
+        for obj_id, path in new_paths.items():
+            db.fs.set_path(obj_id, os.withdb.to_fs_path(path), historian=dest)
+
+        # 6. Copy over metadata
         # Dictionary to store the metadatas we need to set at the dest
         dest_metas = collections.defaultdict(dict)
 
@@ -129,21 +151,6 @@ def _sync_objects(src: mincepy.Historian,
         if meta is not None:
             # We're being asked to merge metadata at the source so update our dictionary
             dest_metas.update(src_metas)
-
-        # Now, figure out where we should store the objects
-        for obj_id, src_meta in src_metas.items():
-            if src_meta is None:
-                continue
-
-            obj_path = db.path_from_meta_entry(obj_id, src_meta)
-            relpath = os.path.relpath(obj_path, src_path)
-            if relpath.startswith(os.pardir):
-                # This object will saved using its abspath
-                new_paths = obj_path
-            else:
-                new_paths = os.path.join(dest_path, relpath)
-
-            dest_metas[obj_id].update(db.path_to_meta_dict(new_paths))
 
         # Now update all the metadata dictionaries
         if dest_metas:
@@ -169,8 +176,7 @@ def _get_sources(*src) -> Tuple[Optional[str], List[str]]:
             else:
                 if url != this_url:
                     raise ValueError(
-                        'Cannot have two different remote sources, got {} and {}'.format(
-                            url, this_url))
+                        f'Cannot have two different remote sources, got {url} and {this_url}')
         else:
             paths.append(this_path)
 

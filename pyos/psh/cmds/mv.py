@@ -43,7 +43,11 @@ def mv(options, *args):  # pylint: disable=invalid-name
         dest = dest.to_dir()
 
     to_move = psh.ls(-psh.d, *args)
-    if dest.is_file_path():
+
+    if dest.is_dir():
+        dest = dest.resolve()
+        to_move.move(dest, overwrite=not options.pop(psh.n))
+    else:
         # Renaming
         if dest.exists():
             if -psh.f in options or click.confirm(f"Overwrite '{dest}'?"):
@@ -52,9 +56,6 @@ def mv(options, *args):  # pylint: disable=invalid-name
                 return
 
         to_move[0].rename(dest.name)
-    else:
-        dest = dest.resolve()
-        to_move.move(dest, overwrite=not options.pop(psh.n))
 
 
 class Mv(cmd2.CommandSet):

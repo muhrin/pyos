@@ -1,56 +1,39 @@
 # -*- coding: utf-8 -*-
 """Module that deals with directories and paths"""
 import contextlib
+import pathlib
 from typing import Sequence, Iterable, Tuple
 import uuid
 
+import deprecation
 import mincepy
 
 from pyos import exceptions
 from pyos import fs
 from pyos import os
+from pyos import version
 
 __all__ = ('Path', 'PurePath')
 
 
 class PurePath(os.PathLike):
     """A path in PyOS.  Where possible the convention follows that of a PurePosixPath in pathlib.
-    The one major exception is that folders are represented with an explicit trailing '/' and
-    anything else is a file.
 
     This is a 'pure' path in a similar sense to pathlib.PurePath in that it does not interact with
     the database at all.
     """
 
-    def __init__(self, path='./'):
+    def __init__(self, path: os.PathSpec = '.'):
         super().__init__()
         self._path = os.path.normpath(path)
 
     @property
     def parts(self) -> Tuple[str]:
-        parts = list(self._path.split('/'))
-        for idx in range(len(parts) - 1):
-            parts[idx] += '/'
-        if self.is_dir_path():
-            parts.pop()
-
-        return tuple(parts)
+        return pathlib.PurePosixPath(self._path).parts
 
     @property
     def parent(self):
-        parts = self.parts
-
-        if self.is_absolute():
-            if len(parts) == 1:
-                return self.__class__(self.root)
-
-            return self.__class__(''.join(parts[:-1]))
-
-        # Relative path
-        if len(parts) == 1:
-            return self.__class__()
-
-        return self.__class__(''.join(parts[:-1]))
+        return self.__class__(os.path.dirname(self._path))
 
     @property
     def parents(self) -> Sequence:
@@ -90,47 +73,44 @@ class PurePath(os.PathLike):
 
     def __truediv__(self, other):
         if not isinstance(other, PurePath):
-            if isinstance(other, str):
-                other = self.__class__(other)
-            else:
+            if not isinstance(other, str):
                 raise TypeError(f"Cannot join a path with a '{type(other)}'")
 
-        if other.is_absolute():
-            return other
+        if os.path.isabs(other):
+            return self.__class__(other)
 
-        return self.__class__(str(self.to_dir()) + str(other))
+        return self.__class__(os.path.join(str(self), str(other)))
 
-    def is_file_path(self) -> bool:
-        """Returns True if this path specifies a file i.e. does not end with a training '/'"""
-        return not self.is_dir_path()
-
-    def is_dir_path(self) -> bool:
-        """Returns True if this path specified a directory i.e. ends with a trailing '/'"""
-        return self._path.endswith(os.sep)
+    # def is_file_path(self) -> bool:
+    #     """Returns True if this path specifies a file i.e. does not end with a training '/'"""
+    #     return not self.is_dir_path()
+    #
+    # def is_dir_path(self) -> bool:
+    #     """Returns True if this path specified a directory i.e. ends with a trailing '/'"""
+    #     return self._path.endswith(os.sep)
 
     def is_absolute(self) -> bool:
         return os.path.isabs(self._path)
 
+    @deprecation.deprecated(
+        deprecated_in='0.8.0',
+        removed_in='0.9.0',
+        current_version=version.__version__,
+        details='We no longer make a distinction between a file path and dir path')
     def to_dir(self) -> 'PurePath':
         """If this path is a file path then a directory with the same name will be
-        returned. Otherwise this path will be returned"""
-        if self.is_dir_path():
-            return self
+        returned. Otherwise, this path will be returned"""
+        return self
 
-        return self.__class__(str(self) + '/')
-
+    @deprecation.deprecated(
+        deprecated_in='0.8.0',
+        removed_in='0.9.0',
+        current_version=version.__version__,
+        details='We no longer make a distinction between a file path and dir path')
     def to_file(self):
         """If this path is a directory then a file path with the same name will be returned.
-        Otherwise this path will be returned"""
-        if self.is_file_path():
-            return self
-
-        return self.__class__(str(self)[:-1])
-
-    def resolve(self):
-        """Make the path absolute eliminating any . and .. that occur in the path"""
-        path = os.path.abspath(self)
-        return self.__class__(path)
+        Otherwise, this path will be returned"""
+        return self
 
     def joinpath(self, *other):
         return self.__class__(os.path.join(self, *other))
@@ -145,11 +125,11 @@ class Path(PurePath, mincepy.SimpleSavable):
 
     def is_file(self) -> bool:
         """Returns True if this path is a file path and exists"""
-        return self.is_file_path() and self.exists()
+        return os.path.isfile(self)
 
     def is_dir(self) -> bool:
         """Returns True if this path is a directory path and exists"""
-        return self.is_dir_path() and self.exists()
+        return os.isdir(self)
 
     def exists(self) -> bool:
         """Test whether a path point exists"""
@@ -177,7 +157,7 @@ class Path(PurePath, mincepy.SimpleSavable):
         Path('docs/_build')
         Path('docs/_static')
         """
-        if not self.is_dir_path():
+        if not self.is_dir():
             raise exceptions.NotADirectoryError(f'Not a directory: {os.path.relpath(self)}')
         if not self.exists():
             raise exceptions.FileNotFoundError(f"No such directory: '{os.path.relpath(self)}'")
@@ -191,6 +171,11 @@ class Path(PurePath, mincepy.SimpleSavable):
         target = Path(target).resolve()
         os.rename(self._path, target)
         return target
+
+    def resolve(self):
+        """Make the path absolute eliminating any . and .. that occur in the path"""
+        path = os.path.abspath(os.path.relpath(self))
+        return self.__class__(path)
 
 
 @contextlib.contextmanager

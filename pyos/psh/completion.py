@@ -117,7 +117,7 @@ def path_complete(app: shell.PyosShell,
         matches = [c for c in matches if path_filter(c)]
 
     # Don't append a space or closing quote to directory
-    if len(matches) == 1 and pos.path.isdir(matches[0]):
+    if len(matches) == 1 and pos.isdir(matches[0]):
         app.allow_appended_space = False
         app.allow_closing_quote = False
 

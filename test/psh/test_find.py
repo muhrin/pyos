@@ -3,12 +3,14 @@ from pytray import obj_load
 
 from mincepy.testing import Car, Person
 
+import pyos.os
 from pyos import psh
 
 
 def fill_with_cars(subdirs: list):
     cwd = psh.pwd()
     for subdir in subdirs:
+        pyos.os.makedirs(subdir, exists_ok=True)
         psh.cd(subdir)
         car = Car()
         car.save(meta={'target': True, 'mydir': subdir})
@@ -47,7 +49,7 @@ def test_subdirs_find():
 
     # Check mindepth
     for idx, _subdir in enumerate(subdirs):
-        found = psh.find(mindepth=idx)
+        found = psh.find(mindepth=idx + 1)
         assert len(found) == num_subdirs - idx
         dirs = {psh.meta(node)['mydir'] for node in found}
         for check_dir in subdirs[idx:]:
@@ -55,22 +57,20 @@ def test_subdirs_find():
 
     # Now check maxdepth
     for idx, _subdir in enumerate(subdirs):
-        # Note, have to use +1 on indexes here because of the 'exclusive' range notations, etc
         found = psh.find(maxdepth=idx)
-        assert len(found) == idx + 1
+        assert len(found) == idx
         dirs = {psh.meta(node)['mydir'] for node in found}
-        for check_dir in subdirs[:idx + 1]:
+        for check_dir in subdirs[:idx]:
             assert check_dir in dirs
 
     # Now check combinations of mindepth and maxdepth
-
     for min_idx in range(len(subdirs)):
         for max_idx in range(min_idx, len(subdirs)):
             found = psh.find(mindepth=min_idx, maxdepth=max_idx)
-            assert len(found) == max_idx - min_idx + 1
+            assert len(found) == max_idx - min_idx if min_idx == 0 else (max_idx - min_idx + 1)
             dirs = {psh.meta(node)['mydir'] for node in found}
 
-            for check_dir in subdirs[min_idx:max_idx + 1]:
+            for check_dir in subdirs[min_idx:max_idx]:
                 assert check_dir in dirs
 
 

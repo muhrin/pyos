@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 from mincepy.testing import Car
 
+import pyos.os
 from pyos import psh
 
 
 def test_completion_simple():
+    pyos.os.makedirs('/test/sub/')
+
     psh.cd('/test')
     psh.save(Car(), 'my_car')
     psh.cd('sub/')

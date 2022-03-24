@@ -8,6 +8,7 @@ import cmd2
 
 import pyos
 from pyos import db
+from pyos.psh import completion
 from pyos.psh_lib import CachingResults
 
 _LOGGER = logging.getLogger(__name__)
@@ -29,11 +30,16 @@ def oid(*args):
 
 class Oid(cmd2.CommandSet):
     parser = argparse.ArgumentParser()
-    parser.add_argument('objs', nargs='*', type=str, help='the objects to get ids for')
+    # parser.add_argument('objs', nargs='*', type=str, help='the objects to get ids for')
+    parser.add_argument('path',
+                        nargs='*',
+                        type=str,
+                        completer_method=completion.path_complete,
+                        help='the objects to get ids for')
 
     @cmd2.with_argparser(parser)
     def do_oid(self, args):  # pylint: disable=no-self-use
-        if not args.objs:
+        if not args.path:
             # Read from standard in
             _LOGGER.debug('oid: getting input from stdin')
             try:

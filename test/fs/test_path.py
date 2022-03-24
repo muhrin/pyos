@@ -19,18 +19,18 @@ def test_parents_file():
     """Test that parents works for files"""
     path = pyos.pathlib.PurePath('tmp/test/sub/a')
     assert path.parents == [
-        pyos.pathlib.Path('tmp/test/sub/'),
-        pyos.pathlib.Path('tmp/test/'),
-        pyos.pathlib.Path('tmp/'),
-        pyos.pathlib.Path('./')
+        pyos.pathlib.Path('tmp/test/sub'),
+        pyos.pathlib.Path('tmp/test'),
+        pyos.pathlib.Path('tmp'),
+        pyos.pathlib.Path('.')
     ]
 
     # Test absolute
     path = pyos.pathlib.Path('/tmp/test/sub/a')
     assert path.parents == [
-        pyos.pathlib.Path('/tmp/test/sub/'),
-        pyos.pathlib.Path('/tmp/test/'),
-        pyos.pathlib.Path('/tmp/'),
+        pyos.pathlib.Path('/tmp/test/sub'),
+        pyos.pathlib.Path('/tmp/test'),
+        pyos.pathlib.Path('/tmp'),
         pyos.pathlib.Path('/')
     ]
 
@@ -65,6 +65,7 @@ def test_exists_object():
 
 def test_exists_path():
     car = mincepy.testing.Car()
+    pyos.os.makedirs('folder/')
     pyos.db.lib.save_one(car, 'folder/my_car')
 
     assert pyos.pathlib.Path('folder/').exists()
