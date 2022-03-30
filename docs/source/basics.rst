@@ -19,11 +19,7 @@ Objects emulate files as commonly found on disk filesystems.  Some details:
 Directories
 -----------
 
-Directories in pyOS provide a familiar way to organise your objects, just was you would in your filesystem.  That said, there are some crucial differences to be aware of, namely:
-
-- A directory path ends with a trailing '``/``'.  Thus, ``pyos.Path('/home).is_dir_path()`` returns ``False`` while ``pyos.Path('/home/).is_dir_path()`` gives ``True``.  Some parts of pyOS, particularly ``psh`` will assume you're passing a directory, even without this a trailing '``/``', if it's obvious from context, e.g. ``cd('/home')`` is fine.
-- Directories cannot be created.  They are merely a a product of the fact that there is at least one object saved at that path.  It is possible to change to any directory using, e.g. ``cd()``, whether or not it exists already, and if an object is saved at that path the directory will come into existence.
-- A directory and an object can be in the same directory with the same name.  The reasons for this are outlined below but this should be born in mind as it is not the case on traditional filesystems.
+Directories in pyOS provide a familiar way to organise your objects, just was you would in your filesystem.
 
 
 Design decisions
