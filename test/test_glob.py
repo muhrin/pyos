@@ -4,8 +4,7 @@ from typing import List
 
 import pytest
 
-# from pyos import glob
-from pyos import new_glob as glob
+from pyos import glob
 from pyos import os
 from pyos import psh
 from . import support
@@ -23,7 +22,7 @@ def joins(tempdir, *tuples) -> List[str]:
 
 def mktemp(tempdir, *parts):
     filename = norm(tempdir, *parts)
-    base, file = os.path.split(filename)
+    base, _file = os.path.split(filename)
     if not os.path.exists(base):
         os.makedirs(base)
     support.create_empty_file(filename)
@@ -125,9 +124,9 @@ def test_glob_directory_with_trailing_slash(test_dir):
 
     # Patterns ending with a slash shouldn't match non-dirs
     res = glob.glob(do_norm('Z*Z') + os.sep)
-    assert res == []
+    assert res == []  # pylint: disable=use-implicit-booleaness-not-comparison
     res = glob.glob(do_norm('ZZZ') + os.sep)
-    assert res == []
+    assert res == []  # pylint: disable=use-implicit-booleaness-not-comparison
     # When there is a wildcard pattern which ends with os.sep, glob()
     # doesn't blow up.
     res = glob.glob(do_norm('aa*') + os.sep)
