@@ -5,8 +5,6 @@ from typing import Optional, Sequence
 import mincepy
 import mincepy.archives
 
-from pyos import config
-import pyos.os
 from . import schema
 from . import fs
 
@@ -50,7 +48,6 @@ class Session(mincepy.archives.ArchiveListener):
 
     def close(self):
         """Close this session.  This object cannot be used after this call"""
-        self._historian.meta.sticky.pop(config.DIR_KEY, None)
         self._historian.archive.remove_archive_listener(self)
 
         del self._cwd
@@ -64,12 +61,12 @@ class Session(mincepy.archives.ArchiveListener):
         assert archive is self._historian.archive
         new_objects = []  # Keep track of the new objects being saved
         deleted_objects = []
-        for op in ops:
-            if isinstance(op, mincepy.operations.Insert):
-                if op.snapshot_id.version == 0:
-                    new_objects.append(op.obj_id)
-                elif op.record.is_deleted_record():
-                    deleted_objects.append(op.obj_id)
+        for oper in ops:
+            if isinstance(oper, mincepy.operations.Insert):
+                if oper.snapshot_id.version == 0:
+                    new_objects.append(oper.obj_id)
+                elif oper.record.is_deleted_record():
+                    deleted_objects.append(oper.obj_id)
 
         if new_objects:
             fs.set_paths(*[(obj_id, self._cwd + (str(obj_id),)) for obj_id in new_objects],
@@ -114,12 +111,12 @@ def get_historian() -> mincepy.Historian:
 
 
 def get_session() -> Session:
-    global _GLOBAL_SESSION
+    global _GLOBAL_SESSION  # pylint: disable=global-variable-not-assigned
     return _GLOBAL_SESSION
 
 
 def reset():
-    global _GLOBAL_SESSION  # pylint: disable=global-statement
+    global _GLOBAL_SESSION  # pylint: disable=global-statement, global-variable-not-assigned
     if _GLOBAL_SESSION is not None:
         _GLOBAL_SESSION.close()
 

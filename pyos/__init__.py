@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 from . import version
 from .version import __version__
-# pylint: disable=anomalous-backslash-in-string
-"""
+
+# pylint: disable=anomalous-backslash-in-string, pointless-statement
+f"""
 
                   ____  ____
                  / __ \/ __ /
@@ -10,7 +11,7 @@ from .version import __version__
    / __ \/ / / / / / /\__ \
   / /_/ / /_/ / /_/ /___/ /
  / .___/\__, /\____//____/
-/_/    /____/                 v{}
+/_/    /____/                 v{version.__version__}
 
 
 A new way to interact with your python objects.  PyOS allows you to treat python objects in a
@@ -20,7 +21,7 @@ virtual file system.  Many of the familiar *nix commands are available (ls, mv, 
 except they take on a new, more powerful form because you're in a fully fledged python environment
 and not restricted to just two types (file and directories) like on a traditional filesystem but
 indeed any python type that can be stored by PyOS's backend.
-""".format(version.__version__)
+"""
 # pylint: disable=wrong-import-position
 # Order is important here, first we list all the 'base' modules, then the rest
 from . import exceptions

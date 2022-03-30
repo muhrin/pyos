@@ -34,6 +34,7 @@ setup(
         'click',
         'tabulate',
         'ipython',
+        'pymongo',
         'pyprnt',
         'pytray >= 0.3.0',
         'stevedore',

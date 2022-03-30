@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 import collections
 from collections import abc
-from typing import Sequence, Iterable, Optional, Tuple, Any, Union, Iterator, Dict
+from typing import Sequence, Iterable, Optional, Tuple, Any, Union, Iterator
 
 import deprecation
 import mincepy
-import pymongo
 
-import pyos.db
 from pyos import exceptions
 from pyos import os
 from pyos import version
@@ -111,8 +109,8 @@ def rename(obj_or_id, dest: os.PathSpec):
     fs.rename_obj(obj_id, os.withdb.to_fs_path(dest))
 
 
-def get_abspath(obj_id, meta: dict) -> str:
-    """Given an object id and metadata dictionary this method will return a string representing
+def get_abspath(obj_id, _meta: dict) -> str:
+    """Given an object id this method will return a string representing
     the absolute path of the object"""
     assert obj_id, 'Must provide a valid obj id'
     return os.sep.join(fs.get_paths(obj_id)[0])
@@ -170,7 +168,6 @@ def save_many(to_save: Iterable[Union[Any, Tuple[Any, os.PathSpec]]],
 
     obj_ids = []
     historian = historian or database.get_historian()
-    cwd = database.get_session().cwd
 
     exc = None
     with historian.transaction():
@@ -216,7 +213,7 @@ def _get_save_path(path, obj_id, historian: mincepy.Historian) -> fs.Path:
     else:
         fs_path = os.withdb.to_fs_path(path)
 
-    entry = fs.find_entry(fs_path)
+    entry = fs.find_entry(fs_path, historian=historian)
     if entry is None:
         return fs_path
 
