@@ -47,7 +47,7 @@ def ls(options, *args) -> pyos.fs.ResultsNode:  # pylint: disable=invalid-name, 
             sole_dir = results[0]
             new_results = pyos.fs.ResultsNode(sole_dir.name)
             for result in tuple(sole_dir.children):
-                result.parent = new_results
+                new_results.append(result)
 
             results = new_results
 

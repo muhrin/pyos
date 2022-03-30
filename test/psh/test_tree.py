@@ -27,4 +27,6 @@ def test_tree_depth():
     results = psh.tree()
     assert check_depth(results) == 4
     for idx in range(4):
-        assert check_depth(psh.tree - psh.L(idx)()) == idx + 1
+        height = check_depth(psh.tree - psh.L(idx)())
+        print(height)
+        assert height == idx + 1

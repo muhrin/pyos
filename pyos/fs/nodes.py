@@ -29,17 +29,21 @@ TABLE_VIEW = 'table'
 
 CHILDREN = 'children'
 
+UNSET = tuple()
 
-class BaseNode(collections.abc.Sequence,
-               anytree.NodeMixin,
-               results.BaseResults,
-               metaclass=abc.ABCMeta):
+
+class BaseNode(
+        collections.abc.Sequence,
+        # anytree.NodeMixin,
+        results.BaseResults,
+        metaclass=abc.ABCMeta):
     """Base node for the object system in pyos"""
 
-    def __init__(self, name: str, parent=None, historian: mincepy.Historian = None):
+    def __init__(self, name: str, parent: 'BaseNode' = UNSET, historian: mincepy.Historian = None):
         super().__init__()
         self._name = name
-        self.parent = parent
+        self._parent = parent
+        self._children = UNSET
         self._hist = historian or db.get_historian()
 
     def __getitem__(self, item):
@@ -60,10 +64,29 @@ class BaseNode(collections.abc.Sequence,
     def name(self):
         return self._name
 
+    @property
+    def parent(self) -> Optional['BaseNode']:
+        """Get the parent node"""
+        return self._parent
+
+    @property
+    def children(self) -> Sequence['BaseNode']:
+        return self._children
+
+    @property
+    def height(self) -> int:
+        """Get the maximum number of steps from this node to a leaf"""
+        height = 0
+        for child in self._children:
+            height = max(height, child.height + 1)
+        return height
+
     def delete(self):
         """Delete this node and any descendents"""
         for child in self.children:
             child.delete()
+
+        self._invalidate_cache()
 
     def move(self, dest: os.PathSpec, overwrite=False):
         """Move this object (with any children) into the directory given by dest
@@ -74,6 +97,10 @@ class BaseNode(collections.abc.Sequence,
         dest = pathlib.Path(dest).to_dir()
         for child in self.children:
             child.move(dest, overwrite)
+
+    def _invalidate_cache(self):
+        self._parent = UNSET
+        self._children = UNSET
 
 
 class FilesystemNode(BaseNode):
@@ -216,12 +243,14 @@ class DirectoryNode(ContainerNode, FilesystemNode):
 
     def __init__(self,
                  path: os.PathSpec,
-                 parent: BaseNode = None,
+                 parent: BaseNode = UNSET,
                  entry: Dict = None,
                  *,
                  historian: mincepy.Historian = None):
-        path = pathlib.Path(path)
-        super().__init__(path=path.resolve(), parent=parent, entry=entry, historian=historian)
+        super().__init__(path=pathlib.Path(path).resolve(),
+                         parent=parent,
+                         entry=entry,
+                         historian=historian)
         if not db.fs.Entry.is_dir(self._entry):
             raise exceptions.NotADirectoryError(path)
 
@@ -249,9 +278,6 @@ class DirectoryNode(ContainerNode, FilesystemNode):
             self.expand()
         return super().__getitem__(item)
 
-    def _invalidate_cache(self):
-        self.children = []
-
     def expand(self, depth=1, populate_objects=False):  # pylint: disable=unused-argument
         """Populate the children with what is currently in the database
 
@@ -261,7 +287,7 @@ class DirectoryNode(ContainerNode, FilesystemNode):
             the all or most of the details of the child objects will be needed as they can be
             fetched in one call.
         """
-        self.children = []
+        self._children = []
         if depth == 0:
             return
 
@@ -275,26 +301,21 @@ class DirectoryNode(ContainerNode, FilesystemNode):
 
         added = []
         for descendent in self._entry[CHILDREN]:
-            path = (self._abspath / db.fs.Entry.name(descendent))
+            path = os.path.join(self._abspath, db.fs.Entry.name(descendent))
             if db.fs.Entry.is_dir(descendent):
-                dir_node = DirectoryNode(
-                    path,
-                    # parent=self,
-                    entry=descendent,
-                    historian=self._hist)
+                dir_node = DirectoryNode(path, parent=self, entry=descendent, historian=self._hist)
                 added.append(dir_node)
                 if abs(child_expand_depth) > 0:
                     dir_node.expand(child_expand_depth)
             else:
-                obj_node = ObjectNode(
-                    db.fs.Entry.id(descendent),
-                    path=path,
-                    # parent=self,
-                    entry=descendent,
-                    historian=self._hist)
+                obj_node = ObjectNode(db.fs.Entry.id(descendent),
+                                      path=path,
+                                      parent=self,
+                                      entry=descendent,
+                                      historian=self._hist)
                 added.append(obj_node)
 
-        self.children = added
+        self._children = added
 
     def delete(self):
         # 1. Find all the objects at or below this directory
@@ -351,8 +372,6 @@ class ObjectNode(FilesystemNode):
         if record:
             assert obj_id == record.obj_id, "Obj id and record don't match!"
 
-        self._obj_id = obj_id
-
         super().__init__(entry_id=obj_id,
                          path=path,
                          parent=parent,
@@ -364,10 +383,10 @@ class ObjectNode(FilesystemNode):
             raise ValueError(
                 f'Object id ({obj_id}) and entry id ({db.fs.Entry.id(self._entry)}) mismatch')
 
+        self._obj_id = obj_id
         self._record = record  # This will be lazily loaded if None
-
-        # Set up the meta
         self._meta = meta
+        self._children = tuple()  # Can't have any children
 
     def __contains__(self, item):
         """Object nodes have no children and so do not contain anything"""
@@ -375,11 +394,14 @@ class ObjectNode(FilesystemNode):
 
     def __copy__(self):
         """Make a copy with no parent"""
-        return ObjectNode(self._obj_id,
-                          path=self._abspath,
-                          entry=self._entry,
-                          meta=self._meta,
-                          record=self._record)
+        return ObjectNode(
+            self._obj_id,
+            path=self._abspath,
+            entry=self._entry,
+            meta=self._meta,
+            record=self._record,
+            historian=self._hist,
+        )
 
     @property
     def record(self) -> mincepy.DataRecord:
@@ -460,8 +482,10 @@ class ResultsNode(ContainerNode):
 
     def __init__(self, name='results', parent=None, historian: mincepy.Historian = None):
         super().__init__(name, parent, historian=historian)
+        assert parent is None
         self._view_mode = TABLE_VIEW
         self._show = {'name'}
+        self._children = []
 
     def __repr__(self):
         if self._view_mode == TREE_VIEW:
@@ -533,9 +557,10 @@ class ResultsNode(ContainerNode):
 
     def append(self, node: FilesystemNode, display_name: str = None):
         """Append a node to the results"""
-        node.parent = self
+        node._parent = self  # pylint: disable=protected-access
         display_name = display_name or node.name
         node.display_name = display_name
+        self._children.append(node)
 
     def extend(self, other: ContainerNode):
         """Extend this results using incorporating the entries of the other container"""

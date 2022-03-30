@@ -2,7 +2,7 @@
 """Module that deals with directories and paths"""
 import contextlib
 import pathlib
-from typing import Sequence, Iterable, Tuple
+from typing import Sequence, Iterable, Tuple, Union
 import uuid
 
 import deprecation
@@ -172,9 +172,12 @@ class Path(PurePath, mincepy.SimpleSavable):
         os.rename(self._path, target)
         return target
 
-    def resolve(self):
+    def resolve(self) -> Union[PurePath, 'Path']:
         """Make the path absolute eliminating any . and .. that occur in the path"""
         path = os.path.abspath(os.path.relpath(self))
+        if path == self._path:
+            # Avoid constructing a new one as this is currently a little slow
+            return self
         return self.__class__(path)
 
 

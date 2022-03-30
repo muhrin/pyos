@@ -132,7 +132,7 @@ def file_completer(app: shell.PyosShell, text: str, line: str, begidx: int,
                    endidx: int) -> List[str]:
 
     def is_file(path: str):
-        return not path.endswith(pos.sep)
+        return pos.path.isfile(path)
 
     return path_complete(app, text, line, begidx, endidx, path_filter=is_file)
 
@@ -141,6 +141,6 @@ def dir_completer(app: shell.PyosShell, text: str, line: str, begidx: int,
                   endidx: int) -> List[str]:
 
     def is_dir(path: str):
-        return path.endswith(pos.sep)
+        return pos.path.isdir(path)
 
     return path_complete(app, text, line, begidx, endidx, path_filter=is_dir)
