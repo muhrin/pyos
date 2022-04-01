@@ -32,7 +32,7 @@ def test_tree_depth():
 
 
 def test_tree_print():
-    expected_result = """/
+    expected_result = """
 ├── a
 │   ├── a_car
 │   └── b

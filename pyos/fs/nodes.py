@@ -90,7 +90,6 @@ class BaseNode(collections.abc.Sequence, results.BaseResults, metaclass=abc.ABCM
         :param dest: the destination to move the node to
         :param overwrite: overwrite if exists
         """
-        dest = pathlib.Path(dest).to_dir()
         for child in self.children:
             child.move(dest, overwrite)
 
@@ -140,14 +139,14 @@ class FilesystemNode(BaseNode):
             else:
                 path = os.withdb.from_fs_path(entry_path)
 
-        path = pathlib.Path(path).resolve()
+        path = pathlib.PurePath(os.path.abspath(path))
         super().__init__(path.name, parent, historian=historian)
         self._abspath = path
         self._entry = entry
         self._hist = historian
 
     @property
-    def abspath(self) -> 'pathlib.Path':
+    def abspath(self) -> 'pathlib.PurePath':
         return self._abspath
 
     @abc.abstractmethod
@@ -243,7 +242,7 @@ class DirectoryNode(ContainerNode, FilesystemNode):
                  entry: Dict = None,
                  *,
                  historian: mincepy.Historian = None):
-        super().__init__(path=pathlib.Path(path).resolve(),
+        super().__init__(path=pathlib.PurePath(os.path.abspath(path)),
                          parent=parent,
                          entry=entry,
                          historian=historian)
@@ -354,7 +353,7 @@ class ObjectNode(FilesystemNode):
 
     @classmethod
     def from_path(cls, path: os.PathLike, historian: mincepy.Historian = None):
-        full_path = pathlib.Path(path).resolve()
+        full_path = os.path.abspath(path)
 
         entry = db.fs.find_entry(os.withdb.to_fs_path(full_path), historian=historian)
         if entry is None:
@@ -472,7 +471,7 @@ class ObjectNode(FilesystemNode):
         self._abspath = dest
 
     def rename(self, new_name: str):
-        new_name: pathlib.Path = self.abspath.parent / new_name
+        new_name: pathlib.Path = pathlib.Path(self.abspath.parent / new_name)
         if new_name.is_dir():
             raise exceptions.IsADirectoryError(new_name)
 
@@ -681,7 +680,7 @@ def _(entry: FilesystemNode, historian: mincepy.Historian = None):
 @to_node.register(os.PathLike)
 def _(path: os.PathLike, historian: mincepy.Historian = None):
     # Make sure we've got a pure path so we don't actually check that database
-    path = pathlib.Path(path).resolve()
+    path = os.path.abspath(path)
 
     fs_entry = db.fs.find_entry(os.withdb.to_fs_path(path), historian=historian)
     if fs_entry is None:

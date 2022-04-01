@@ -317,26 +317,11 @@ def _path_lookup(path: Path, start_id=Entry.id(ROOT)) -> List[Dict]:
 def _records_lookup() -> List[Dict]:
     """Look up object data records"""
     return [
-        # Create a field for the object ID that will be used to lookup records but
-        # only for objects, not directories
-        {
-            '$addFields': {
-                mincepy.mongo.db.OBJ_ID: {
-                    '$cond': {
-                        'if': {
-                            '$eq': [f'${Schema.TYPE}', Schema.TYPE_OBJ]
-                        },
-                        'then': f'${Schema.ID}',
-                        'else': '$$REMOVE'
-                    }
-                }
-            }
-        },
         # Join any objects with their record in the mincePy data collection
         {
             '$lookup': {
                 'from': mincepy.mongo.MongoArchive.DATA_COLLECTION,
-                'localField': f'{mincepy.mongo.db.OBJ_ID}',
+                'localField': f'{Schema.ID}',
                 'foreignField': mincepy.mongo.db.OBJ_ID,
                 'as': RECORDS,
             }

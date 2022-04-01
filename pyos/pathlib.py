@@ -47,7 +47,8 @@ class PurePath(os.PathLike):
 
     @property
     def name(self):
-        return self.parts[-1]
+        return os.path.split(self)[1]
+        # return self.parts[-1]
 
     @property
     def root(self) -> str:
