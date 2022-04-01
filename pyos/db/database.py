@@ -69,9 +69,10 @@ class Session(mincepy.archives.ArchiveListener):
                     deleted_objects.append(oper.obj_id)
 
         if new_objects:
-            fs.set_paths(*[(obj_id, self._cwd + (str(obj_id),)) for obj_id in new_objects],
-                         exists_ok=False,
-                         historian=self._historian)
+            fs.execute_instructions([
+                fs.SetObjPath(obj_id, self._cwd + (str(obj_id),), only_new=True)
+                for obj_id in new_objects
+            ])
 
         if deleted_objects:
             fs.remove_objs(tuple(deleted_objects))

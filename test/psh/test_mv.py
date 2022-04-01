@@ -6,6 +6,7 @@ from mincepy.testing import Car
 import pyos
 import pyos.os
 from pyos import psh
+from pyos.fs import nodes
 
 # pylint: disable=no-value-for-parameter
 
@@ -24,13 +25,15 @@ def test_mv_basic():
 
     contents = psh.ls('test/')
     assert len(contents) == 1
-    assert contents[0].obj_id == car.obj_id
+    assert isinstance(contents[0], nodes.FilesystemNode)
+    assert contents[0].entry_id == car.obj_id  # pylint: disable=no-member
 
     # Now move test into a subfolder
     psh.mv('test/', 'sub/')
     contents = psh.ls()
     assert len(contents) == 1
-    assert contents[0].name == 'sub'
+    assert isinstance(contents[0], nodes.FilesystemNode)
+    assert contents[0].name == 'sub'  # pylint: disable=no-member
 
     contents = psh.ls('sub/')
     assert len(contents) == 1
@@ -46,7 +49,8 @@ def test_mv_from_str():
     psh.mv(str(car.obj_id), 'test/')
     contents = psh.ls('test/')
     assert len(contents) == 1
-    assert contents[0].obj_id == car.obj_id
+    assert isinstance(contents[0], nodes.FilesystemNode)
+    assert contents[0].entry_id == car.obj_id  # pylint: disable=no-member
 
 
 def test_mv_from_path():
@@ -58,7 +62,8 @@ def test_mv_from_path():
     psh.mv(psh.locate(car), 'test/')
     contents = psh.ls('test/')
     assert len(contents) == 1
-    assert contents[0].obj_id == car.obj_id
+    assert isinstance(contents[0], nodes.FilesystemNode)
+    assert contents[0].entry_id == car.obj_id  # pylint: disable=no-member
 
 
 def test_mv_from_obj_id():
@@ -70,7 +75,8 @@ def test_mv_from_obj_id():
     psh.mv(car.obj_id, 'test/')
     contents = psh.ls('test/')
     assert len(contents) == 1
-    assert contents[0].obj_id == car.obj_id
+    assert isinstance(contents[0], nodes.FilesystemNode)
+    assert contents[0].entry_id == car.obj_id  # pylint: disable=no-member
 
 
 def test_mv_dest_as_path():
@@ -82,7 +88,8 @@ def test_mv_dest_as_path():
     psh.mv(car.obj_id, pyos.pathlib.Path('test/'))
     contents = psh.ls('test/')
     assert len(contents) == 1
-    assert contents[0].obj_id == car.obj_id
+    assert isinstance(contents[0], nodes.FilesystemNode)
+    assert contents[0].entry_id == car.obj_id  # pylint: disable=no-member
 
 
 def test_mv_remote():
@@ -96,7 +103,8 @@ def test_mv_remote():
 
     contents = psh.ls('/a/different/path/')
     assert len(contents) == 1
-    assert contents[0].obj_id == car.obj_id
+    assert isinstance(contents[0], nodes.FilesystemNode)
+    assert contents[0].entry_id == car.obj_id  # pylint: disable=no-member
 
 
 def test_mv_overwrite():
@@ -158,4 +166,5 @@ def test_mv_rename_directory():
     results = psh.ls('new_cars/')
 
     assert len(results) == 1
-    assert results[0].obj_id == car_id
+    assert isinstance(results[0], nodes.FilesystemNode)
+    assert results[0].entry_id == car_id  # pylint: disable=no-member

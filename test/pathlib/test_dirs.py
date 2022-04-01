@@ -3,6 +3,7 @@ from mincepy.testing import Person
 
 import pyos
 import pyos.os
+from pyos.fs import nodes
 from pyos import psh
 
 
@@ -17,8 +18,10 @@ def test_working_path():
 
     contents = psh.ls()
     assert len(contents) == 1
-    assert contents[0].abspath == address_book
+    assert isinstance(contents[0], nodes.FilesystemNode)
+    assert contents[0].abspath == address_book  # pylint: disable=no-member
 
     contents = psh.ls(address_book)
     assert len(contents) == 1
-    assert contents[0].obj_id == person_id
+    assert isinstance(contents[0], nodes.FilesystemNode)
+    assert contents[0].entry_id == person_id  # pylint: disable=no-member

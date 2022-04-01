@@ -139,7 +139,7 @@ def _sync_objects(src: mincepy.Historian,
 
         # 5. Set the paths
         for obj_id, path in new_paths.items():
-            db.fs.set_path(obj_id, os.withdb.to_fs_path(path), historian=dest)
+            db.fs.set_obj_path(obj_id, os.withdb.to_fs_path(path), historian=dest)
 
         # 6. Copy over metadata
         # Dictionary to store the metadatas we need to set at the dest

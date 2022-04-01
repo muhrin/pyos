@@ -26,7 +26,7 @@ def test_simple_find():
     # Look for it
     results = psh.find(meta=dict(group='cars'))
     assert len(results) == 1
-    assert results[0].obj_id == car.obj_id
+    assert results[0].entry_id == car.obj_id
 
     # Add another car to the group
     car2 = Car()

@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import collections
-from collections import abc
 from typing import Sequence, Iterable, Optional, Tuple, Any, Union, Iterator
 
 import deprecation
 import mincepy
+from tqdm import tqdm
 
 from pyos import exceptions
 from pyos import os
@@ -90,11 +90,14 @@ def set_paths(*obj_id_path: Tuple[Any, os.PathSpec],
     the corresponding PathInfo objects with absolute paths in the same order as the arguments"""
     hist = historian or database.get_historian()
     paths = []
+
     for obj_or_id, path in obj_id_path:
         obj_id = hist.to_obj_id(obj_or_id)
-        save_path = os.path.abspath(path)
-        fs.set_path(obj_id, os.withdb.to_fs_path(path), historian=historian)
-        paths.append(PathInfo(obj_id, save_path))
+
+        fs.set_obj_path(obj_id, os.withdb.to_fs_path(path), historian=historian)
+
+        paths.append(PathInfo(obj_id, os.path.abspath(path)))
+
     return paths
 
 
@@ -106,7 +109,8 @@ def rename(obj_or_id, dest: os.PathSpec):
 
     hist = database.get_historian()
     obj_id = hist.to_obj_id(obj_or_id)
-    fs.rename_obj(obj_id, os.withdb.to_fs_path(dest))
+
+    fs.rename(src_id=obj_id, dest=os.withdb.to_fs_path(dest), historian=hist)  # DB HIT
 
 
 def get_abspath(obj_id, _meta: dict) -> str:
@@ -144,7 +148,7 @@ def save_one(obj,
     :param historian: the historian to use for saving
     """
     hist = historian or database.get_historian()
-    obj_id = save_many(((obj, path),), overwrite=overwrite, historian=hist)[0]
+    obj_id = save_many(((obj, path),), overwrite=overwrite, show_progress=False, historian=hist)[0]
     if meta:
         hist.meta.set(obj_id, meta)
 
@@ -153,6 +157,7 @@ def save_one(obj,
 
 def save_many(to_save: Iterable[Union[Any, Tuple[Any, os.PathSpec]]],
               overwrite=False,
+              show_progress=True,
               historian: mincepy.Historian = None):
     """
     Save many objects, expects an iterable where each entry is an object to save or a tuple of
@@ -162,65 +167,64 @@ def save_many(to_save: Iterable[Union[Any, Tuple[Any, os.PathSpec]]],
     :param overwrite: overwrite objects with the same name
     :param historian: the historian to use
     """
+
+    def _parse_entry(entry):
+        if isinstance(entry, tuple):
+            return entry[0], entry[1]
+
+        # Assume it's just the object
+        return entry, None
+
     for entry in to_save:
-        if isinstance(entry, abc.Sequence) and len(entry) > 2:
+        if isinstance(entry, tuple) and len(entry) > 2:
             raise ValueError('Can only pass sequences of at most length 2')
 
     obj_ids = []
     historian = historian or database.get_historian()
 
+    progress_opts = dict(desc='Saving', disable=not show_progress)
+    try:
+        progress_opts['total'] = len(to_save)
+    except TypeError:
+        pass
+    progress_bar = tqdm(**progress_opts)
+
+    cache = fs.EntriesCache(historian)
     exc = None
     with historian.transaction():
         for entry in to_save:
-            if isinstance(entry, abc.Sequence):
-                obj, path = entry[0], entry[1]
-            else:
-                # Assume it's just the object
-                obj, path = entry, None
+            obj, path = _parse_entry(entry)
 
             # Set the object to be saved at the end of the transaction
             obj_id = historian.save_one(obj)
-            obj_entry = fs.get_entry(obj_id, historian=historian)
-            if not (obj_entry is not None and path is None):
-                # Nothing to do as the object is saved and the user has not supplied a path
-                try:
-                    path = _get_save_path(path, obj_id, historian)
-                except exceptions.FileExistsError as exc_:
-                    if exc_.obj_id == obj_id:
-                        # Nothing to do, this file is already at this path
-                        pass
-                    elif overwrite:
-                        historian.delete(exc_.obj_id)
+            if path is not None:
+                # Get information about the source
+                source_entry = cache.get_entry_from_id(obj_id)
+                if source_entry is not None and fs.Entry.is_dir(source_entry):
+                    raise exceptions.IsADirectoryError(path)
+
+                # Get information about the destination
+                save_path = os.withdb.to_fs_path(path)
+                dest_entry = cache.get_entry_from_path(save_path)
+
+                if dest_entry is not None and fs.Entry.is_dir(dest_entry):
+                    if source_entry is None:
+                        save_path = save_path + (str(obj_id),)
                     else:
-                        # Save the exception but allow the transaction to complete before re-raising
-                        exc = exc_
-                        break
+                        save_path = save_path + (fs.Entry.name(source_entry),)
+
+                if source_entry is None:
+                    _insert(obj_id, save_path, overwrite=overwrite, cache=cache)
                 else:
-                    # Now try setting the path on the filesystem (this will be done immediately)
-                    fs.set_path(obj_id, path, historian=historian)
+                    _rename(obj_id, save_path, overwrite=overwrite, cache=cache)
 
             obj_ids.append(obj_id)
+            progress_bar.update(1)
 
     if exc is not None:
-        raise exc
+        raise exc  # pylint: disable=raising-bad-type
 
     return obj_ids
-
-
-def _get_save_path(path, obj_id, historian: mincepy.Historian) -> fs.Path:
-    if path is None:
-        fs_path = database.get_session().cwd + (str(obj_id),)
-    else:
-        fs_path = os.withdb.to_fs_path(path)
-
-    entry = fs.find_entry(fs_path, historian=historian)
-    if entry is None:
-        return fs_path
-
-    if fs.Entry.is_dir(entry):
-        return fs_path + (str(obj_id),)
-
-    raise exceptions.FileExistsError(fs.Entry.id(entry), path)
 
 
 def load(*identifier):
@@ -296,3 +300,47 @@ def get_oid(*identifier) -> Iterator:
                     obj_id = next(get_obj_id_from_path(path))  # pylint: disable=stop-iteration-return
 
         yield obj_id
+
+
+def _insert(obj_id,
+            dest: fs.Path,
+            overwrite=False,
+            historian: mincepy.Historian = None,
+            cache: fs.EntriesCache = None):
+    cache = cache or fs.EntriesCache(historian)
+    historian = cache.historian
+
+    try:
+        fs.insert_obj(obj_id, dest, cache=cache)  # DB HIT
+    except exceptions.FileExistsError:
+        if overwrite:
+            conflicting_id = fs.Entry.id(cache.get_entry_from_path(dest))
+            historian.delete(conflicting_id)
+            fs.remove_obj(conflicting_id, historian=historian)  # DB HIT
+
+            # Try again
+            fs.insert_obj(obj_id, dest, cache=cache)  # DB HIT
+        else:
+            raise
+
+
+def _rename(obj_id,
+            dest: fs.Path,
+            overwrite=False,
+            historian: mincepy.Historian = None,
+            cache: fs.EntriesCache = None):
+    cache = cache or fs.EntriesCache(historian)
+    historian = cache.historian
+
+    try:
+        fs.rename(src_id=obj_id, dest=dest, cache=cache)  # DB HIT
+    except exceptions.FileExistsError:
+        if overwrite:
+            conflicting_id = fs.Entry.id(cache.get_entry_from_path(dest))  # DB HIT
+            historian.delete(conflicting_id)
+            fs.remove_obj(conflicting_id, historian=historian)  # DB HIT
+
+            # Try again
+            fs.rename(src_id=obj_id, dest=dest, cache=cache)  # DB_HIT
+        else:
+            raise

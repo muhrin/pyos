@@ -4,7 +4,7 @@ import collections.abc
 import copy
 import functools
 import sys
-from typing import Dict, Sequence, Optional
+from typing import Dict, Sequence, Optional, Iterable
 
 import anytree
 import columnize
@@ -230,11 +230,11 @@ class ContainerNode(BaseNode):
         return items
 
     @property
-    def directories(self):
+    def directories(self) -> Iterable['DirectoryNode']:
         return filter(lambda node: isinstance(node, DirectoryNode), self.children)
 
     @property
-    def objects(self):
+    def objects(self) -> Iterable['ObjectNode']:
         return filter(lambda node: isinstance(node, ObjectNode), self.children)
 
 
@@ -448,7 +448,7 @@ class ObjectNode(FilesystemNode):
 
     @property
     def mtime(self):
-        return db.fs.Entry.mtime(self._entry)
+        return db.fs.Entry.stime(self._entry)
 
     @property
     def creator(self):
@@ -604,7 +604,7 @@ class ResultsNode(ContainerNode):
 
         if 'mtime' in self._show:
             try:
-                row.append(fmt.pretty_datetime(child.mtime))
+                row.append(fmt.pretty_datetime(child.stime))
             except AttributeError:
                 row.append(empty)
 

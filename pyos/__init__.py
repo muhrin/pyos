@@ -27,6 +27,7 @@ indeed any python type that can be stored by PyOS's backend.
 from . import exceptions
 from . import os
 from . import db
+from .db import connect
 from . import pathlib
 from . import fs
 
@@ -43,6 +44,6 @@ from .exceptions import *  # pylint: disable=redefined-builtin
 
 _MODULES = 'os', 'config', 'db', 'fmt', 'fs', 'pathlib', 'psh_lib', 'psh'
 _DEPRECATED = ('working_path',)
-_ADDITIONAL = ('PurePath', 'Path', '__version__')
+_ADDITIONAL = ('PurePath', 'Path', '__version__', 'connect')
 
 __all__ = version.__all__ + lib.__all__ + exceptions.__all__ + _MODULES + _DEPRECATED + _ADDITIONAL

@@ -5,6 +5,7 @@ import pyos
 import pyos.os
 from pyos import psh
 from pyos import fs
+from pyos.fs import nodes
 
 # Disable this here because, e.g., ls() causes the linter to warn because it is the
 # decorator that takes care of passing the first argument
@@ -96,7 +97,8 @@ def test_ls_minus_d():
     # Just the current directory
     results = psh.ls(-psh.d)
     assert len(results) == 1
-    assert results[0].abspath == psh.pwd()
+    assert isinstance(results[0], nodes.FilesystemNode)
+    assert results[0].abspath == psh.pwd()  # pylint: disable=no-member
 
 
 def test_ls_lots():
@@ -160,7 +162,7 @@ def test_vanishing_folders():
     results = psh.ls()
     assert len(results) == 1
     assert isinstance(results[0], fs.nodes.ObjectNode)
-    assert results[0].obj_id == car_id  # pylint: disable = no-member
+    assert results[0].entry_id == car_id  # pylint: disable = no-member
 
     results = psh.ls('/')
     assert len(results) == 1

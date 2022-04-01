@@ -45,7 +45,7 @@ def add_pyos_collections(historian: mincepy.Historian):
         directory = root
         for entry in meta[config.DIR_KEY].split('/')[1:-1]:
             directory = directory[entry]
-        directory.add_obj(meta.get(config.NAME_KEY, str(obj_id)), obj_id)
+        directory.add_obj(meta.get_entry(config.NAME_KEY, str(obj_id)), obj_id)
 
     records = [fs.ROOT] + root.create_edge_records()
 

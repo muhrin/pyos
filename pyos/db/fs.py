@@ -5,23 +5,10 @@ Low-level filesystem database commands.
 The filesystem collection consists of entries corresponding to edges in a tree where the source
 points to the parent directory and the destination points to the file or directory contained within it.
 The edge also stores the name of the entry.
-
-'name',
-{
-    'id': ...,
-    'parent': id,
-    'type': 'dir' or 'obj',
-    'children':
-    {
-        'some child': {
-            'id': ...',
-            'parent':
-        }
-    }
-}
 """
+import abc
 import datetime
-from typing import Dict, List, Iterator, Optional, Tuple
+from typing import Dict, List, Iterator, Optional, Tuple, Iterable
 
 import mincepy
 import mincepy.mongo.db
@@ -54,10 +41,11 @@ class Schema:
     NAME = 'name'
     PARENT = 'parent'
     TYPE = 'type'
-    CTIME = 'ctime'
-    MTIME = 'mtime'
+    CTIME = 'ctime'  # Creation time of the entry
+    UTIME = 'utime'  # Last update time of the entry (e.g. name change or move)
 
     # Optional fields
+    STIME = 'stime'  # Last snapshot time of the object (i.e. last time it was changed)
     DESCENDENTS = DESCENDENTS
     DEPTH = 'depth'
     VER = 'ver'
@@ -76,7 +64,7 @@ class Schema:
             Schema.PARENT: parent,
             Schema.TYPE: 'dir',
             Schema.CTIME: dtime,
-            Schema.MTIME: dtime,
+            Schema.STIME: dtime,
         }
 
         return out
@@ -121,6 +109,11 @@ class Entry:
         return entry[Schema.PARENT]
 
     @staticmethod
+    def set_parent(entry_id, parent_id, historian: mincepy.Historian):
+        coll = get_fs_collection(historian)
+        coll.update_one({Schema.ID: entry_id}, {Schema.PARENT: parent_id})
+
+    @staticmethod
     def path_entries(entry: Dict) -> Optional[List[Dict]]:
         return entry.get(Schema.PATH_ENTRIES)
 
@@ -137,11 +130,13 @@ class Entry:
         return entry[Schema.CTIME]
 
     @staticmethod
-    def mtime(entry: Dict) -> datetime.datetime:
-        return entry[Schema.MTIME]
+    def stime(entry: Dict) -> datetime.datetime:
+        """Get the snapshot time of the object"""
+        return entry[Schema.STIME]
 
     @staticmethod
     def ver(entry: Dict) -> Optional[int]:
+        """Get the version number of the object"""
         return entry[Schema.VER]
 
     @staticmethod
@@ -190,6 +185,62 @@ class FilesystemBuilder:
                 yield from value.yield_edges()
             else:
                 yield Schema.obj_dict(obj_id=value, parent=self._id, name=name)  # pylint: disable=protected-access
+
+
+class EntriesCache:
+
+    def __init__(self, historian: mincepy.Historian):
+        self._hist = historian or database.get_historian()
+        self._entry_ids = {}
+        self._paths = {}
+        self._path_entries = {}
+
+    @property
+    def historian(self) -> mincepy.Historian:
+        return self._hist
+
+    def get_entry(self, id_or_path) -> Dict:
+        if isinstance(id_or_path, tuple):
+            return self.get_entry_from_path(id_or_path)
+
+        # Assume it's an entry id
+        return self.get_entry_from_id(id_or_path)
+
+    def get_entry_from_path(self, path: Path) -> Dict:
+        if not isinstance(path, tuple):
+            raise TypeError(f'Expected tuple, got {path.__class__.__name__}')
+
+        try:
+            return self._paths[path]
+        except KeyError:
+            entry = find_entry(path, historian=self._hist)
+            if entry is not None:
+                # Cache the entry
+                self._paths[path] = entry
+                self._entry_ids[Entry.id(entry)] = entry
+
+            return entry
+
+    def get_entry_from_id(self, entry_id) -> Dict:
+        try:
+            return self._entry_ids[entry_id]
+        except KeyError:
+            entry = get_entry(entry_id, historian=self._hist)
+            if entry is not None:
+                # Cache the entry
+                self._entry_ids[Entry.id(entry)] = entry
+
+            return entry
+
+    def get_path_entries(self, path: Path) -> List[Dict]:
+        try:
+            return self._path_entries[path]
+        except KeyError:
+            entries = find_path_entries(path, self._hist)
+            for entry in entries:
+                self._entry_ids[Entry.id(entry)] = entry
+            self._path_entries[path] = entries
+            return entries
 
 
 def get_fs_collection(historian: mincepy.Historian = None):
@@ -308,7 +359,7 @@ def _records_lookup() -> List[Dict]:
                 Schema.CTIME: {
                     '$arrayElemAt': [f'$records.{mincepy.mongo.db.CREATION_TIME}', 0]
                 },
-                Schema.MTIME: {
+                Schema.STIME: {
                     '$arrayElemAt': [f'$records.{mincepy.mongo.db.SNAPSHOT_TIME}', 0]
                 },
                 Schema.VER: {
@@ -431,66 +482,143 @@ def get_paths(*obj_id, historian: mincepy.Historian = None) -> Tuple[Path]:
     return tuple(paths)
 
 
-def set_path(obj_id,
-             path: Path,
-             upsert=True,
-             exists_ok=True,
-             historian: mincepy.Historian = None) -> Optional[Dict]:
-    """Set the saved location of an object.
+def set_obj_path(obj_id,
+                 new_path: Path,
+                 historian: mincepy.Historian = None,
+                 cache: EntriesCache = None):
+    """
+    Set the path for a filesystem entry
 
-    :param path: the path to save the object at.  path[:-1] will be the absolute path to the directory while
+    :param parent: the path to save the object at.  path[:-1] will be the absolute path to the directory while
         path[-1] will be the filename.  Note that the directory must already exist.
     """
+    cache = cache or EntriesCache(historian)
+    instruction = SetObjPath(obj_id, new_path)
+    ops = instruction.get_ops(cache)
+
     coll = get_fs_collection(historian=historian)
-
-    dirpath, basename = path[:-1], path[-1]
-
-    dir_entry = find_entry(dirpath, historian=historian)
-    if not dir_entry:
-        raise exceptions.FileNotFoundError(f'Directory not found: {dirpath}')
-
-    new_entry = Schema.obj_dict(obj_id, parent=Entry.id(dir_entry), name=basename)
-    if exists_ok:
-        res = coll.replace_one({Schema.ID: obj_id}, new_entry, upsert=upsert)
-        if res.modified_count != 1:
-            # Didn't set path
-            return None
-    else:
-        # Only insert if the object isn't already saved
-        try:
-            coll.insert_one(new_entry)
-        except pymongo.errors.DuplicateKeyError:
-            return None
-
-    return new_entry
-
-
-def set_paths(*obj_id_path, upsert=True, exists_ok=True, historian: mincepy.Historian = None):
-    coll = get_fs_collection(historian=historian)
-    ops = []
-    results = []
-
-    for obj_id, path in obj_id_path:
-        dirpath, basename = path[:-1], path[-1]
-
-        dir_entry = find_entry(dirpath, historian=historian)
-        if not dir_entry:
-            raise exceptions.FileNotFoundError(f'Directory not found: {dirpath}')
-
-        new_entry = Schema.obj_dict(obj_id, parent=Entry.id(dir_entry), name=basename)
-        results.append(new_entry)
-        if exists_ok:
-            ops.append(pymongo.ReplaceOne({Schema.ID: obj_id}, new_entry, upsert=upsert))
-        else:
-            # Only insert of the object isn't already saved
-            ops.append(pymongo.InsertOne(new_entry))
-
     try:
         coll.bulk_write(ops)
-    except pymongo.errors.BulkWriteError:
-        pass
+    except pymongo.errors.BulkWriteError as exc:
+        # Ask the instruction to handle the error
+        instruction.handle_exception(exc.details['writeErrors'][0])
 
-    return results
+
+class Instruction(metaclass=abc.ABCMeta):
+
+    @abc.abstractmethod
+    def get_ops(self, cache: EntriesCache):
+        """Get the bulk operations needed to carry out this instruction"""
+
+    def handle_exception(self, error: Dict):  # pylint: disable=no-self-use
+        raise exceptions.PyOSError(error)
+
+
+class SetObjPath(Instruction):
+    """Change the name or location of an existing filesystem entry"""
+
+    def __init__(self, obj_id, new_path: Path, only_new=False):
+        if obj_id is None:
+            raise ValueError('Must supply entry id')
+
+        self.entry_id = obj_id
+        self.new_path = new_path
+        self.only_new = only_new
+
+    def get_ops(self, cache: EntriesCache) -> List:
+        return SetObjPath._set_path_operations(cache, self.entry_id, self.new_path, self.only_new)
+
+    @staticmethod
+    def _set_path_operations(
+        cache: EntriesCache,
+        obj_id,
+        new_path: Path,
+        only_new=False,
+    ) -> List:
+        # Find out where they want to put it
+        parent, basename = new_path[:-1], new_path[-1]
+        parent_entry = cache.get_entry_from_path(parent)  # Possible DB HIT
+
+        if parent_entry is None:
+            raise exceptions.FileNotFoundError(parent)
+        if not Entry.is_dir(parent_entry):
+            raise exceptions.NotADirectoryError(parent)
+
+        parent_id = Entry.id(parent_entry)
+
+        time_now = datetime.datetime.now()
+        if only_new:
+            # Only set the path if the object isn't already in the filesystem
+            update = {'$setOnInsert': Schema.obj_dict(obj_id, parent_id, name=basename)}
+        else:
+            # Set the new path whether or not it exists
+            update = {
+                '$set': {
+                    Schema.PARENT: parent_id,
+                    Schema.NAME: basename,
+                    Schema.UTIME: time_now,
+                },
+                '$setOnInsert': {
+                    Schema.TYPE: Schema.TYPE_OBJ,
+                    Schema.CTIME: time_now
+                }
+            }
+
+        return [
+            pymongo.UpdateOne({
+                Schema.ID: obj_id,
+                Schema.TYPE: Schema.TYPE_OBJ
+            },
+                              update,
+                              upsert=True)
+        ]
+
+    def handle_exception(self, error: Dict):
+        if error['code'] == 11000:
+            raise exceptions.FileExistsError()
+
+        super().handle_exception(error)
+
+
+class Rename(Instruction):
+
+    def __init__(self, src_id, dest_path):
+        self.src_id = src_id
+        self.dest_path = dest_path
+
+    def get_ops(self, cache: EntriesCache):
+        return Rename.rename_operations(cache, self.src_id, self.dest_path)
+
+    @staticmethod
+    def rename_operations(cache: EntriesCache, src_id, dest_path):
+        dest_dir, dest_name = dest_path[:-1], dest_path[-1]
+
+        parent_entry = cache.get_entry_from_path(dest_dir)  # Possible DB HIT
+        if not Entry.is_dir(parent_entry):
+            raise exceptions.NotADirectoryError(dest_dir)
+
+        return [
+            pymongo.UpdateOne(
+                {Schema.ID: src_id},
+                {'$set': {
+                    Schema.PARENT: Entry.id(parent_entry),
+                    Schema.NAME: dest_name
+                }})
+        ]
+
+    def handle_exception(self, error: Dict):
+        if error['code'] == 11000:
+            raise exceptions.FileExistsError()
+
+
+def execute_instructions(instructions: Iterable[Instruction], historian: mincepy.Historian = None):
+    cache = EntriesCache(historian)
+    ops = []
+    for instruction in instructions:
+        ops.extend(instruction.get_ops(cache))
+
+    if ops:
+        get_fs_collection(historian).bulk_write(ops)
 
 
 def make_dirs(path: Path, exists_ok=False, historian: mincepy.Historian = None):
@@ -528,64 +656,64 @@ def make_dirs(path: Path, exists_ok=False, historian: mincepy.Historian = None):
     return None
 
 
-def rename(path: Path, new_path: Path, historian: mincepy.Historian = None):
-    coll = get_fs_collection(historian)
-    entry = find_entry(path, historian=historian)  # DB HIT
-    if not entry:
-        raise exceptions.FileNotFoundError(f'File not found: {path}')
+def rename(
+    src: Path = None,
+    dest: Path = None,
+    src_id=None,
+    historian: mincepy.Historian = None,
+    lookup_cache: EntriesCache = None,
+):
+    """Rename a filesystem entry"""
+    cache = lookup_cache or EntriesCache(historian)
 
-    new_dir_id = Entry.parent(entry)
-    new_dir = new_path[:-1]
-    if new_dir != path[:-1]:
-        new_dir_entry = find_entry(new_dir, historian=historian)  # DB HIT
-        if not new_dir_entry:
-            raise exceptions.FileNotFoundError(f'File not found: {new_dir}')
-        new_dir_id = Entry.id(new_dir_entry)
+    if src_id is None:
+        if src is None:
+            raise ValueError('Have to supply source or source id')
+        src_entry = cache.get_entry_from_path(src)
+        if src_entry is None:
+            raise exceptions.FileExistsError(src)
+        src_id = Entry.id(src_entry)
 
-    new_doc = {
-        Schema.ID: Entry.id(entry),
-        Schema.NAME: new_path[-1],
-        Schema.TYPE: Entry.type(entry),
-        Schema.PARENT: new_dir_id
-    }
-
-    if Entry.is_dir(entry):
-        # Renaming directory changes its modification time
-        new_doc[Schema.MTIME] = datetime.datetime.now()
-
-    try:
-        coll.replace_one({'_id': new_doc[Schema.ID]}, new_doc, upsert=False)  # DB HIT
-    except pymongo.errors.DuplicateKeyError as exc:
-        # Trying to overwrite existing file with same name
-        raise exceptions.FileExistsError(new_path) from exc
-
-
-def rename_obj(obj_id, new_path: Path, historian: mincepy.Historian = None):
     # Find the entry corresponding to the new folder
-    dirpath, basename = new_path[:-1], new_path[-1]
+    dirpath, basename = dest[:-1], dest[-1]
 
-    new_dir = find_entry(dirpath, historian=historian)
+    new_dir = cache.get_entry_from_path(dirpath)
     if new_dir is None:
         raise exceptions.FileNotFoundError(f'File not found: {dirpath}')
 
     # Update the object to be in the new location
     coll = get_fs_collection(historian=historian)
-    coll.update_one({'_id': obj_id},
-                    {'$set': {
-                        Schema.PARENT: Entry.id(new_dir),
-                        Schema.NAME: basename
-                    }},
-                    upsert=False)
+    try:
+        res = coll.update_one({Schema.ID: src_id},
+                              {'$set': {
+                                  Schema.PARENT: Entry.id(new_dir),
+                                  Schema.NAME: basename
+                              }},
+                              upsert=False)
+    except pymongo.errors.DuplicateKeyError:
+        raise exceptions.FileExistsError(dest) from None
+    else:
+        if res.modified_count == 1:
+            return True
+
+        return False
 
 
-def remove_obj(obj_id, historian: mincepy.Historian = None):
+def remove_obj(obj_id, historian: mincepy.Historian = None) -> bool:
+    """Remove a single object entry"""
     coll = get_fs_collection(historian)
-    coll.delete_one({Schema.ID: obj_id, Schema.TYPE: Schema.TYPE_OBJ})
+    res = coll.delete_one({Schema.ID: obj_id, Schema.TYPE: Schema.TYPE_OBJ})
+    if res.deleted_count == 1:
+        return True
+
+    return False
 
 
-def remove_objs(obj_ids: Tuple, historian: mincepy.Historian = None):
+def remove_objs(obj_ids: Tuple, historian: mincepy.Historian = None) -> int:
+    """Remove many object entries"""
     coll = get_fs_collection(historian)
-    coll.delete_many({Schema.ID: {'$in': list(obj_ids)}, Schema.TYPE: Schema.TYPE_OBJ})
+    res = coll.delete_many({Schema.ID: {'$in': list(obj_ids)}, Schema.TYPE: Schema.TYPE_OBJ})
+    return res.deleted_count
 
 
 def remove_dir(entry_id, recursive=False, historian: mincepy.Historian = None) -> Dict:
@@ -608,6 +736,21 @@ def remove_dir(entry_id, recursive=False, historian: mincepy.Historian = None) -
     coll.delete_many({Schema.ID: {'$in': entry_ids}})  # DB HIT
 
     return entry
+
+
+def insert_obj(obj_id, dest: Path, historian: mincepy.Historian = None, cache: EntriesCache = None):
+    cache = cache or EntriesCache(historian)
+    dirpath, name = dest[:-1], dest[-1]
+    dest_entry = cache.get_entry_from_path(dirpath)
+
+    if dest_entry is None:
+        raise exceptions.FileNotFoundError(f'File not found: {dirpath}')
+
+    coll = get_fs_collection(cache.historian)
+    try:
+        coll.insert_one(Schema.obj_dict(obj_id, Entry.id(dest_entry), name))
+    except pymongo.errors.DuplicateKeyError:
+        raise exceptions.FileExistsError(dest) from None
 
 
 def validate_path(path: Path, absolute=True):
