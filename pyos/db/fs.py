@@ -423,7 +423,7 @@ def find_entry(
 def find_children(entry_id, *, historian: mincepy.Historian = None) -> Iterator[Dict]:
     aggregation = [{'$match': {Schema.PARENT: entry_id}}, *_records_lookup()]
     coll = get_fs_collection(historian)
-    return coll.aggregate(aggregation, allowDiskUse=True)
+    return coll.aggregate(aggregation, allowDiskUse=True, batchSize=1000)
 
 
 def get_entry(

@@ -5,7 +5,6 @@ from typing import List, Iterator
 
 import mincepy
 
-from pyos import config
 from pyos import db
 from pyos.db import fs
 from pyos import exceptions
@@ -120,7 +119,6 @@ def chdir(path: types.PathSpec):
         raise exceptions.NotADirectoryError(f'Not a directory {path}')
 
     db.get_session().set_cwd(to_fs_path(path))
-    db.get_historian().meta.sticky[config.DIR_KEY] = path
 
 
 def getcwd() -> str:

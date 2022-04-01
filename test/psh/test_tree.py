@@ -29,3 +29,21 @@ def test_tree_depth():
     for idx in range(4):
         height = check_depth(psh.tree - psh.L(idx)())
         assert height == idx + 1
+
+
+def test_tree_print():
+    expected_result = """/
+├── a
+│   ├── a_car
+│   └── b
+│       └── b_car
+└── some_car
+"""
+
+    pyos.os.makedirs('a/b/')
+    psh.save(Car(), 'some_car')
+    psh.save(Car(), 'a/a_car')
+    psh.save(Car(), 'a/b/b_car')
+
+    results = psh.tree()
+    assert str(results) == expected_result

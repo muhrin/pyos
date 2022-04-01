@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """The find command"""
 import argparse
+import sys
 
 import cmd2
 from mincepy import qops
@@ -91,4 +92,5 @@ class Find(cmd2.CommandSet):
                            state=state,
                            mindepth=args.mindepth,
                            maxdepth=args.maxdepth)
-        print(res)
+
+        res.__stream_out__(sys.stdout)

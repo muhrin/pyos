@@ -2,6 +2,7 @@
 """List command"""
 import argparse
 import logging
+import sys
 
 import cmd2
 
@@ -81,4 +82,5 @@ class Ls(cmd2.CommandSet):
         if args.p:
             command = command - psh.p
 
-        print(command(*args.path))
+        res = command(*args.path)
+        res.__stream_out__(sys.stdout)

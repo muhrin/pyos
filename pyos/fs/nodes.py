@@ -3,8 +3,8 @@ import abc
 import collections.abc
 import copy
 import functools
-import sys
-from typing import Dict, Sequence, Optional, Iterable
+import io
+from typing import Dict, Sequence, Optional, Iterable, TextIO
 
 import anytree
 import columnize
@@ -32,11 +32,7 @@ CHILDREN = 'children'
 UNSET = tuple()
 
 
-class BaseNode(
-        collections.abc.Sequence,
-        # anytree.NodeMixin,
-        results.BaseResults,
-        metaclass=abc.ABCMeta):
+class BaseNode(collections.abc.Sequence, results.BaseResults, metaclass=abc.ABCMeta):
     """Base node for the object system in pyos"""
 
     def __init__(self, name: str, parent: 'BaseNode' = UNSET, historian: mincepy.Historian = None):
@@ -255,10 +251,9 @@ class DirectoryNode(ContainerNode, FilesystemNode):
             raise exceptions.NotADirectoryError(path)
 
     def __repr__(self):
-        rep = []
-        for pre, _, node in anytree.RenderTree(self):
-            rep.append(f'{pre}{node.name}')
-        return '\n'.join(rep)
+        with io.StringIO() as stream:
+            self.__stream_out__(stream)
+            return stream.getvalue()
 
     def __copy__(self):
         """Create a copy with no parent"""
@@ -278,6 +273,10 @@ class DirectoryNode(ContainerNode, FilesystemNode):
             self.expand()
         return super().__getitem__(item)
 
+    def __stream_out__(self, stream: TextIO):
+        for pre, _, node in anytree.RenderTree(self, childiter=iter):
+            stream.write(f'{pre}{node.name}\n')
+
     def expand(self, depth=1, populate_objects=False):  # pylint: disable=unused-argument
         """Populate the children with what is currently in the database
 
@@ -296,26 +295,32 @@ class DirectoryNode(ContainerNode, FilesystemNode):
         else:
             child_expand_depth = -1
 
-        if CHILDREN not in self._entry:
-            self._entry[CHILDREN] = list(db.fs.find_children(self.entry_id, historian=self._hist))
+        if CHILDREN in self._entry:
+            self._children = self._entry[CHILDREN]
+        else:
+            from pyos import psh_lib
 
-        added = []
-        for descendent in self._entry[CHILDREN]:
-            path = os.path.join(self._abspath, db.fs.Entry.name(descendent))
-            if db.fs.Entry.is_dir(descendent):
-                dir_node = DirectoryNode(path, parent=self, entry=descendent, historian=self._hist)
-                added.append(dir_node)
-                if abs(child_expand_depth) > 0:
-                    dir_node.expand(child_expand_depth)
-            else:
-                obj_node = ObjectNode(db.fs.Entry.id(descendent),
-                                      path=path,
-                                      parent=self,
-                                      entry=descendent,
-                                      historian=self._hist)
-                added.append(obj_node)
+            def yield_results():
+                for child in db.fs.find_children(self.entry_id, historian=self._hist):
+                    path = os.path.join(self._abspath, db.fs.Entry.name(child))
+                    if db.fs.Entry.is_dir(child):
+                        dir_node = DirectoryNode(path,
+                                                 parent=self,
+                                                 entry=child,
+                                                 historian=self._hist)
+                        if abs(child_expand_depth) > 0:
+                            dir_node.expand(child_expand_depth)
 
-        self._children = added
+                        yield dir_node
+                    else:
+                        obj_node = ObjectNode(db.fs.Entry.id(child),
+                                              path=path,
+                                              parent=self,
+                                              entry=child,
+                                              historian=self._hist)
+                        yield obj_node
+
+            self._children = psh_lib.results.CachingResults(yield_results())
 
     def delete(self):
         # 1. Find all the objects at or below this directory
@@ -488,57 +493,66 @@ class ResultsNode(ContainerNode):
         self._children = []
 
     def __repr__(self):
+        with io.StringIO() as stream:
+            self.__stream_out__(stream)
+            return stream.getvalue()
+
+    def __getitem__(self, item):
+        res = super().__getitem__(item)
+        if isinstance(res, ResultsNode):
+            # Transfer the view mode
+            res.show(*self._show, mode=self._view_mode)
+        return res
+
+    def __stream_out__(self, stream: TextIO):
         if self._view_mode == TREE_VIEW:
-            rep = []
-            for child in self.directories:
-                for pre, _, node in anytree.RenderTree(child):
-                    rep.append(f'{pre}{node.name}')
-            for child in self.objects:
-                rep.append(str(child))
-            return '\n'.join(rep)
+            self._render_tree(stream)
 
-        if self._view_mode == TABLE_VIEW:
-            rep = []
+        elif self._view_mode == TABLE_VIEW:
+            self._render_table(stream)
 
-            if self._deeply_nested():
-                # Do the objects first, like linux's 'ls'
-                table = self._get_table(self.objects)
-                rep.append(tabulate.tabulate(table, tablefmt='plain'))
+        elif self._view_mode == LIST_VIEW:
+            self._render_list(stream)
 
-                for directory in self.directories:
-                    dir_repr = []
-                    dir_repr.append(f'{directory.name}:')
-                    table = self._get_table(directory)
-                    dir_repr.append(tabulate.tabulate(table, tablefmt='plain'))
-                    rep.append('\n'.join(dir_repr))
-            else:
-                my_repr = []
-                table = self._get_table(self.directories)
-                table.extend(self._get_table(self.objects))
-                my_repr.append(tabulate.tabulate(table, tablefmt='plain'))
-                rep.append('\n'.join(my_repr))
+    def _render_tree(self, stream: TextIO):
+        """Render this node as a tree"""
+        for child in self.directories:
+            for pre, _, node in anytree.RenderTree(child, childiter=iter):
+                stream.write(f'{pre}{node.name}\n')
+        for child in self.objects:
+            stream.write(f'{child}\n')
 
-            return '\n\n'.join(rep)
+    def _render_table(self, stream: TextIO):
+        """Render this node as a table"""
+        if self._deeply_nested():
+            # Do the objects first, like linux's 'ls'
+            table = self._get_table(self.objects)
+            stream.write(tabulate.tabulate(table, tablefmt='plain'))
+            stream.write('\n')
 
-        if self._view_mode == LIST_VIEW:
+            for directory in self.directories:
+                stream.write(f'{directory.name}:')
+                table = self._get_table(directory)
+                stream.write(tabulate.tabulate(table, tablefmt='plain'))
+                stream.write('\n')
+        else:
+            table = self._get_table(self.directories)
+            table.extend(self._get_table(self.objects))
+            stream.write(tabulate.tabulate(table, tablefmt='plain'))
+            stream.write('\n')
 
+    def _render_list(self, stream: TextIO):
+        if stream.isatty():
             repr_list = []
             for child in self:
                 repr_list.append('-'.join(self._get_row(child)))
 
-            if sys.stdout.isatty():
-                return columnize.columnize(repr_list, displaywidth=utils.get_terminal_width())
+            stream.write(columnize.columnize(repr_list, displaywidth=utils.get_terminal_width()))
+        else:
+            for child in self:
+                stream.write('-'.join(self._get_row(child)))
 
-            return '\n'.join(repr_list)
-
-        return super().__repr__()
-
-    def __getitem__(self, item):
-        result = super().__getitem__(item)
-        if isinstance(result, ResultsNode):
-            # Transfer the view mode
-            result.show(*self._show, mode=self._view_mode)
-        return result
+            stream.write('\n')
 
     @property
     def showing(self) -> set:
