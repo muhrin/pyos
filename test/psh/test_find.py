@@ -137,7 +137,7 @@ def test_shell_find_starting_point(pyos_shell):
         res = pyos_shell.app_cmd(f'find -s {start_point}')
         assert not res.stderr
 
-        paths = res.stdout.split('\n')[:-1]
+        paths = tuple(map(str.strip, res.stdout.split('\n')[:-1]))
         assert len(paths) == num_subdirs - idx
         dirs = {psh.meta(path)['mydir'] for path in paths}
 

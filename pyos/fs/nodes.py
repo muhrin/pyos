@@ -8,7 +8,7 @@ from typing import Dict, Sequence, Optional, Iterable, TextIO
 
 import anytree
 import columnize
-import tabulate
+import pandas as pd
 
 import mincepy
 
@@ -433,14 +433,11 @@ class ObjectNode(FilesystemNode):
 
     @property
     def type_id(self):
-        return self.record.type_id
+        return db.fs.Entry.type_id(self._entry)
 
     @property
     def type(self):
-        try:
-            return self._hist.get_obj_type(self.record.type_id)
-        except TypeError:
-            return self.type_id
+        return self._hist.get_obj_type(self.type_id)
 
     @property
     def ctime(self):
@@ -482,7 +479,30 @@ class ObjectNode(FilesystemNode):
 
 
 class ResultsNode(ContainerNode):
-    VIEW_PROPERTIES = ('loaded', 'type', 'creator', 'version', 'ctime', 'mtime', 'name', 'str')
+    VIEW_PROPERTIES = (
+        'loaded',  # Indication of whether the object is loaded in memory or not
+        'type',  # The object type
+        'creator',
+        'version',
+        'ctime',
+        'mtime',
+        'name',
+        'str',
+        'relpath',
+        'abspath',
+    )
+    JUSTIFICATIONS = {
+        'loaded': 'left',
+        'type': 'left',
+        'creator': 'right',
+        'version': 'right',
+        'ctime': 'right',
+        'mtime': 'right',
+        'name': 'right',
+        'str': 'right',
+        'relpath': 'left',
+        'abspath': 'left'
+    }
 
     def __init__(self, name='results', parent=None, historian: mincepy.Historian = None):
         super().__init__(name, parent, historian=historian)
@@ -526,18 +546,18 @@ class ResultsNode(ContainerNode):
         if self._deeply_nested():
             # Do the objects first, like linux's 'ls'
             table = self._get_table(self.objects)
-            stream.write(tabulate.tabulate(table, tablefmt='plain'))
+            stream.write(pd.DataFrame(table).to_string(index=False, header=False))
             stream.write('\n')
 
             for directory in self.directories:
                 stream.write(f'{directory.name}:')
                 table = self._get_table(directory)
-                stream.write(tabulate.tabulate(table, tablefmt='plain'))
+                stream.write(pd.DataFrame(table).to_string(index=False, header=False))
                 stream.write('\n')
         else:
             table = self._get_table(self.directories)
             table.extend(self._get_table(self.objects))
-            stream.write(tabulate.tabulate(table, tablefmt='plain'))
+            stream.write(pd.DataFrame(table).to_string(index=False, header=False))
             stream.write('\n')
 
     def _render_list(self, stream: TextIO):
@@ -549,9 +569,7 @@ class ResultsNode(ContainerNode):
             stream.write(columnize.columnize(repr_list, displaywidth=utils.get_terminal_width()))
         else:
             for child in self:
-                stream.write('-'.join(self._get_row(child)))
-
-            stream.write('\n')
+                stream.write('-'.join(self._get_row(child)) + '\n')
 
     @property
     def showing(self) -> set:
@@ -642,12 +660,7 @@ class ResultsNode(ContainerNode):
         return row
 
     def _get_table(self, entry) -> list:
-        table = []
-
-        for child in entry:
-            table.append(self._get_row(child))
-
-        return table
+        return [self._get_row(child) for child in entry]
 
     def _deeply_nested(self) -> bool:
         """Returns True if we have any nodes that themselves have children"""

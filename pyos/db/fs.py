@@ -45,10 +45,11 @@ class Schema:
     UTIME = 'utime'  # Last update time of the entry (e.g. name change or move)
 
     # Optional fields
-    STIME = 'stime'  # Last snapshot time of the object (i.e. last time it was changed)
+    STIME = mincepy.SNAPSHOT_TIME  # Last snapshot time of the object (i.e. last time it was changed)
     DESCENDENTS = DESCENDENTS
     DEPTH = 'depth'
-    VER = 'ver'
+    VER = mincepy.VERSION
+    TYPE_ID = mincepy.TYPE_ID
     PATH_ENTRIES = 'path'
 
     # Values
@@ -138,6 +139,10 @@ class Entry:
     def ver(entry: Dict) -> Optional[int]:
         """Get the version number of the object"""
         return entry[Schema.VER]
+
+    @staticmethod
+    def type_id(entry: Dict) -> Optional:
+        return entry[Schema.TYPE_ID]
 
     @staticmethod
     def depth(entry: Dict) -> Optional[int]:
@@ -349,6 +354,9 @@ def _records_lookup() -> List[Dict]:
                 },
                 Schema.VER: {
                     '$arrayElemAt': [f'$records.{mincepy.mongo.db.VERSION}', 0]
+                },
+                Schema.TYPE_ID: {
+                    '$arrayElemAt': [f'$records.{mincepy.mongo.db.TYPE_ID}', 0]
                 },
                 RECORDS: '$$REMOVE',
             }

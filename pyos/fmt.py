@@ -13,7 +13,8 @@ def pretty_type_string(obj_type: typing.Type) -> str:
 
     parts = type_str.split('.')
     if len(parts) > 2:
-        return '|'.join([parts[0], parts[-1]])
+        return f'{parts[0]}:{parts[-1]}'
+        # return '..'.join([parts[0], parts[-1]])
 
     return type_str
 
