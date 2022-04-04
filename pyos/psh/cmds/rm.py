@@ -57,4 +57,6 @@ class Rm(cmd2.CommandSet):
         if args.p:
             command = command - psh.p
 
-        print(command(*args.path))
+        res = command(*args.path)
+        if res is not None:
+            print(res)

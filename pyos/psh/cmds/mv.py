@@ -69,4 +69,6 @@ class Mv(cmd2.CommandSet):
         if args.f:
             command = command - psh.f
 
-        print(command(*args.path))
+        res = command(*args.path)
+        if res is not None:
+            print(res)

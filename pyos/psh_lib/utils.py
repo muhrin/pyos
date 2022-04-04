@@ -5,6 +5,7 @@ from typing import Sequence
 
 from pyos import db
 from pyos import fs
+from pyos import glob
 from pyos import os
 from pyos import pathlib
 
@@ -47,9 +48,12 @@ def _(arg: str):
     if obj_id is not None:
         return (obj_id,)
 
+    if glob.has_magic(arg):
+        return tuple(map(pathlib.PurePath, glob.glob(arg)))
+
     if isinstance(arg, str):
         # Assume it's a path
-        return (pathlib.Path(arg),)
+        return (pathlib.PurePath(arg),)
 
     raise TypeError(f"Unknown type '{arg}'")
 
