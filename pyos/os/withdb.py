@@ -127,7 +127,6 @@ def getcwd() -> str:
 
 
 def listdir(lsdir: types.PathSpec = '.') -> List[str]:
-    lsdir = abspath(lsdir)
     entry = db.fs.find_entry(to_fs_path(lsdir))  # DB HIT
     if not entry:
         raise exceptions.FileNotFoundError(lsdir)
@@ -135,10 +134,7 @@ def listdir(lsdir: types.PathSpec = '.') -> List[str]:
     if db.fs.Entry.is_obj(entry):
         raise exceptions.NotADirectoryError(f"Not a directory: '{lsdir}'")
 
-    return [
-        db.fs.Entry.name(descendent)
-        for _, descendent in db.fs.iter_descendents(db.fs.Entry.id(entry))
-    ]
+    return [db.fs.Entry.name(child) for child in fs.find_children(fs.Entry.id(entry))]
 
 
 def open(

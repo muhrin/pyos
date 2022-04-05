@@ -33,3 +33,18 @@ def test_rename_to_existing():
     with pytest.raises(pyos.exceptions.FileExistsError):
         os.rename('car2', 'car1')
     assert set(os.listdir()) == {'car1', 'car2'}
+
+
+def test_listdir():
+    os.makedirs('/a/b/')
+    db.save_one(testing.Car(), '/a/acar')
+    db.save_one(testing.Car(), '/a/b/bcar')
+
+    assert sorted(os.listdir('/')) == ['a']
+    assert sorted(os.listdir('/a/')) == ['acar', 'b']
+    assert sorted(os.listdir('/a/b/')) == ['bcar']
+
+    with pytest.raises(pyos.exceptions.NotADirectoryError):
+        os.listdir('/a/acar')
+    with pytest.raises(pyos.exceptions.FileNotFoundError):
+        os.listdir('/c/')
