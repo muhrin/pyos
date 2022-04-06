@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
+import collections
 import concurrent.futures
 
 import mincepy
 
+import pyos.db.fs
 from pyos import os
 from pyos import db
 from . import nodes
@@ -36,33 +38,39 @@ def find(*starting_point,
     meta = (meta or {}).copy()
     state = (state or {}).copy()
 
-    obj_ids = set()
+    obj_ids = collections.defaultdict(set)
 
     def populate_object_ids(path):
-        entry = db.fs.find_entry(os.withdb.to_fs_path(path), historian=historian)
+        # Find the filesystem entry we're looking for
+        start_fs_path = os.withdb.to_fs_path(path)
+        entry = db.fs.find_entry(start_fs_path, historian=historian)
+
         if db.fs.Entry.is_obj(entry):
             if mindepth == 0:
-                obj_ids.add(db.fs.Entry.id(entry))
+                obj_ids[db.fs.Entry.id(entry)].add(path)
         else:
-            for depth, descendent in db.fs.iter_descendents(
-                    db.fs.Entry.id(entry),
-                    max_depth=maxdepth if maxdepth != -1 else None,
-                    historian=historian):
+            for descendent in db.fs.iter_descendents(db.fs.Entry.id(entry),
+                                                     max_depth=maxdepth if maxdepth != -1 else None,
+                                                     path=start_fs_path,
+                                                     historian=historian):
+                depth = pyos.db.fs.Entry.depth(descendent)
                 if db.fs.Entry.is_obj(descendent) and depth >= mindepth:
-                    obj_ids.add(db.fs.Entry.id(descendent))
+                    descendent_path = db.fs.Entry.path(descendent)
+                    obj_ids[db.fs.Entry.id(descendent)].add(os.withdb.from_fs_path(descendent_path))
 
     # Can use as many executors as paths because this operation is limited by the server and not the
     # python code
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(starting_point)) as executor:
         executor.map(populate_object_ids, starting_point)
 
-    match = mincepy.DataRecord.obj_id.in_(*obj_ids)
-
     hist = historian or db.get_historian()
     entries = {}
 
     # Get the records that match both the record and metadata criteria
-    for record in hist.records.find(match, obj_type=type, state=state, meta=meta):
+    for record in hist.records.find(mincepy.DataRecord.obj_id.in_(*obj_ids.keys()),
+                                    obj_type=type,
+                                    state=state,
+                                    meta=meta):
         entries.setdefault(record.obj_id, {})['record'] = record
 
     # Now get the metadata for those objects
@@ -73,9 +81,12 @@ def find(*starting_point,
     results.show('relpath')
 
     for obj_id, entry in entries.items():
-        node = nodes.ObjectNode(obj_id,
-                                record=entry.get('record', None),
-                                meta=entry.get('meta', None))
-        results.append(node)
+        for path in obj_ids.get(obj_id, set()):
+            # Create the filesystem node
+            node = nodes.ObjectNode(obj_id,
+                                    path=path,
+                                    record=entry.get('record', None),
+                                    meta=entry.get('meta', None))
+            results.append(node)
 
     return results

@@ -122,11 +122,12 @@ def _sync_objects(src: mincepy.Historian,
         all_obj_ids = set(sid.obj_id for sid in result.all)
 
         # 1. Get all paths
-        paths = dict(pyos.db.get_paths(*all_obj_ids))
+        paths = dict(pyos.db.get_paths(*all_obj_ids, historian=src))
 
         # 2. Create the new abspaths
         new_paths = {
-            obj_id: os.path.abspath(os.path.join(dest_path, os.path.relpath(objpath, src_path)))
+            obj_id:
+            os.path.abspath(os.path.join(dest_path, os.path.relpath(objpath, start=src_path)))
             for obj_id, objpath in paths.items()
         }
 
@@ -223,4 +224,7 @@ class Rsync(cmd2.CommandSet):
         progress = args.progress
         history = args.history
         meta = args.meta
-        print(command(*args.path, progress=progress, history=history, meta=meta))
+        try:
+            print(command(*args.path, progress=progress, history=history, meta=meta))
+        except ValueError as exc:
+            self._cmd.perror(str(exc))

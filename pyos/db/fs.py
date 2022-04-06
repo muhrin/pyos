@@ -50,7 +50,8 @@ class Schema:
     DEPTH = 'depth'
     VER = mincepy.VERSION
     TYPE_ID = mincepy.TYPE_ID
-    PATH_ENTRIES = 'path'
+    PATH_ENTRIES = 'path_entries'
+    PATH = 'path'
 
     # Values
     TYPE_DIR = 'dir'
@@ -120,9 +121,13 @@ class Entry:
 
     @staticmethod
     def path(entry: Dict) -> Optional[Path]:
+        if Schema.PATH in entry:
+            return entry[Schema.PATH]
+
         path_entries = Entry.path_entries(entry)
         if path_entries is None:
             return None
+
         path_parts = _get_path_from_entries(path_entries)
         return path_parts + (Entry.name(entry),)
 
@@ -459,20 +464,27 @@ def find_path_entries(path: Path, historian: mincepy.Historian = None) -> List[D
 
 
 def get_paths(*obj_id, historian: mincepy.Historian = None) -> Tuple[Path]:
+    if not obj_id:
+        return tuple()
+
     coll = get_fs_collection(historian=historian)
     aggregate = [*_entries_lookup(*obj_id), *_ancestors_lookup()]
 
     res = list(coll.aggregate(aggregate))
 
-    paths: List[Path] = []
+    paths = {}
     for entry in res:
         # Have to reverse sort by depth because graph lookup doesn't guarantee order
         entry[ANCESTORS].sort(key=lambda ancestor: ancestor[Schema.DEPTH], reverse=True)
         path = list(ancestor[Schema.NAME] for ancestor in entry[ANCESTORS])
         path.append(entry[Schema.NAME])
-        paths.append(tuple(path))
+        paths[Entry.id(entry)] = path
 
-    return tuple(paths)
+    retval = []
+    for oid in obj_id:
+        retval.append(paths.get(oid, None))
+
+    return tuple(retval)
 
 
 def set_obj_path(obj_id,
@@ -568,7 +580,7 @@ class SetObjPath(Instruction):
 
     def handle_exception(self, error: Dict):
         if error['code'] == 11000:
-            raise exceptions.FileExistsError()
+            raise exceptions.FileExistsError(self.new_path)
 
         super().handle_exception(error)
 
@@ -654,10 +666,10 @@ def rename(
     dest: Path = None,
     src_id=None,
     historian: mincepy.Historian = None,
-    lookup_cache: EntriesCache = None,
+    cache: EntriesCache = None,
 ):
     """Rename a filesystem entry"""
-    cache = lookup_cache or EntriesCache(historian)
+    cache = cache or EntriesCache(historian)
 
     if src_id is None:
         if src is None:
@@ -718,9 +730,9 @@ def remove_dir(entry_id, recursive=False, historian: mincepy.Historian = None) -
         raise exceptions.NotADirectoryError(entry_id)
 
     entry_ids = [entry_id]
-    descendents = dict(iter_descendents(entry_id, historian=historian))
+    descendents = tuple(map(Entry.id, iter_descendents(entry_id, historian=historian)))
     if recursive:
-        entry_ids.extend(descendents.values())
+        entry_ids.extend(descendents)
     elif descendents:
         raise exceptions.PyOSError(f'Directory not empty: {entry_id}')
 
@@ -766,6 +778,7 @@ def iter_descendents(entry_id,
                      of_type: str = None,
                      max_depth=None,
                      depth=0,
+                     path: Path = (),
                      historian: mincepy.Historian = None):
     if of_type is not None and of_type not in (Schema.TYPE_DIR, Schema.TYPE_OBJ):
         raise ValueError(f'Invalid type filter: {of_type}')
@@ -773,14 +786,19 @@ def iter_descendents(entry_id,
     if max_depth is not None and depth >= max_depth:
         return
     for child in find_children(entry_id, historian=historian):
+        child_path = path + (Entry.name(child),)
         if of_type is None or Entry.type(child) == of_type:
-            yield depth + 1, child
+            child[Schema.DEPTH] = depth + 1
+            child[Schema.PATH] = child_path
+            yield child
+
         if Entry.is_dir(child):
             yield from iter_descendents(
                 Entry.id(child),
                 of_type=of_type,
                 max_depth=max_depth,
                 depth=depth + 1,
+                path=child_path,
                 historian=historian,
             )
 

@@ -24,7 +24,7 @@ def ls(options, *args) -> pyos.fs.ResultsNode:  # pylint: disable=invalid-name, 
     :type: restrict listing to a particular type
     """
     rest = args
-    parsed = pyos.psh_lib.parse_args(*rest)
+    parsed = pyos.psh_lib.parse_fs_entry(*rest)
 
     results = pyos.fs.ResultsNode()
     if rest:

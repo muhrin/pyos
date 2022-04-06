@@ -19,9 +19,9 @@ def test_mv_basic():
     car.save()
 
     # Move to test subdirectory
-    psh.mv(car, 'test/')
+    psh.mv(str(car.obj_id), 'test/')
 
-    assert psh.locate(car) == psh.pwd() / 'test/' / str(car.obj_id)
+    assert psh.locate(car) == psh.pwd() / 'test' / str(car.obj_id)
 
     contents = psh.ls('test/')
     assert len(contents) == 1
@@ -66,17 +66,18 @@ def test_mv_from_path():
     assert contents[0].entry_id == car.obj_id  # pylint: disable=no-member
 
 
-def test_mv_from_obj_id():
-    pyos.os.makedirs('test/')
-
-    car = Car()
-    car.save()
-
-    psh.mv(car.obj_id, 'test/')
-    contents = psh.ls('test/')
-    assert len(contents) == 1
-    assert isinstance(contents[0], nodes.FilesystemNode)
-    assert contents[0].entry_id == car.obj_id  # pylint: disable=no-member
+#
+# def test_mv_from_obj_id():
+#     pyos.os.makedirs('test/')
+#
+#     car = Car()
+#     car.save()
+#
+#     psh.mv(car.obj_id, 'test/')
+#     contents = psh.ls('test/')
+#     assert len(contents) == 1
+#     assert isinstance(contents[0], nodes.FilesystemNode)
+#     assert contents[0].entry_id == car.obj_id  # pylint: disable=no-member
 
 
 def test_mv_dest_as_path():
@@ -85,7 +86,7 @@ def test_mv_dest_as_path():
     car = Car()
     car.save()
 
-    psh.mv(car.obj_id, pyos.pathlib.Path('test/'))
+    psh.mv(str(car.obj_id), pyos.pathlib.Path('test/'))
     contents = psh.ls('test/')
     assert len(contents) == 1
     assert isinstance(contents[0], nodes.FilesystemNode)
@@ -99,7 +100,7 @@ def test_mv_remote():
 
     car = Car()
     psh.save(car, '/test/path_a/')
-    psh.mv(car, '/a/different/path/')
+    psh.mv(f'/test/path_a/{car.obj_id}', '/a/different/path/')
 
     contents = psh.ls('/a/different/path/')
     assert len(contents) == 1
@@ -114,7 +115,7 @@ def test_mv_overwrite():
 
     car2 = Car()
     car2.save()
-    psh.mv(psh.f, car2, 'my_car')
+    psh.mv(psh.f, str(car2.obj_id), 'my_car')
 
 
 def test_mv_overwrite_prompt(monkeypatch):
@@ -130,13 +131,13 @@ def test_mv_overwrite_prompt(monkeypatch):
     # This will prompt
     confirm = io.StringIO('N')
     monkeypatch.setattr('sys.stdin', confirm)
-    psh.mv(car2, 'my_car')
+    psh.mv('my_car2', 'my_car')
     assert len(psh.ls()) == 2  # Still 2
 
     # Now overwrite
     confirm = io.StringIO('Y')
     monkeypatch.setattr('sys.stdin', confirm)
-    psh.mv(car2, 'my_car')
+    psh.mv('my_car2', 'my_car')
     assert len(psh.ls()) == 1
 
 

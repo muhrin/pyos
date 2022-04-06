@@ -28,7 +28,18 @@ def _remove_directories(nodes):
 @pyos.psh_lib.flag(psh.r, help='remove directories and their contents recursively')
 def rm(options, *obj_or_ids):  # pylint: disable=invalid-name
     """Remove objects"""
-    to_delete = psh.ls(-psh.d, *obj_or_ids)
+    if not obj_or_ids:
+        return
+
+    hist = pyos.db.get_historian()
+    obj_ids, rest = pyos.psh_lib.gather_obj_ids(obj_or_ids, hist)
+
+    with hist.transaction():
+        for obj_id in obj_ids:
+            hist.delete(obj_id)
+
+    # Assume that anything left is something like a path or filesystem node
+    to_delete = psh.ls(-psh.d, *rest)
     recursive = options.pop(psh.flags.r)
     if not recursive:
         to_delete = _remove_directories(to_delete)

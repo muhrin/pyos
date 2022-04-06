@@ -1,25 +1,21 @@
 # -*- coding: utf-8 -*-
 import copy
 import functools
-from typing import Sequence
+from typing import Sequence, List, Tuple
 
-from pyos import db
+import mincepy
+
 from pyos import fs
 from pyos import glob
 from pyos import os
 from pyos import pathlib
 
-__all__ = ('parse_args',)
+__all__ = ('parse_fs_entry', 'gather_obj_ids')
 
 
 @functools.singledispatch
 def parse_arg(arg) -> Sequence:
-    # Maybe it can be turned into an object id
-    obj_id = db.to_obj_id(arg)
-    if obj_id is not None:
-        return (obj_id,)
-
-    raise TypeError(f"Unknown type '{arg}'")
+    raise TypeError(f"Unknown type '{arg.__class__.__name__}'")
 
 
 @parse_arg.register(fs.ObjectNode)
@@ -34,7 +30,7 @@ def _(arg: fs.DirectoryNode):
 
 @parse_arg.register(fs.ResultsNode)
 def _(arg: fs.ResultsNode):
-    return parse_args(*arg.children)
+    return parse_fs_entry(*arg.children)
 
 
 @parse_arg.register(os.PathLike)
@@ -44,10 +40,6 @@ def _(arg: os.PathLike):
 
 @parse_arg.register(str)
 def _(arg: str):
-    obj_id = db.to_obj_id(arg)
-    if obj_id is not None:
-        return (obj_id,)
-
     if glob.has_magic(arg):
         return tuple(map(pathlib.PurePath, glob.glob(arg)))
 
@@ -58,9 +50,23 @@ def _(arg: str):
     raise TypeError(f"Unknown type '{arg}'")
 
 
-def parse_args(*args) -> Sequence:
+def parse_fs_entry(*args) -> Sequence:
+    """Parse objects that can be interpreted as filesystem entries.  This can be a path, or a filesystem node."""
     parsed = []
     for arg in args:
         parsed.extend(parse_arg(arg))
 
     return parsed
+
+
+def gather_obj_ids(entries, historian: mincepy.Historian) -> Tuple[List, List]:
+    obj_ids = []
+    rest = []
+    for entry in entries:
+        obj_id = historian.to_obj_id(entry)
+        if obj_id is not None:
+            obj_ids.append(obj_id)
+        else:
+            rest.append(entry)
+
+    return obj_ids, rest

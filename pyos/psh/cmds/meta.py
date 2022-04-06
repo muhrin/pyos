@@ -16,13 +16,16 @@ logger = logging.getLogger(__name__)
 @pyos.psh_lib.command(pass_options=True)
 @pyos.psh_lib.flag(psh.s, 'Set the metadata')
 @pyos.psh_lib.flag(psh.u, 'Update the metadata')
-def meta(options, *obj_or_ids, **updates):
+def meta(options, *obj_or_ids, **updates):  # pylint: disable=too-many-return-statements
     """Get, set or update the metadata on one or more objects"""
     if not obj_or_ids:
         return None
 
-    to_update = psh.ls(-psh.d, *obj_or_ids)
-    obj_ids = []
+    hist = pyos.db.get_historian()
+    obj_ids, rest = pyos.psh_lib.gather_obj_ids(obj_or_ids, hist)
+
+    # Assume that anything left is something like a path or filesystem node
+    to_update = psh.ls(-psh.d, *rest)
     for node in to_update:
         if isinstance(node, pyos.fs.ObjectNode):
             obj_ids.append(node.obj_id)
@@ -31,14 +34,14 @@ def meta(options, *obj_or_ids, **updates):
 
     if options.pop(psh.u, False):
         # In 'update' mode
-        if not updates:
-            return None
-        pyos.db.lib.update_meta(*obj_ids, meta=updates)
+        if updates:
+            pyos.db.lib.update_meta(*obj_ids, meta=updates)
+
     elif options.pop(psh.s, False):
         # In 'setting' mode
-        if not updates:
-            return None
-        pyos.db.lib.set_meta(*obj_ids, meta=updates)
+        if updates:
+            pyos.db.lib.set_meta(*obj_ids, meta=updates)
+
     else:
         # In 'getting' mode
         if updates:
@@ -46,10 +49,10 @@ def meta(options, *obj_or_ids, **updates):
 
         if len(obj_ids) == 1:
             # Special case for a single parameter
-            meta = pyos.db.lib.get_meta(obj_ids[0])
-            if meta is None:
+            metadata = pyos.db.lib.get_meta(obj_ids[0])
+            if metadata is None:
                 return None
-            return pyos.psh_lib.ResultsDict(meta)
+            return pyos.psh_lib.ResultsDict(metadata)
 
         return pyos.psh_lib.CachingResults(pyos.db.lib.find_meta(obj_ids=obj_ids))
 

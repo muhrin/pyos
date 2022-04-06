@@ -58,7 +58,7 @@ def test_obj_node_basics(historian):
     person = Person('martin', 34)
     person_id = pyos.db.save_one(person, 'martin')
 
-    obj_node = fs.ObjectNode(person_id)
+    obj_node = fs.ObjectNode(person_id, 'martin')
     record = historian.records.find(obj_id=person_id).one()
     assert obj_node.type_id == Person.TYPE_ID
     assert obj_node.version == record.version
@@ -72,4 +72,4 @@ def test_obj_node_basics(historian):
     historian.delete(person)
     # and create the object node
     with pytest.raises(pyos.exceptions.FileNotFoundError):
-        fs.ObjectNode(person_id)
+        fs.ObjectNode(person_id, 'martin')

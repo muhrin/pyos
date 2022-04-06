@@ -27,8 +27,7 @@ def cat(*obj_or_ids, representer=None):
     to_cat = []
 
     for entry in obj_or_ids:
-        if isinstance(entry,
-                      (str, pyos.pathlib.Path, pyos.fs.BaseNode, hist.archive.get_id_type())):
+        if isinstance(entry, (str, pyos.pathlib.Path, pyos.fs.BaseNode)):
             to_cat.extend(psh.ls(-psh.d, entry))
         else:
             to_cat.append(entry)
@@ -36,14 +35,16 @@ def cat(*obj_or_ids, representer=None):
     representer = representer or pyos.psh_lib.get_default()
 
     def iterator():
-        for node in to_cat:
+        for entry in to_cat:
             try:
-                if isinstance(node, pyos.fs.DirectoryNode):
-                    yield f'cat: {node.abspath.name}: Is a directory'
-                elif isinstance(node, pyos.fs.ObjectNode):
-                    yield representer(node.obj)
+                if isinstance(entry, pyos.fs.DirectoryNode):
+                    yield f'cat: {entry.abspath.name}: Is a directory'
+                elif isinstance(entry, pyos.fs.ObjectNode):
+                    yield representer(entry.obj)
+                elif hist.is_obj_id(entry):
+                    yield representer(hist.load(entry))
                 else:
-                    yield representer(node)
+                    yield representer(entry)
             except Exception as exc:  # pylint: disable=broad-except
                 yield representer(exc)
 

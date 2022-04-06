@@ -6,7 +6,7 @@ from typing import Optional, Union, Sequence
 import cmd2
 
 import pyos
-from pyos import psh
+from pyos import db
 
 
 @pyos.psh_lib.command()
@@ -15,9 +15,14 @@ def locate(*obj_or_ids) -> Optional[Union[pyos.pathlib.Path, Sequence[pyos.pathl
     if not obj_or_ids:
         return None
 
-    to_locate = psh.ls(-psh.d, *obj_or_ids)
+    hist = db.get_historian()
+    obj_ids = tuple(map(hist.to_obj_id, obj_or_ids))
+
     # Convert to abspaths
-    paths = [node.abspath for node in to_locate]
+    def to_path(fs_path):
+        return pyos.pathlib.Path(pyos.os.withdb.from_fs_path(fs_path))
+
+    paths = tuple(map(to_path, db.fs.get_paths(*obj_ids, historian=hist)))
     results = pyos.psh_lib.CachingResults(paths.__iter__(), representer=str)
 
     if len(obj_or_ids) == 1 and len(results) == 1:

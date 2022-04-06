@@ -323,14 +323,15 @@ class DirectoryNode(ContainerNode, FilesystemNode):
 
     def delete(self):
         # 1. Find all the objects at or below this directory
-        res = db.fs.iter_descendents(self.entry_id,
-                                     of_type=db.fs.Schema.TYPE_OBJ,
-                                     historian=self._hist)
-        obj_ids = [db.fs.Entry.id(entry) for _, entry in res]
+        descendents = db.fs.iter_descendents(self.entry_id,
+                                             of_type=db.fs.Schema.TYPE_OBJ,
+                                             historian=self._hist)
+        obj_ids = [db.fs.Entry.id(descendent) for descendent in descendents]
 
         # 2. Delete them
         if obj_ids:
-            self._hist.delete(*obj_ids)
+            with self._hist.transaction():
+                self._hist.delete(*obj_ids)
 
         # 3. Delete myself
         db.fs.remove_dir(self.entry_id, recursive=True, historian=self._hist)
@@ -546,19 +547,22 @@ class ResultsNode(ContainerNode):
         if self._deeply_nested():
             # Do the objects first, like linux's 'ls'
             table = self._get_table(self.objects)
-            stream.write(pd.DataFrame(table).to_string(index=False, header=False))
-            stream.write('\n')
+            if table:
+                stream.write(pd.DataFrame(table).to_string(index=False, header=False))
+                stream.write('\n')
 
             for directory in self.directories:
                 stream.write(f'{directory.name}:')
                 table = self._get_table(directory)
-                stream.write(pd.DataFrame(table).to_string(index=False, header=False))
+                if table:
+                    stream.write(pd.DataFrame(table).to_string(index=False, header=False))
                 stream.write('\n')
         else:
             table = self._get_table(self.directories)
             table.extend(self._get_table(self.objects))
-            stream.write(pd.DataFrame(table).to_string(index=False, header=False))
-            stream.write('\n')
+            if table:
+                stream.write(pd.DataFrame(table).to_string(index=False, header=False))
+                stream.write('\n')
 
     def _render_list(self, stream: TextIO):
         if stream.isatty():
