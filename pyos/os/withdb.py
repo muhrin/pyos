@@ -267,7 +267,7 @@ def makedirs(name: types.PathSpec, exists_ok=False):
         db.fs.make_dirs(to_fs_path(name), exists_ok=exists_ok)
     except exceptions.FileExistsError as exc:
         # Reraise using the passed name
-        raise exceptions.FileNotFoundError(name) from exc
+        raise exceptions.FileExistsError(name) from exc
 
 
 # endregion
