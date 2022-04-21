@@ -793,10 +793,13 @@ def validate_path(path: Path, absolute=True):
             raise ValueError(f"Path part cannot contain any of '{forbidden_chars}', got: {path}")
 
 
-def iter_children(entry_id,
-                  *,
-                  historian: mincepy.Historian = None,
-                  batch_size=1024) -> Iterator[Dict]:
+def iter_children(
+    entry_id,
+    *,
+    obj_filter: mincepy.Expr = None,
+    historian: mincepy.Historian = None,
+    batch_size=1024,
+) -> Iterator[Dict]:
     """Given a filesystem directory id iterate over all of its children"""
     historian = historian or database.get_historian()
     coll = get_fs_collection(historian)
@@ -820,27 +823,27 @@ def iter_children(entry_id,
 
         # Now check that the objects still exist and extract some additional info
         # pylint: disable=protected-access
+
+        # Create the filter to be used for finding records
+        data_filter = mincepy.DataRecord.obj_id.in_(*objects.keys())
+        if obj_filter:
+            data_filter &= obj_filter
+
         records = {
-            entry[mincepy.OBJ_ID]: entry
-            for entry in historian.records.find(mincepy.DataRecord.obj_id.in_(
-                *objects.keys()))._project(mincepy.OBJ_ID, *FIELD_MAP.keys())
+            entry[mincepy.OBJ_ID]: entry for entry in historian.records.find(data_filter)._project(
+                mincepy.OBJ_ID, *FIELD_MAP.keys())
         }
 
-        to_delete = []
         for obj_id, entry in objects.items():
             try:
                 data_entry = records[obj_id]
             except KeyError:
-                # Delete
-                to_delete.append(obj_id)
+                # Pass this one, doesn't match the filter
+                pass
             else:
                 # Copy over the additional fields we want
                 _copy_fields(entry, data_entry)
                 found.append(entry)
-
-        # Clean up our collection
-        if to_delete:
-            coll.delete_many({Schema.ID: {'$in': to_delete}})
 
         yield from found
 
@@ -848,6 +851,7 @@ def iter_children(entry_id,
 def iter_descendents(entry_id,
                      *,
                      of_type: str = None,
+                     obj_filter: mincepy.Expr = None,
                      max_depth=None,
                      depth=0,
                      path: Path = (),
@@ -857,7 +861,7 @@ def iter_descendents(entry_id,
 
     if max_depth is not None and depth >= max_depth:
         return
-    for child in iter_children(entry_id, historian=historian):
+    for child in iter_children(entry_id, obj_filter=obj_filter, historian=historian):
         child_path = path + (Entry.name(child),)
         if of_type is None or Entry.type(child) == of_type:
             child[Schema.DEPTH] = depth + 1
@@ -868,6 +872,7 @@ def iter_descendents(entry_id,
             yield from iter_descendents(
                 Entry.id(child),
                 of_type=of_type,
+                obj_filter=obj_filter,
                 max_depth=max_depth,
                 depth=depth + 1,
                 path=child_path,
