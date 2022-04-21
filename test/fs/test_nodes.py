@@ -73,3 +73,32 @@ def test_obj_node_basics(historian):
     # and create the object node
     with pytest.raises(pyos.exceptions.FileNotFoundError):
         fs.ObjectNode(person_id, 'martin')
+
+
+def test_container_show():
+    name = 'bart'
+
+    # Create a person and use their name as the filename
+    person = Person(name, 34)
+    pyos.db.save_one(person, person.name)
+
+    res: pyos.fs.ContainerNode = pyos.psh.ls()  # pylint: disable=no-value-for-parameter
+
+    # Check the various properties that can be shown
+    res.show('loaded')
+    assert '*' in str(res)
+
+    res.show('type')
+    assert 'Person' in str(res)
+
+    res.show('version')
+    assert '0' in str(res)
+
+    res.show('name')
+    assert name in str(res)
+
+    res.show('relpath')
+    assert name in str(res)
+
+    res.show('abspath')
+    assert str(pyos.pathlib.Path() / name) in str(res)

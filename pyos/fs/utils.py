@@ -73,20 +73,13 @@ def find(*starting_point,
                                     meta=meta):
         entries.setdefault(record.obj_id, {})['record'] = record
 
-    # Now get the metadata for those objects
-    for obj_id, meta_dict in hist.meta.find(filter={}, obj_id=list(entries.keys())):
-        entries.setdefault(obj_id, {})['meta'] = meta_dict
-
     results = nodes.ResultsNode()
     results.show('relpath')
 
     for obj_id, entry in entries.items():
         for path in obj_ids.get(obj_id, set()):
             # Create the filesystem node
-            node = nodes.ObjectNode(obj_id,
-                                    path=path,
-                                    record=entry.get('record', None),
-                                    meta=entry.get('meta', None))
+            node = nodes.ObjectNode(obj_id, path=path, record=entry.get('record', None))
             results.append(node)
 
     return results

@@ -8,7 +8,7 @@ import mincepy.archives
 from . import schema
 from . import fs
 
-__all__ = ('connect', 'init', 'get_historian', 'reset', 'get_session')
+__all__ = 'connect', 'init', 'get_historian', 'reset', 'get_session'
 
 _GLOBAL_SESSION: Optional['Session'] = None
 

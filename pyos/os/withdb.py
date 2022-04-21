@@ -134,7 +134,7 @@ def listdir(lsdir: types.PathSpec = '.') -> List[str]:
     if db.fs.Entry.is_obj(entry):
         raise exceptions.NotADirectoryError(f"Not a directory: '{lsdir}'")
 
-    return [db.fs.Entry.name(child) for child in fs.find_children(fs.Entry.id(entry))]
+    return [db.fs.Entry.name(child) for child in fs.iter_children(fs.Entry.id(entry))]
 
 
 def open(
@@ -241,7 +241,7 @@ def scandir(scan_path='.') -> Iterator[nodb.DirEntry]:
         raise exceptions.NotADirectoryError(f"Not a directory: '{scan_path}'")
 
     contents = []
-    for descendent in db.fs.find_children(db.fs.Entry.id(entry)):
+    for descendent in db.fs.iter_children(db.fs.Entry.id(entry)):
         obj_name = db.fs.Entry.name(descendent)
         contents.append(
             nodb.DirEntry(obj_name=obj_name,

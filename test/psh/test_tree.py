@@ -34,9 +34,9 @@ def test_tree_depth():
 def test_tree_print():
     expected_result = """
 ├── a
-│   ├── a_car
-│   └── b
-│       └── b_car
+│   ├── b
+│   │   └── b_car
+│   └── a_car
 └── some_car
 """
 
@@ -46,4 +46,10 @@ def test_tree_print():
     psh.save(Car(), 'a/b/b_car')
 
     results = psh.tree()
-    assert str(results) == expected_result
+
+    res_string = str(results)
+
+    print(res_string)
+    for line in expected_result.split('\n'):
+        if line:
+            assert line in res_string

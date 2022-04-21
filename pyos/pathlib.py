@@ -22,6 +22,7 @@ class PurePath(os.PathLike):
     This is a 'pure' path in a similar sense to pathlib.PurePath in that it does not interact with
     the database at all.
     """
+    __slots__ = ('_path',)
 
     def __init__(self, path: os.PathSpec = '.'):
         super().__init__()
@@ -47,8 +48,7 @@ class PurePath(os.PathLike):
 
     @property
     def name(self):
-        return os.path.split(self)[1]
-        # return self.parts[-1]
+        return os.nodb.basename(self)
 
     @property
     def root(self) -> str:
@@ -82,13 +82,13 @@ class PurePath(os.PathLike):
 
         return self.__class__(os.path.join(str(self), str(other)))
 
-    # def is_file_path(self) -> bool:
-    #     """Returns True if this path specifies a file i.e. does not end with a training '/'"""
-    #     return not self.is_dir_path()
-    #
-    # def is_dir_path(self) -> bool:
-    #     """Returns True if this path specified a directory i.e. ends with a trailing '/'"""
-    #     return self._path.endswith(os.sep)
+    def is_file_path(self) -> bool:
+        """Returns True if this path specifies a file i.e. does not end with a training '/'"""
+        return not self.is_dir_path()
+
+    def is_dir_path(self) -> bool:
+        """Returns True if this path specified a directory i.e. ends with a trailing '/'"""
+        return self._path.endswith(os.sep)
 
     def is_absolute(self) -> bool:
         return os.path.isabs(self._path)

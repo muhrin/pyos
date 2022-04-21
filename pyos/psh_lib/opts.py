@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import abc
 import functools
-from typing import Callable
+from typing import Callable, Union
 import types
 
 __all__ = 'command', 'Option', 'Options', 'separate_opts', 'option', 'flag'
@@ -15,7 +15,7 @@ class Option:
         self._params_stack = call_params
 
     def __str__(self):
-        parts = ['-', self.name]
+        parts = ['-', str(self.name)]
         for params in self._params_stack:
             args = params[0]
             kwargs = params[1]
@@ -55,6 +55,9 @@ class Option:
         return Option(self.name)
 
 
+OptionLike = Union[Option, int]
+
+
 class OptionSpec:
 
     def __init__(self, opt: Option, is_flag=True, help=''):  # pylint: disable=redefined-builtin
@@ -85,12 +88,16 @@ class Options:
         self._opts[name] = value
 
     def pop(self, opt: Option, *default):
-        if not isinstance(opt, Option):
+        if not isinstance(opt, (Option, int)):
             raise TypeError(f"Unsupported option type '{opt}'")
         if len(default) > 1:
             raise ValueError('Can only pass at most one default')
 
-        name = opt.name
+        if isinstance(opt, Option):
+            name = opt.name
+        else:
+            name = opt
+
         return self._opts.pop(name, default[0] if default else None)
 
     def update(self, other):
@@ -190,7 +197,7 @@ class Command(CommandLike):
         doc = [self.func.__doc__ or f'Call {self.name}']
         if self.accepts:
             doc.append('FLAGS')
-            for name, spec in sorted(self.accepts.items()):
+            for name, spec in sorted(self.accepts.items(), key=lambda pair: str(pair[0])):
                 doc.append(f'\t-{name}\t{spec.help}')
 
         self.__call__.__func__.__doc__ = '\n'.join(doc)  # pylint: disable=no-member
@@ -269,8 +276,10 @@ def option(opt: Option, help=''):  # pylint: disable=redefined-builtin
     return attach
 
 
-def flag(opt: Option, help=''):  # pylint: disable=redefined-builtin
+def flag(opt: OptionLike, help=''):  # pylint: disable=redefined-builtin
     """Decorator for defining an option taken by a command function"""
+    opt = _make_option(opt)
+
     spec = OptionSpec(opt, is_flag=True, help=help)
 
     def attach(func):
@@ -283,3 +292,10 @@ def flag(opt: Option, help=''):  # pylint: disable=redefined-builtin
         return cmd
 
     return attach
+
+
+def _make_option(opt: OptionLike) -> Option:
+    if isinstance(opt, Option):
+        return opt
+
+    return Option(opt)

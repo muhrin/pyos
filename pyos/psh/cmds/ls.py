@@ -2,7 +2,6 @@
 """List command"""
 import argparse
 import logging
-import sys
 
 import cmd2
 
@@ -18,7 +17,11 @@ logger = logging.getLogger(__name__)
 @psh_lib.flag(psh.l, help='use a long listing format')
 @psh_lib.flag(psh.d, help='list directories themselves, not their contents')
 @psh_lib.flag(psh.p, help='print the str() value of each object')
-def ls(options, *args) -> pyos.fs.ResultsNode:  # pylint: disable=invalid-name, too-many-branches
+@psh_lib.flag(
+    psh_lib.Option(1),
+    help=
+    'list one file per line.  This will avoid waiting for all results to be loaded before printing')
+def ls(options, *args) -> pyos.fs.ContainerNode:  # pylint: disable=invalid-name, too-many-branches
     """List the contents of a directory
 
     :type: restrict listing to a particular type
@@ -45,18 +48,16 @@ def ls(options, *args) -> pyos.fs.ResultsNode:  # pylint: disable=invalid-name, 
                 entry.expand(populate_objects=psh.l in options)
 
         if len(results) == 1 and isinstance(results[0], pyos.fs.DirectoryNode):
-            sole_dir = results[0]
-            new_results = pyos.fs.ResultsNode(sole_dir.name)
-            for result in tuple(sole_dir.children):
-                new_results.append(result)
-
-            results = new_results
+            # We just have a single directory
+            results = results[0]
 
     if options.pop(psh.l):
         properties = ['loaded', 'type', 'version', 'mtime', 'name']
         if options.pop(psh.p):
             properties.append('str')
         results.show(*properties, mode=pyos.fs.TABLE_VIEW)
+    elif options.pop(1):
+        results.show(mode=pyos.fs.SINGLE_COLUMN_VIEW)
     else:
         results.show(mode=pyos.fs.LIST_VIEW)
 
@@ -70,6 +71,11 @@ class Ls(cmd2.CommandSet):
                         action='store_true',
                         help='list directories themselves, not their contents')
     parser.add_argument('-p', action='store_true', help='print the str() value of each object')
+    parser.add_argument(
+        '-1',
+        action='store_true',
+        help='list one file per line.  This will avoid waiting for all results to be loaded before '
+        'printing')
     parser.add_argument('path', nargs='*', type=str, completer_method=completion.path_complete)
 
     @cmd2.with_argparser(parser)
@@ -81,6 +87,8 @@ class Ls(cmd2.CommandSet):
             command = command - psh.d
         if args.p:
             command = command - psh.p
+        if vars(args)['1']:
+            command = command - psh_lib.Option(1)
 
         res = command(*args.path)
-        res.__stream_out__(sys.stdout)
+        res.__stream_out__(self._cmd.stdout)

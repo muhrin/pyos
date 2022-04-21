@@ -27,7 +27,7 @@ def load(*obj_or_ids) -> Union[Iterable[Any], Any]:
             rest.append(entry)
 
     # The remaining arguments are passed to ls which will try to find the corresponding objects
-    to_load = psh.ls(-psh.d, *rest)
+    to_load = psh.ls(*rest)  # pylint: disable=no-value-for-parameter
     for node in to_load:
         try:
             loaded.append(node.obj)

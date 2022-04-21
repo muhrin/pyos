@@ -4,7 +4,7 @@ import collections.abc
 import copy
 import functools
 import io
-from typing import Dict, Sequence, Optional, Iterable, TextIO
+from typing import Dict, Sequence, Optional, Iterable, TextIO, Type
 
 import anytree
 import columnize
@@ -20,12 +20,13 @@ from pyos import pathlib
 from pyos import results
 from pyos import utils
 
-__all__ = ('BaseNode', 'DirectoryNode', 'ObjectNode', 'ResultsNode', 'to_node', 'TABLE_VIEW',
-           'LIST_VIEW', 'TREE_VIEW')
+__all__ = ('BaseNode', 'ContainerNode', 'DirectoryNode', 'ObjectNode', 'ResultsNode', 'to_node',
+           'TABLE_VIEW', 'LIST_VIEW', 'TREE_VIEW', 'SINGLE_COLUMN_VIEW')
 
 LIST_VIEW = 'list'
 TREE_VIEW = 'tree'
 TABLE_VIEW = 'table'
+SINGLE_COLUMN_VIEW = 'single'
 
 CHILDREN = 'children'
 
@@ -34,6 +35,8 @@ UNSET = tuple()
 
 class BaseNode(collections.abc.Sequence, results.BaseResults, metaclass=abc.ABCMeta):
     """Base node for the object system in pyos"""
+
+    __slots__ = '_name', '_parent', '_children', '_hist'
 
     def __init__(self, name: str, parent: 'BaseNode' = UNSET, historian: mincepy.Historian = None):
         super().__init__()
@@ -53,7 +56,7 @@ class BaseNode(collections.abc.Sequence, results.BaseResults, metaclass=abc.ABCM
 
         raise TypeError(f"Got unsupported item type '{item.__class__.__name__}'")
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.children.__len__()
 
     @property
@@ -101,6 +104,8 @@ class BaseNode(collections.abc.Sequence, results.BaseResults, metaclass=abc.ABCM
 class FilesystemNode(BaseNode):
     """Base node for representing an object in the virtual filesystem"""
 
+    __slots__ = '_abspath', '_entry'
+
     # Either give me:
     # * object id
     # * entry dict
@@ -143,7 +148,6 @@ class FilesystemNode(BaseNode):
         super().__init__(path.name, parent, historian=historian)
         self._abspath = path
         self._entry = entry
-        self._hist = historian
 
     @property
     def abspath(self) -> 'pathlib.PurePath':
@@ -160,6 +164,33 @@ class FilesystemNode(BaseNode):
 
 class ContainerNode(BaseNode):
     """A node that contains children that can be either directory nodes or object nodes"""
+    VIEW_PROPERTIES = (
+        'loaded',  # Indication of whether the object is loaded in memory or not
+        'type',  # The object type
+        'creator',
+        'version',
+        'ctime',
+        'mtime',
+        'name',
+        'str',
+        'relpath',
+        'abspath',
+    )
+    JUSTIFICATIONS = {
+        'loaded': 'left',
+        'type': 'left',
+        'creator': 'right',
+        'version': 'right',
+        'ctime': 'right',
+        'mtime': 'right',
+        'name': 'right',
+        'str': 'right',
+        'relpath': 'left',
+        'abspath': 'left'
+    }
+
+    _view_mode = TABLE_VIEW
+    _show = {'name'}
 
     def __contains__(self, item):
         # pylint: disable=too-many-nested-blocks, too-many-branches, too-many-return-statements
@@ -218,11 +249,31 @@ class ContainerNode(BaseNode):
         items = super().__getitem__(item)
         if isinstance(item, slice):
             res = ResultsNode()
+            # Transfer the view mode
+            res.show(*self._show, mode=self._view_mode)
             for entry in items:
                 res.append(copy.copy(entry))
             return res
 
         return items
+
+    def __repr__(self):
+        with io.StringIO() as stream:
+            self.__stream_out__(stream)
+            return stream.getvalue()
+
+    def __stream_out__(self, stream: TextIO):
+        if self._view_mode == TREE_VIEW:
+            self._render_tree(stream)
+
+        elif self._view_mode == TABLE_VIEW:
+            self._render_table(stream)
+
+        elif self._view_mode == LIST_VIEW:
+            self._render_list(stream)
+
+        elif self._view_mode == SINGLE_COLUMN_VIEW:
+            self._render_single(stream)
 
     @property
     def directories(self) -> Iterable['DirectoryNode']:
@@ -231,6 +282,140 @@ class ContainerNode(BaseNode):
     @property
     def objects(self) -> Iterable['ObjectNode']:
         return filter(lambda node: isinstance(node, ObjectNode), self.children)
+
+    @property
+    def showing(self) -> set:
+        """Returns the current view properties that are being displayed (if the view mode supports
+        them)"""
+        return self._show
+
+    @property
+    def view_mode(self) -> str:
+        return self._view_mode
+
+    @view_mode.setter
+    def view_mode(self, new_mode: str):
+        assert new_mode in (TREE_VIEW, LIST_VIEW, TABLE_VIEW)
+        self._view_mode = new_mode
+
+    def show(self, *properties, mode: str = None):
+        if mode is not None:
+            self._view_mode = mode
+        if properties:
+            self._show = set(properties)
+
+    def _get_row(self, child) -> Sequence[str]:
+        # pylint: disable=too-many-branches
+        empty = ''
+        row = []
+
+        if 'loaded' in self._show:
+            try:
+                row.append('*' if child.loaded else '')
+            except AttributeError:
+                row.append(empty)
+
+        if 'type' in self._show:
+            try:
+                row.append(fmt.pretty_type_string(child.type))
+            except AttributeError:
+                row.append('directory')
+            except TypeError:
+                row.append(str(child.type_id))
+
+        if 'creator' in self._show:
+            row.append(getattr(child, 'creator', empty))
+
+        if 'version' in self._show:
+            row.append(str(getattr(child, 'version', empty)))
+
+        if 'ctime' in self._show:
+            try:
+                row.append(fmt.pretty_datetime(child.ctime))
+            except AttributeError:
+                row.append(empty)
+
+        if 'mtime' in self._show:
+            try:
+                row.append(fmt.pretty_datetime(child.stime))
+            except AttributeError:
+                row.append(empty)
+
+        if 'name' in self._show:
+            row.append(getattr(child, 'name', empty))
+
+        if 'str' in self._show:
+            try:
+                row.append(str(getattr(child, 'obj', empty))[:30])
+            except (TypeError, mincepy.ObjectDeleted):
+                row.append(empty)
+
+        if 'abspath' in self._show:
+            row.append(str(getattr(child, 'abspath', empty)))
+
+        if 'relpath' in self._show:
+            try:
+                row.append(os.path.relpath(child.abspath))
+            except AttributeError:
+                row.append(empty)
+
+        return row
+
+    def _render_tree(self, stream: TextIO):
+        """Render this node as a tree"""
+        for child in self.directories:
+            for pre, _, node in anytree.RenderTree(child, childiter=iter):
+                stream.write(f'{pre}{node.name}\n')
+        for child in self.objects:
+            stream.write(f'{child}\n')
+
+    def _render_table(self, stream: TextIO):
+        """Render this node as a table"""
+        if self._deeply_nested():
+            # Do the objects first, like linux's 'ls'
+            table = self._get_table(self.objects)
+            if table:
+                stream.write(pd.DataFrame(table).to_string(index=False, header=False))
+                stream.write('\n')
+
+            for directory in self.directories:
+                stream.write(f'{directory.name}:')
+                table = self._get_table(directory)
+                if table:
+                    stream.write(pd.DataFrame(table).to_string(index=False, header=False))
+                stream.write('\n')
+        else:
+            table = self._get_table(self.directories)
+            table.extend(self._get_table(self.objects))
+            if table:
+                stream.write(pd.DataFrame(table).to_string(index=False, header=False))
+                stream.write('\n')
+
+    def _render_list(self, stream: TextIO):
+        if stream.isatty():
+            repr_list = []
+            for child in self:
+                repr_list.append('-'.join(self._get_row(child)))
+
+            stream.write(columnize.columnize(repr_list, displaywidth=utils.get_terminal_width()))
+        else:
+            for child in self:
+                stream.write('-'.join(self._get_row(child)) + '\n')
+
+    def _render_single(self, stream: TextIO):
+        for child in self:
+            stream.write('-'.join(self._get_row(child)) + '\n')
+
+    def _get_table(self, entry) -> list:
+        return [self._get_row(child) for child in entry]
+
+    def _deeply_nested(self) -> bool:
+        """Returns True if we have any nodes that themselves have children"""
+        for directory in self.directories:
+            if len(directory) > 0:
+                return True
+
+        return False
 
 
 class DirectoryNode(ContainerNode, FilesystemNode):
@@ -257,7 +442,8 @@ class DirectoryNode(ContainerNode, FilesystemNode):
     def __copy__(self):
         """Create a copy with no parent"""
         dir_node = DirectoryNode(self.abspath, self._entry)
-        dir_node.children = [copy.copy(child) for child in self.children]
+        # dir_node._children = [copy.copy(child) for child in self.children]
+        dir_node._children = copy.copy(self._children)
         return dir_node
 
     def __contains__(self, item):
@@ -265,16 +451,6 @@ class DirectoryNode(ContainerNode, FilesystemNode):
         if not self.children:
             self.expand()
         return super().__contains__(item)
-
-    def __getitem__(self, item):
-        # Have to expand if we're not already already otherwise contains could incorrectly fail
-        if not self.children:
-            self.expand()
-        return super().__getitem__(item)
-
-    def __stream_out__(self, stream: TextIO):
-        for pre, _, node in anytree.RenderTree(self, childiter=iter):
-            stream.write(f'{pre}{node.name}\n')
 
     def expand(self, depth=1, populate_objects=False):  # pylint: disable=unused-argument
         """Populate the children with what is currently in the database
@@ -300,7 +476,7 @@ class DirectoryNode(ContainerNode, FilesystemNode):
             from pyos import psh_lib
 
             def yield_results():
-                for child in db.fs.find_children(self.entry_id, historian=self._hist):
+                for child in db.fs.iter_children(self.entry_id, historian=self._hist):
                     path = os.path.join(self._abspath, db.fs.Entry.name(child))
                     if db.fs.Entry.is_dir(child):
                         dir_node = DirectoryNode(path,
@@ -352,6 +528,8 @@ class DirectoryNode(ContainerNode, FilesystemNode):
 class ObjectNode(FilesystemNode):
     """A node that represents an object"""
 
+    __slots__ = '_obj_id', '_record', '_children'
+
     @classmethod
     def from_path(cls, path: os.PathLike, historian: mincepy.Historian = None):
         full_path = os.path.abspath(path)
@@ -370,7 +548,6 @@ class ObjectNode(FilesystemNode):
                  obj_id,
                  path=None,
                  record: mincepy.DataRecord = None,
-                 meta=None,
                  parent=None,
                  entry: Dict = None,
                  historian: mincepy.Historian = None):
@@ -390,7 +567,6 @@ class ObjectNode(FilesystemNode):
 
         self._obj_id = obj_id
         self._record = record  # This will be lazily loaded if None
-        self._meta = meta
         self._children = tuple()  # Can't have any children
 
     def __contains__(self, item):
@@ -403,7 +579,6 @@ class ObjectNode(FilesystemNode):
             self._obj_id,
             path=self._abspath,
             entry=self._entry,
-            meta=self._meta,
             record=self._record,
             historian=self._hist,
         )
@@ -437,7 +612,7 @@ class ObjectNode(FilesystemNode):
         return db.fs.Entry.type_id(self._entry)
 
     @property
-    def type(self):
+    def type(self) -> Type:
         return self._hist.get_obj_type(self.type_id)
 
     @property
@@ -480,115 +655,11 @@ class ObjectNode(FilesystemNode):
 
 
 class ResultsNode(ContainerNode):
-    VIEW_PROPERTIES = (
-        'loaded',  # Indication of whether the object is loaded in memory or not
-        'type',  # The object type
-        'creator',
-        'version',
-        'ctime',
-        'mtime',
-        'name',
-        'str',
-        'relpath',
-        'abspath',
-    )
-    JUSTIFICATIONS = {
-        'loaded': 'left',
-        'type': 'left',
-        'creator': 'right',
-        'version': 'right',
-        'ctime': 'right',
-        'mtime': 'right',
-        'name': 'right',
-        'str': 'right',
-        'relpath': 'left',
-        'abspath': 'left'
-    }
 
     def __init__(self, name='results', parent=None, historian: mincepy.Historian = None):
         super().__init__(name, parent, historian=historian)
         assert parent is None
-        self._view_mode = TABLE_VIEW
-        self._show = {'name'}
         self._children = []
-
-    def __repr__(self):
-        with io.StringIO() as stream:
-            self.__stream_out__(stream)
-            return stream.getvalue()
-
-    def __getitem__(self, item):
-        res = super().__getitem__(item)
-        if isinstance(res, ResultsNode):
-            # Transfer the view mode
-            res.show(*self._show, mode=self._view_mode)
-        return res
-
-    def __stream_out__(self, stream: TextIO):
-        if self._view_mode == TREE_VIEW:
-            self._render_tree(stream)
-
-        elif self._view_mode == TABLE_VIEW:
-            self._render_table(stream)
-
-        elif self._view_mode == LIST_VIEW:
-            self._render_list(stream)
-
-    def _render_tree(self, stream: TextIO):
-        """Render this node as a tree"""
-        for child in self.directories:
-            for pre, _, node in anytree.RenderTree(child, childiter=iter):
-                stream.write(f'{pre}{node.name}\n')
-        for child in self.objects:
-            stream.write(f'{child}\n')
-
-    def _render_table(self, stream: TextIO):
-        """Render this node as a table"""
-        if self._deeply_nested():
-            # Do the objects first, like linux's 'ls'
-            table = self._get_table(self.objects)
-            if table:
-                stream.write(pd.DataFrame(table).to_string(index=False, header=False))
-                stream.write('\n')
-
-            for directory in self.directories:
-                stream.write(f'{directory.name}:')
-                table = self._get_table(directory)
-                if table:
-                    stream.write(pd.DataFrame(table).to_string(index=False, header=False))
-                stream.write('\n')
-        else:
-            table = self._get_table(self.directories)
-            table.extend(self._get_table(self.objects))
-            if table:
-                stream.write(pd.DataFrame(table).to_string(index=False, header=False))
-                stream.write('\n')
-
-    def _render_list(self, stream: TextIO):
-        if stream.isatty():
-            repr_list = []
-            for child in self:
-                repr_list.append('-'.join(self._get_row(child)))
-
-            stream.write(columnize.columnize(repr_list, displaywidth=utils.get_terminal_width()))
-        else:
-            for child in self:
-                stream.write('-'.join(self._get_row(child)) + '\n')
-
-    @property
-    def showing(self) -> set:
-        """Returns the current view properties that are being displayed (if the view mode supports
-        them)"""
-        return self._show
-
-    @property
-    def view_mode(self) -> str:
-        return self._view_mode
-
-    @view_mode.setter
-    def view_mode(self, new_mode: str):
-        assert new_mode in (TREE_VIEW, LIST_VIEW, TABLE_VIEW)
-        self._view_mode = new_mode
 
     def append(self, node: FilesystemNode, display_name: str = None):
         """Append a node to the results"""
@@ -601,78 +672,6 @@ class ResultsNode(ContainerNode):
         """Extend this results using incorporating the entries of the other container"""
         for entry in other:
             self.append(entry)
-
-    def show(self, *properties, mode: str = None):
-        if mode is not None:
-            self._view_mode = mode
-        if properties:
-            self._show = set(properties)
-
-    def _get_row(self, child) -> Sequence[str]:
-        # pylint: disable=too-many-branches
-        empty = ''
-        row = []
-
-        if 'loaded' in self._show:
-            try:
-                row.append('*' if child.loaded else '')
-            except AttributeError:
-                row.append(empty)
-
-        if 'type' in self._show:
-            try:
-                row.append(fmt.pretty_type_string(child.type))
-            except AttributeError:
-                row.append('directory')
-
-        if 'creator' in self._show:
-            row.append(getattr(child, 'creator', empty))
-
-        if 'version' in self._show:
-            row.append(getattr(child, 'version', empty))
-
-        if 'ctime' in self._show:
-            try:
-                row.append(fmt.pretty_datetime(child.ctime))
-            except AttributeError:
-                row.append(empty)
-
-        if 'mtime' in self._show:
-            try:
-                row.append(fmt.pretty_datetime(child.stime))
-            except AttributeError:
-                row.append(empty)
-
-        if 'name' in self._show:
-            row.append(getattr(child, 'name', empty))
-
-        if 'str' in self._show:
-            try:
-                row.append(str(getattr(child, 'obj', empty))[:30])
-            except (TypeError, mincepy.ObjectDeleted):
-                row.append(empty)
-
-        if 'abspath' in self._show:
-            row.append(str(getattr(child, 'abspath', empty)))
-
-        if 'relpath' in self._show:
-            try:
-                row.append(os.path.relpath(child.abspath))
-            except AttributeError:
-                row.append(empty)
-
-        return row
-
-    def _get_table(self, entry) -> list:
-        return [self._get_row(child) for child in entry]
-
-    def _deeply_nested(self) -> bool:
-        """Returns True if we have any nodes that themselves have children"""
-        for directory in self.directories:
-            if len(directory) > 0:
-                return True
-
-        return False
 
 
 @functools.singledispatch

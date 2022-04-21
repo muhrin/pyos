@@ -66,7 +66,7 @@ class CachingResults(collections.abc.Sequence, pyos.results.BaseResults):
             try:
                 next(self_iter)
                 idx += 1
-                if idx == max_index:
+                if max_index != -1 and idx >= max_index:
                     return
             except StopIteration:
                 return

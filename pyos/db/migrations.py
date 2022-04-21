@@ -5,8 +5,6 @@ import mincepy.mongo
 from pyos import config
 from . import constants
 
-CURRENT_VERSION = 1
-
 
 def initial(historian: mincepy.Historian):
     """
@@ -47,7 +45,7 @@ def add_pyos_collections(historian: mincepy.Historian):
             directory = directory[entry]
         directory.add_obj(meta.get(config.NAME_KEY, str(obj_id)), obj_id)
 
-    records = [fs.ROOT] + root.create_edge_records()
+    records = root.create_edge_records()
 
     fs_collection = db[constants.FILESYSTEM_COLLECTION]
     fs_collection.create_index(fs.Schema.PARENT, unique=False)
@@ -56,6 +54,9 @@ def add_pyos_collections(historian: mincepy.Historian):
     fs_collection.create_index([(fs.Schema.PARENT, mincepy.ASCENDING),
                                 (fs.Schema.NAME, mincepy.ASCENDING)],
                                unique=True)
+
+    fs_collection.replace_one({'_id': fs.ROOT_ID}, fs.ROOT, upsert=True)
+
     if records:
         fs_collection.insert_many(records)
 

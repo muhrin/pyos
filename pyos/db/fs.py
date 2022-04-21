@@ -157,6 +157,13 @@ class Entry:
 ROOT = Schema.dir_dict(name='/', parent=None, dir_id=ROOT_ID)
 ROOT_PATH = ('/',)
 
+FIELD_MAP = {
+    mincepy.TYPE_ID: Schema.TYPE_ID,
+    mincepy.VERSION: Schema.VER,
+    mincepy.CREATION_TIME: Schema.CTIME,
+    mincepy.SNAPSHOT_TIME: Schema.STIME,
+}
+
 
 class FilesystemBuilder:
 
@@ -401,8 +408,9 @@ def find_entry(
     historian: mincepy.Historian = None,
 ) -> Optional[Dict]:
     """Find an entry in the filesystem collection based on the path"""
+    aggregate = _path_lookup(path)
+    historian = historian or database.get_historian()
 
-    aggregate = [*_path_lookup(path), *_records_lookup()]
     res = list(get_fs_collection(historian).aggregate(aggregate, allowDiskUse=True))
     if not res:
         return None
@@ -415,13 +423,16 @@ def find_entry(
         # The path does not exist.  This code can be reached, for example, when all but the last path part exists
         return None
 
+    if Entry.is_obj(entry):
+        try:
+            data_entry = tuple(
+                historian.records.find(obj_id=Entry.id(entry))._project(*FIELD_MAP.keys()))[0]  # pylint: disable=protected-access
+        except IndexError:
+            return None
+        else:
+            _copy_fields(entry, data_entry)
+
     return entry
-
-
-def find_children(entry_id, *, historian: mincepy.Historian = None) -> Iterator[Dict]:
-    aggregation = [{'$match': {Schema.PARENT: entry_id}}, *_records_lookup()]
-    coll = get_fs_collection(historian)
-    return coll.aggregate(aggregation, allowDiskUse=True, batchSize=1000)
 
 
 def get_entry(
@@ -430,7 +441,7 @@ def get_entry(
     *,
     historian: mincepy.Historian = None,
 ) -> Dict:
-    aggregate = [*_entries_lookup(entry_id), *_records_lookup()]
+    aggregate = _entries_lookup(entry_id)
 
     if include_path:
         aggregate.extend(_ancestors_lookup())
@@ -446,6 +457,15 @@ def get_entry(
     if include_path:
         entry[ANCESTORS].sort(key=lambda ancestor: ancestor[Schema.DEPTH], reverse=True)
         entry[Schema.PATH_ENTRIES] = entry.pop(ANCESTORS)
+
+    if Entry.is_obj(entry):
+        try:
+            data_entry = tuple(
+                historian.records.find(obj_id=Entry.id(entry))._project(*FIELD_MAP.keys()))[0]  # pylint: disable=protected-access
+        except IndexError:
+            return None
+        else:
+            _copy_fields(entry, data_entry)
 
     return entry
 
@@ -773,6 +793,58 @@ def validate_path(path: Path, absolute=True):
             raise ValueError(f"Path part cannot contain any of '{forbidden_chars}', got: {path}")
 
 
+def iter_children(entry_id,
+                  *,
+                  historian: mincepy.Historian = None,
+                  batch_size=1024) -> Iterator[Dict]:
+    """Given a filesystem directory id iterate over all of its children"""
+    historian = historian or database.get_historian()
+    coll = get_fs_collection(historian)
+
+    res = coll.find({Schema.PARENT: entry_id}, batch_size=batch_size)
+    has_more = True
+    while has_more:
+        found = []
+        objects = {}
+        for _ in range(batch_size):
+            try:
+                entry = res.next()
+            except StopIteration:
+                has_more = False
+            else:
+                # Only need to check objects, directories are always returned directly
+                if Entry.is_obj(entry):
+                    objects[Entry.id(entry)] = entry
+                else:
+                    found.append(entry)
+
+        # Now check that the objects still exist and extract some additional info
+        # pylint: disable=protected-access
+        records = {
+            entry[mincepy.OBJ_ID]: entry
+            for entry in historian.records.find(mincepy.DataRecord.obj_id.in_(
+                *objects.keys()))._project(mincepy.OBJ_ID, *FIELD_MAP.keys())
+        }
+
+        to_delete = []
+        for obj_id, entry in objects.items():
+            try:
+                data_entry = records[obj_id]
+            except KeyError:
+                # Delete
+                to_delete.append(obj_id)
+            else:
+                # Copy over the additional fields we want
+                _copy_fields(entry, data_entry)
+                found.append(entry)
+
+        # Clean up our collection
+        if to_delete:
+            coll.delete_many({Schema.ID: {'$in': to_delete}})
+
+        yield from found
+
+
 def iter_descendents(entry_id,
                      *,
                      of_type: str = None,
@@ -785,7 +857,7 @@ def iter_descendents(entry_id,
 
     if max_depth is not None and depth >= max_depth:
         return
-    for child in find_children(entry_id, historian=historian):
+    for child in iter_children(entry_id, historian=historian):
         child_path = path + (Entry.name(child),)
         if of_type is None or Entry.type(child) == of_type:
             child[Schema.DEPTH] = depth + 1
@@ -801,6 +873,16 @@ def iter_descendents(entry_id,
                 path=child_path,
                 historian=historian,
             )
+
+
+def _copy_fields(fs_entry: Dict, mincepy_entry: Dict):
+    """Copy over fields from mincepy data records to our filesystem entry dictionary format"""
+    for mince_field, fs_field in FIELD_MAP.items():
+        fs_entry[fs_field] = mincepy_entry[mince_field]
+
+
+def _consume_batch(cursor, batch_size: int) -> List:
+    return [entry for entry, _ in zip(cursor, range(batch_size))]
 
 
 def _get_path_from_entries(path_entries: List[Dict]) -> Path:
