@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 @pyos.psh_lib.flag(psh.u, 'Update the metadata')
 def meta(options, *obj_or_ids, **updates):  # pylint: disable=too-many-return-statements
     """Get, set or update the metadata on one or more objects"""
+    # pylint: disable=too-many-branches
     if not obj_or_ids:
         return None
 
@@ -25,12 +26,13 @@ def meta(options, *obj_or_ids, **updates):  # pylint: disable=too-many-return-st
     obj_ids, rest = pyos.psh_lib.gather_obj_ids(obj_or_ids, hist)
 
     # Assume that anything left is something like a path or filesystem node
-    to_update = psh.ls(-psh.d, *rest)
-    for node in to_update:
-        if isinstance(node, pyos.fs.ObjectNode):
-            obj_ids.append(node.obj_id)
-        else:
-            print(f"Can't set metadata on '{node}'")
+    if rest:
+        to_update = psh.ls(-psh.d, *rest)
+        for node in to_update:
+            if isinstance(node, pyos.fs.ObjectNode):
+                obj_ids.append(node.obj_id)
+            else:
+                print(f"Can't set metadata on '{node}'")
 
     if options.pop(psh.u, False):
         # In 'update' mode
