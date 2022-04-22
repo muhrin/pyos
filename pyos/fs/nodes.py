@@ -498,19 +498,20 @@ class DirectoryNode(ContainerNode, FilesystemNode):
             self._children = psh_lib.results.CachingResults(yield_results())
 
     def delete(self):
-        # 1. Find all the objects at or below this directory
-        descendents = db.fs.iter_descendents(self.entry_id,
-                                             of_type=db.fs.Schema.TYPE_OBJ,
-                                             historian=self._hist)
-        obj_ids = [db.fs.Entry.id(descendent) for descendent in descendents]
+        # 1. Find all filesystem entries that need to be deleted
+        descendents = tuple(db.fs.iter_descendents(self.entry_id, historian=self._hist))
 
-        # 2. Delete them
+        obj_ids = tuple(db.fs.Entry.id(entry) for entry in descendents if db.fs.Entry.is_obj(entry))
+
+        # 2. Delete the objects
         if obj_ids:
             with self._hist.transaction():
                 self._hist.delete(*obj_ids)
 
-        # 3. Delete myself
-        db.fs.remove_dir(self.entry_id, recursive=True, historian=self._hist)
+        # 3. Delete the filesystem entries
+        # pylint: disable=protected-access
+        db.fs._delete_entries(*map(db.fs.Entry.id, descendents + (self._entry,)),
+                              historian=self._hist)
 
         self._invalidate_cache()
 

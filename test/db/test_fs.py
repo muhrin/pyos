@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
+import math
+
+import bson
 import mincepy
+import pytest
 
 from pyos import os as pos
 from pyos import db
@@ -70,3 +74,18 @@ def test_iter_descendents():
     descendents = tuple(
         fs.iter_descendents(root_id, obj_filter=mincepy.testing.Car.colour == 'black'))
     assert len(descendents) == 6
+
+
+@pytest.mark.skip()
+def test_delete_many_entries():
+    """Test that deleting a large number of entries works.  If this is done in a single MongoDB delete_many command it
+    will exceed the 16MB document limit so check that the command still works even in such a case"""
+    obj_id_bytes = 12
+    # Calculate the number of object ids it would take to burst the 16MB limit
+    num_entries = math.ceil(16 * 1024 * 1024 / obj_id_bytes)
+
+    fake_objects = (bson.ObjectId() for _ in range(num_entries))
+    for obj_id in fake_objects:
+        db.fs.insert_obj(obj_id, ('/', str(obj_id)))
+
+    db.fs._delete_entries(*fake_objects)  # pylint: disable=protected-access

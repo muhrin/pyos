@@ -7,6 +7,7 @@ points to the parent directory and the destination points to the file or directo
 The edge also stores the name of the entry.
 """
 import abc
+import collections
 import datetime
 from typing import Dict, List, Iterator, Optional, Tuple, Iterable
 
@@ -30,7 +31,7 @@ RECORDS = 'records'
 ENTRY = 'entry'
 
 # The path type used by this low level module
-Path = Tuple[str]
+Path = Tuple[str, ...]
 
 
 class Schema:
@@ -425,8 +426,9 @@ def find_entry(
 
     if Entry.is_obj(entry):
         try:
+            # pylint: disable=protected-access
             data_entry = tuple(
-                historian.records.find(obj_id=Entry.id(entry))._project(*FIELD_MAP.keys()))[0]  # pylint: disable=protected-access
+                historian.records.find(obj_id=Entry.id(entry))._project(*FIELD_MAP.keys()))[0]
         except IndexError:
             return None
         else:
@@ -460,8 +462,9 @@ def get_entry(
 
     if Entry.is_obj(entry):
         try:
+            # pylint: disable=protected-access
             data_entry = tuple(
-                historian.records.find(obj_id=Entry.id(entry))._project(*FIELD_MAP.keys()))[0]  # pylint: disable=protected-access
+                historian.records.find(obj_id=Entry.id(entry))._project(*FIELD_MAP.keys()))[0]
         except IndexError:
             return None
         else:
@@ -724,6 +727,9 @@ def rename(
         return False
 
 
+RemoveResult = collections.namedtuple('RemoveResult', 'dirs_removed objs_removed')
+
+
 def remove_obj(obj_id, historian: mincepy.Historian = None) -> bool:
     """Remove a single object entry"""
     coll = get_fs_collection(historian)
@@ -741,7 +747,7 @@ def remove_objs(obj_ids: Tuple, historian: mincepy.Historian = None) -> int:
     return res.deleted_count
 
 
-def remove_dir(entry_id, recursive=False, historian: mincepy.Historian = None) -> Dict:
+def remove_dir(entry_id, recursive=False, historian: mincepy.Historian = None) -> RemoveResult:
     entry = get_entry(entry_id, historian=historian)  # DB HIT
     if entry is None:
         raise exceptions.FileNotFoundError(entry_id)
@@ -749,18 +755,37 @@ def remove_dir(entry_id, recursive=False, historian: mincepy.Historian = None) -
     if Entry.is_obj(entry):
         raise exceptions.NotADirectoryError(entry_id)
 
-    entry_ids = [entry_id]
-    descendents = tuple(map(Entry.id, iter_descendents(entry_id, historian=historian)))
+    to_delete = []
+    result = RemoveResult([], [])
+
+    # Check for descendents
+    descendents = tuple(iter_descendents(entry_id, historian=historian))
     if recursive:
-        entry_ids.extend(descendents)
+        for descendent in descendents:
+            descendent_id = Entry.id(descendent)
+            if Entry.is_obj(descendent):
+                result.objs_removed.append(descendent_id)
+            else:
+                result.dirs_removed.append(descendent_id)
+
+            to_delete.append(descendent_id)
     elif descendents:
         raise exceptions.PyOSError(f'Directory not empty: {entry_id}')
 
-    # Delete
-    coll = get_fs_collection(historian)
-    coll.delete_many({Schema.ID: {'$in': entry_ids}})  # DB HIT
+    # Delete the given directory id last
+    to_delete.append(entry_id)
+    result.dirs_removed.append(entry_id)
 
-    return entry
+    # Delete
+    _delete_entries(*to_delete, historian=historian)  # DB HIT
+
+    return result
+
+
+def _delete_entries(*entry_id, historian: mincepy.Historian = None):
+    """Delete entries from the filesystem collection.  No checks are done, just does a raw delete."""
+    delete_ops = list(pymongo.DeleteOne({Schema.ID: fsid}) for fsid in entry_id)
+    return get_fs_collection(historian).bulk_write(delete_ops)  # DB HIT
 
 
 def insert_obj(obj_id, dest: Path, historian: mincepy.Historian = None, cache: EntriesCache = None):
