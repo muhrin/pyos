@@ -19,6 +19,7 @@ def find(*starting_point,
          type=None,
          mindepth=0,
          maxdepth=-1,
+         obj_filter: mincepy.Expr = None,
          historian: mincepy.Historian = None) -> nodes.ResultsNode:
     """
     Find objects matching the given criteria
@@ -67,10 +68,10 @@ def find(*starting_point,
     entries = {}
 
     # Get the records that match both the record and metadata criteria
-    for record in hist.records.find(mincepy.DataRecord.obj_id.in_(*obj_ids.keys()),
-                                    obj_type=type,
-                                    state=state,
-                                    meta=meta):
+    filter_expr = mincepy.DataRecord.obj_id.in_(*obj_ids.keys())
+    if obj_filter is not None:
+        filter_expr &= obj_filter
+    for record in hist.records.find(obj_filter, obj_type=type, state=state, meta=meta):
         entries.setdefault(record.obj_id, {})['record'] = record
 
     results = nodes.ResultsNode()

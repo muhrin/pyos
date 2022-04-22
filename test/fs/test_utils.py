@@ -24,3 +24,25 @@ def test_find_multiple_paths():
     # Multiple paths
     assert len(fs.find('path1/', 'path2/')) == 2
     assert len(fs.find('path1/', 'path2/', type=testing.Car)) == 2
+
+
+def test_find_from_meta():
+    ferrari = testing.Car(make='ferrari')
+    skoda = testing.Car(make='skoda')
+
+    pyos.db.save_one(ferrari, meta=dict(num_keys=1))
+    pyos.db.save_one(skoda, meta=dict(num_keys=2))
+
+    res = fs.find(meta=dict(num_keys=2))
+    assert len(res) == 1
+    assert res[0].obj is skoda
+
+
+def test_find_from_attribute():
+    ferrari = testing.Car(make='ferrari')
+    skoda = testing.Car(make='skoda')
+    pyos.db.save_many((ferrari, skoda))
+
+    res = fs.find(obj_filter=testing.Car.make == 'skoda')
+    assert len(res) == 1
+    assert res[0].obj is skoda
