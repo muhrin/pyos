@@ -634,7 +634,7 @@ class ObjectNode(FilesystemNode):
 
     @property
     def meta(self) -> Optional[Dict]:
-        self._hist.meta.get(self._obj_id)
+        return self._hist.meta.get(self._obj_id)
 
     def delete(self):
         self._hist.delete(self._obj_id, imperative=False)

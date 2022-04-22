@@ -56,7 +56,8 @@ def test_results_slicing():
 def test_obj_node_basics(historian):
     # Test trying to create an object node for a deleted object
     person = Person('martin', 34)
-    person_id = pyos.db.save_one(person, 'martin')
+    meta = {'fave colour': 'red'}
+    person_id = pyos.db.save_one(person, 'martin', meta=meta)
 
     obj_node = fs.ObjectNode(person_id, 'martin')
     record = historian.records.find(obj_id=person_id).one()
@@ -64,6 +65,8 @@ def test_obj_node_basics(historian):
     assert obj_node.version == record.version
     assert obj_node.ctime == record.creation_time
     assert obj_node.mtime == record.snapshot_time
+
+    assert obj_node.meta == meta
 
     # Modify
     person.age = 35
