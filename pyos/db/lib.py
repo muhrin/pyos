@@ -25,14 +25,14 @@ def get_meta(obj_id: Union[Any, Iterable[Any]]):
     return hist.archive.meta_get(obj_id)
 
 
-def update_meta(*obj_or_identifier: Iterable, meta: dict):
+def update_meta(*obj_or_identifier, meta: dict):
     """Update the metadata for a bunch of objects"""
     hist = database.get_historian()
     for obj_id in obj_or_identifier:
         hist.meta.update(obj_id, meta)
 
 
-def set_meta(*obj_or_identifier: Iterable, meta: dict):
+def set_meta(*obj_or_identifier, meta: dict):
     """Set the metadata for a bunch of objects"""
     hist = database.get_historian()
     obj_ids = tuple(map(to_obj_id, obj_or_identifier))

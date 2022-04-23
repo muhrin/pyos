@@ -295,7 +295,7 @@ class ContainerNode(BaseNode):
 
     @view_mode.setter
     def view_mode(self, new_mode: str):
-        assert new_mode in (TREE_VIEW, LIST_VIEW, TABLE_VIEW)
+        assert new_mode in (TREE_VIEW, LIST_VIEW, TABLE_VIEW, SINGLE_COLUMN_VIEW)
         self._view_mode = new_mode
 
     def show(self, *properties, mode: str = None):
@@ -543,11 +543,11 @@ class ObjectNode(FilesystemNode):
             raise exceptions.IsADirectoryError(path)
 
         obj_id = db.fs.Entry.id(entry)
-        return ObjectNode(obj_id, entry=entry, historian=historian)
+        return ObjectNode(obj_id, path, entry=entry, historian=historian)
 
     def __init__(self,
                  obj_id,
-                 path=None,
+                 path: os.PathSpec,
                  record: mincepy.DataRecord = None,
                  parent=None,
                  entry: Dict = None,
@@ -675,17 +675,25 @@ class ResultsNode(ContainerNode):
             self.append(entry)
 
 
+class FrozenResultsNode(ContainerNode):
+
+    def __init__(self,
+                 children: Iterable[FilesystemNode],
+                 name='results',
+                 parent=None,
+                 historian: mincepy.Historian = None):
+        super().__init__(name, parent, historian=historian)
+        assert parent is None
+        self._children = children
+
+
 @functools.singledispatch
 def to_node(entry, historian: mincepy.Historian = None) -> FilesystemNode:
     """Get the node for a given object.  This can be either:
 
-    1.  An object id -> ObjectNode
-    2.  A directory path -> DirectoryNode
-    3.  An object path -> ObjectNode
+    1.  A directory path -> DirectoryNode
+    2.  An object path -> ObjectNode
     """
-    if db.get_historian().is_obj_id(entry):
-        return ObjectNode(entry, historian=historian)
-
     raise ValueError(f'Unknown entry type: {entry}')
 
 

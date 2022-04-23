@@ -821,15 +821,25 @@ def validate_path(path: Path, absolute=True):
 def iter_children(
     entry_id,
     *,
+    type: str = None,  # pylint: disable=redefined-builtin
     obj_filter: mincepy.Expr = None,
+    obj_type=None,
+    meta_filter=None,
     historian: mincepy.Historian = None,
     batch_size=1024,
 ) -> Iterator[Dict]:
     """Given a filesystem directory id iterate over all of its children"""
+    if type is not None and type not in (Schema.TYPE_DIR, Schema.TYPE_OBJ):
+        raise ValueError(f'Invalid type filter: {type}')
+
     historian = historian or database.get_historian()
     coll = get_fs_collection(historian)
 
-    res = coll.find({Schema.PARENT: entry_id}, batch_size=batch_size)
+    find_filter = {Schema.PARENT: entry_id}
+    if type is not None:
+        find_filter[Schema.TYPE] = type
+
+    res = coll.find(find_filter, batch_size=batch_size)
     has_more = True
     while has_more:
         found = []
@@ -854,9 +864,10 @@ def iter_children(
         if obj_filter:
             data_filter &= obj_filter
 
+        record_find = historian.records.find(data_filter, obj_type=obj_type, meta=meta_filter)
         records = {
-            entry[mincepy.OBJ_ID]: entry for entry in historian.records.find(data_filter)._project(
-                mincepy.OBJ_ID, *FIELD_MAP.keys())
+            entry[mincepy.OBJ_ID]: entry
+            for entry in record_find._project(mincepy.OBJ_ID, *FIELD_MAP.keys())
         }
 
         for obj_id, entry in objects.items():
@@ -873,22 +884,29 @@ def iter_children(
         yield from found
 
 
-def iter_descendents(entry_id,
-                     *,
-                     of_type: str = None,
-                     obj_filter: mincepy.Expr = None,
-                     max_depth=None,
-                     depth=0,
-                     path: Path = (),
-                     historian: mincepy.Historian = None):
-    if of_type is not None and of_type not in (Schema.TYPE_DIR, Schema.TYPE_OBJ):
-        raise ValueError(f'Invalid type filter: {of_type}')
+def iter_descendents(
+        entry_id,
+        *,
+        type: str = None,  # pylint: disable=redefined-builtin
+        obj_filter: mincepy.Expr = None,
+        obj_type=None,
+        meta_filter=None,
+        max_depth=None,
+        depth=0,
+        path: Path = (),
+        historian: mincepy.Historian = None):
+    if type is not None and type not in (Schema.TYPE_DIR, Schema.TYPE_OBJ):
+        raise ValueError(f'Invalid type filter: {type}')
 
     if max_depth is not None and depth >= max_depth:
         return
-    for child in iter_children(entry_id, obj_filter=obj_filter, historian=historian):
+    for child in iter_children(entry_id,
+                               obj_filter=obj_filter,
+                               obj_type=obj_type,
+                               meta_filter=meta_filter,
+                               historian=historian):
         child_path = path + (Entry.name(child),)
-        if of_type is None or Entry.type(child) == of_type:
+        if type is None or Entry.type(child) == type:
             child[Schema.DEPTH] = depth + 1
             child[Schema.PATH] = child_path
             yield child
@@ -896,8 +914,10 @@ def iter_descendents(entry_id,
         if Entry.is_dir(child):
             yield from iter_descendents(
                 Entry.id(child),
-                of_type=of_type,
+                type=type,
                 obj_filter=obj_filter,
+                obj_type=obj_type,
+                meta_filter=meta_filter,
                 max_depth=max_depth,
                 depth=depth + 1,
                 path=child_path,

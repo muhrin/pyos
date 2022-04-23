@@ -33,7 +33,8 @@ def test_iter_children():
 
     # Now, make sure they are all children of the current directory
     fs_entry = fs.find_entry(pos.withdb.to_fs_path(pos.getcwd()))
-    children = list(fs.iter_children(fs.Entry.id(fs_entry)))
+    entry_id = fs.Entry.id(fs_entry)
+    children = list(fs.iter_children(entry_id))
 
     assert len(children) == 5
     ids = tuple(map(fs.Entry.id, children))
@@ -44,16 +45,27 @@ def test_iter_children():
     assert fs.Entry.id(fs.find_entry(pos.withdb.to_fs_path('./subdir'))) in ids
 
     # Now check that filtering works
-    children = list(
-        fs.iter_children(fs.Entry.id(fs_entry), obj_filter=mincepy.testing.Car.colour == 'black'))
+    children = list(fs.iter_children(entry_id, obj_filter=mincepy.testing.Car.colour == 'black'))
     assert len(children) == 2
     ids = tuple(map(fs.Entry.id, children))
     assert black_car.obj_id in ids
 
     children = list(
-        fs.iter_children(fs.Entry.id(fs_entry),
+        fs.iter_children(entry_id,
                          obj_filter=mincepy.DataRecord.type_id == mincepy.testing.Car.TYPE_ID))
     assert len(children) == 3
+
+    # Check that meta filtering works
+    db.set_meta(black_car, meta=dict(reg='1234'))
+    db.set_meta(pink_car, meta=dict(reg='1466'))
+
+    children = tuple(
+        fs.iter_children(
+            entry_id,
+            type=fs.Schema.TYPE_OBJ,  # Only find objects (not directories)
+            meta_filter={'reg': '1234'}))
+    assert len(children) == 1
+    assert fs.Entry.id(children[0]) == black_car.obj_id
 
 
 def test_iter_descendents():

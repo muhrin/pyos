@@ -82,15 +82,19 @@ def rsync(options, *args, progress=False, history=False, meta=None):  # pylint: 
 
         result = pyos.fs.ResultsNode()
         for src_path in src_paths:
-            sync_result = _sync_objects(src,
-                                        src_path,
-                                        dest,
-                                        dest_path,
-                                        history=history,
-                                        meta=meta,
-                                        progress_cb=show_progress)
+            sync_result, merged_paths = _sync_objects(src,
+                                                      src_path,
+                                                      dest,
+                                                      dest_path,
+                                                      history=history,
+                                                      meta=meta,
+                                                      progress_cb=show_progress)
             for entry in sync_result.merged:
-                result.append(pyos.fs.to_node(entry.obj_id, historian=dest))
+                # result.append(pyos.fs.to_node(entry.obj_id, historian=dest))
+                result.append(
+                    pyos.fs.ObjectNode(entry.obj_id,
+                                       path=merged_paths[entry.obj_id],
+                                       historian=dest))
 
         return result
 
@@ -114,6 +118,7 @@ def _sync_objects(src: mincepy.Historian,
     src_collection = src.snapshots if history else src.objects
 
     sync_set = src_collection.find(mincepy.DataRecord.obj_id.in_(*obj_ids))
+    merged_paths = {}
 
     def batch_merged(progress, result):
         """Callback called when a batch is merged"""
@@ -163,7 +168,9 @@ def _sync_objects(src: mincepy.Historian,
         if progress_cb is not None:
             progress_cb(progress, result)
 
-    return dest.merge(sync_set, progress_callback=batch_merged, batch_size=256)
+        merged_paths.update(new_paths)
+
+    return dest.merge(sync_set, progress_callback=batch_merged, batch_size=256), merged_paths
 
 
 def _get_sources(*src) -> Tuple[Optional[str], List[str]]:
