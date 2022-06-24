@@ -14,7 +14,7 @@ class Log(cmd2.CommandSet):
     parser.add_argument('level', help='the log level to set')
 
     @cmd2.with_argparser(parser)
-    def do_log(self, args):  # pylint: disable=no-self-use
+    def do_log(self, args):
 
         if isinstance(args.level, int):
             level = args.level

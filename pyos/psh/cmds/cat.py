@@ -77,7 +77,7 @@ class Cat(cmd2.CommandSet):
     ls_parser.add_argument('path', nargs='*', type=str, completer_method=completion.file_completer)
 
     @cmd2.with_argparser(ls_parser)
-    def do_cat(self, args):  # pylint: disable=no-self-use
+    def do_cat(self, args):
         if not args.path:
             # Read from standard in
             _LOGGER.debug('cat: getting input from stdin')

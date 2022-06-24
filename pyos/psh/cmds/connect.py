@@ -14,7 +14,7 @@ class Connnection(cmd2.CommandSet):
     connect_parser.add_argument('uri', type=str, help='the URI of the archive to connect to')
 
     @cmd2.with_argparser(connect_parser)
-    def do_connect(self, args):  # pylint: disable=no-self-use
+    def do_connect(self, args):
         """Connect to a mincepy archive"""
         try:
             db.connect(args.uri)
@@ -22,6 +22,6 @@ class Connnection(cmd2.CommandSet):
         except mincepy.ConnectionError as exc:
             print(f'Error: {exc}', file=sys.stderr)
 
-    def do_disconnect(self, _args):  # pylint: disable=no-self-use
+    def do_disconnect(self, _args):
         """Disconnect from the current archive"""
         db.reset()

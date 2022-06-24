@@ -61,7 +61,7 @@ class Rm(cmd2.CommandSet):
     parser.add_argument('path', nargs='*', type=str, completer_method=completion.path_complete)
 
     @cmd2.with_argparser(parser)
-    def do_rm(self, args):  # pylint: disable=no-self-use
+    def do_rm(self, args):
         command = rm
         if args.r:
             command = command - psh.r

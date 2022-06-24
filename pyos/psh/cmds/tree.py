@@ -28,7 +28,7 @@ class Tree(cmd2.CommandSet):
     parser.add_argument('path', nargs='*', type=str, completer_method=completion.path_complete)
 
     @cmd2.with_argparser(parser)
-    def do_tree(self, args):  # pylint: disable=no-self-use
+    def do_tree(self, args):
         command = tree
         if args.L is not None:
             command = command - psh.L(args.L)

@@ -19,7 +19,7 @@ def pyos_shell():
 
     def new_pexcept(*args, **kwargs):
         old_pexcept(*args, **kwargs)
-        raise
+        raise  # pylint: disable=misplaced-bare-raise
 
     app.pexcept = new_pexcept
 

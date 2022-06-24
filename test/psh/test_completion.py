@@ -14,7 +14,7 @@ def test_completion_simple():
     Car().save()
 
     comp = psh.completion.PathCompletion('/test/')
-    content = tuple(comp.__dir__())
+    content = tuple(dir(comp))
     assert len(content) == 2
     assert 'sub' in content
     assert 'my_car' in content
@@ -25,7 +25,7 @@ def test_completion_simple():
 
     # Check __repr__
     assert psh.completion.PathCompletion.__name__ in repr(comp)
-    assert comp.__fspath__() in repr(comp)
+    assert pyos.os.fspath(comp) in repr(comp)
 
     # Check for non-existent paths
-    assert not list(psh.completion.PathCompletion('/does_not_exist/').__dir__())
+    assert not list(dir(psh.completion.PathCompletion('/does_not_exist/')))

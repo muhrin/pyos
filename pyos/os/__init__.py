@@ -12,4 +12,4 @@ _ADDITIONAL = ('path', 'getcwd', 'chdir', 'fspath', 'listdir', 'remove', 'sep', 
                'pardir', 'rename', 'scandir', 'DirEntry', 'isdir', 'makedirs', 'fsencode',
                'fsdecode')
 
-__all__ = types.__all__ + _ADDITIONAL
+__all__ = types.__all__ + _ADDITIONAL  # pylint: disable=undefined-variable

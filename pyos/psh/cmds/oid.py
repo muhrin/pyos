@@ -38,7 +38,7 @@ class Oid(cmd2.CommandSet):
                         help='the objects to get ids for')
 
     @cmd2.with_argparser(parser)
-    def do_oid(self, args):  # pylint: disable=no-self-use
+    def do_oid(self, args):
         if not args.path:
             # Read from standard in
             _LOGGER.debug('oid: getting input from stdin')

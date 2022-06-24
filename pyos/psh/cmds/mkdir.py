@@ -28,7 +28,7 @@ class Mkdir(cmd2.CommandSet):
                         help='no error if existing, make parent directories as needed')
 
     @cmd2.with_argparser(parser)
-    def do_mkdir(self, args):  # pylint: disable=no-self-use
+    def do_mkdir(self, args):
         new_dir = args.path[0]
 
         command = mkdir

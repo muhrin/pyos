@@ -13,7 +13,7 @@ class Echo(cmd2.CommandSet):
     parser.add_argument('msg', default=None, type=str, nargs='*')
 
     @cmd2.with_argparser(parser)
-    def do_echo(self, args):  # pylint: disable=no-self-use
+    def do_echo(self, args):
         if not args.msg:
             # Read from stdin
             args.msg = [line.rstrip() for line in sys.stdin.readlines()]

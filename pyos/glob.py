@@ -48,15 +48,17 @@ def iglob(pathname, *, root_dir=None, recursive=False, include_hidden=False):
     itr = _iglob(pathname, root_dir, recursive, False, include_hidden=include_hidden)
     if not pathname or recursive and _isrecursive(pathname[:2]):
         try:
-            s = next(itr)  # skip empty string
-            if s:
-                itr = itertools.chain((s,), itr)
+            string = next(itr)  # skip empty string
+            if string:
+                itr = itertools.chain((string,), itr)
         except StopIteration:
             pass
     return itr
 
 
 def _iglob(pathname, root_dir, recursive, dironly, include_hidden=False):
+    # pylint: disable=too-many-branches
+
     dirname, basename = os.path.split(pathname)
     if not has_magic(pathname):
         assert not dironly
@@ -108,7 +110,7 @@ def _glob1(dirname, pattern, dironly, include_hidden=False):
     return fnmatch.filter(names, pattern)
 
 
-def _glob0(dirname, basename, dironly, include_hidden=False):
+def _glob0(dirname, basename, dironly, include_hidden=False):  # pylint: disable=unused-argument
     if basename:
         if _lexists(_join(dirname, basename)):
             return [basename]
@@ -151,7 +153,7 @@ def _iterdir(dirname, dironly: bool):
             arg = bytes(os.curdir, 'ASCII')
         else:
             arg = os.curdir
-        with os.scandir(arg) as it:
+        with os.scandir(arg) as it:  # pylint: disable=invalid-name
             for entry in it:
                 try:
                     if not dironly or entry.is_dir():
@@ -163,19 +165,19 @@ def _iterdir(dirname, dironly: bool):
 
 
 def _listdir(dirname, dironly):
-    with contextlib.closing(_iterdir(dirname, dironly)) as it:
+    with contextlib.closing(_iterdir(dirname, dironly)) as it:  # pylint: disable=invalid-name
         return list(it)
 
 
 # Recursively yields relative pathnames inside a literal directory.
 def _rlistdir(dirname, dironly, include_hidden=False):
     names = _listdir(dirname, dironly)
-    for x in names:
-        if include_hidden or not _ishidden(x):
-            yield x
-            path = _join(dirname, x) if dirname else x
-            for y in _rlistdir(path, dironly, include_hidden=include_hidden):
-                yield _join(x, y)
+    for name in names:
+        if include_hidden or not _ishidden(name):
+            yield name
+            path = _join(dirname, name) if dirname else name
+            for pname in _rlistdir(path, dironly, include_hidden=include_hidden):
+                yield _join(name, pname)
 
 
 _lexists = os.path.lexists
@@ -194,11 +196,11 @@ magic_check = re.compile('([*?[])')
 magic_check_bytes = re.compile(b'([*?[])')
 
 
-def has_magic(s):
-    if isinstance(s, bytes):
-        match = magic_check_bytes.search(s)
+def has_magic(string):
+    if isinstance(string, bytes):
+        match = magic_check_bytes.search(string)
     else:
-        match = magic_check.search(s)
+        match = magic_check.search(string)
     return match is not None
 
 

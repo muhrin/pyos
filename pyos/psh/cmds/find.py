@@ -77,7 +77,7 @@ class Find(cmd2.CommandSet):
                         help='a constraint to apply to the state of the object')
 
     @cmd2.with_argparser(parser)
-    def do_find(self, args):  # pylint: disable=no-self-use
+    def do_find(self, args):
         meta = None
         state = None
         if args.meta:

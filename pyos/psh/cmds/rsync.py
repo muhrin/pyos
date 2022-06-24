@@ -228,7 +228,7 @@ class Rsync(cmd2.CommandSet):
     parser.add_argument('path', nargs='*', type=str, completer_method=completion.path_complete)
 
     @cmd2.with_argparser(parser)
-    def do_rsync(self, args):  # pylint: disable=no-self-use
+    def do_rsync(self, args):
         command = rsync
         progress = args.progress
         history = args.history

@@ -14,7 +14,7 @@ def psh_(script, cmd):
     if cmd:
         headless_cmds = list(part.strip() for part in cmd.split(';'))
     elif script:
-        with open(script, 'r') as script_file:
+        with open(script, 'r', encoding='utf-8') as script_file:
             headless_cmds = list(line.rstrip() for line in script_file.readlines())
 
     # Need to clear args because otherwise cmd2 picks them up

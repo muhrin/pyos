@@ -538,7 +538,7 @@ class Instruction(metaclass=abc.ABCMeta):
     def get_ops(self, cache: EntriesCache):
         """Get the bulk operations needed to carry out this instruction"""
 
-    def handle_exception(self, error: Dict):  # pylint: disable=no-self-use
+    def handle_exception(self, error: Dict):
         raise exceptions.PyOSError(error)
 
 

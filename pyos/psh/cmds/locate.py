@@ -23,7 +23,7 @@ def locate(*obj_or_ids) -> Optional[Union[pyos.pathlib.Path, Sequence[pyos.pathl
         return pyos.pathlib.Path(pyos.os.withdb.from_fs_path(fs_path))
 
     paths = tuple(map(to_path, db.fs.get_paths(*obj_ids, historian=hist)))
-    results = pyos.psh_lib.CachingResults(paths.__iter__(), representer=str)
+    results = pyos.psh_lib.CachingResults(iter(paths), representer=str)
 
     if len(obj_or_ids) == 1 and len(results) == 1:
         return results[0]
@@ -36,5 +36,5 @@ class Locate(cmd2.CommandSet):
     parser.add_argument('obj_ids', nargs='*', type=str)
 
     @cmd2.with_argparser(parser)
-    def do_locate(self, args):  # pylint: disable=no-self-use
+    def do_locate(self, args):
         print(locate(*args.obj_ids))

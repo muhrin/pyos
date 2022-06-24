@@ -111,6 +111,7 @@ class ThreadStreamRedirector(io.TextIOBase):
 
 
 class Piper:
+    encoding = 'utf-8'
 
     def __init__(self, funcs: List[Callable], out_stream: TextIO = sys.stdout):
         self._funcs = funcs
@@ -124,7 +125,7 @@ class Piper:
 
         # Open up the 0th pipe and set up our input stream
         _read, write = self._get_pipe(0)
-        self._in_steam = open(write, 'w')
+        self._in_steam = open(write, 'w', encoding=self.encoding)  # pylint: disable=consider-using-with
 
         # Input/Output redirectors
         self._in_redir = ThreadStreamRedirector(name='stdin', default=self._orig_stdin)
@@ -160,18 +161,20 @@ class Piper:
                 read, _write = self._get_pipe(idx)
 
                 # OUTPUT: Determine what the output stream for this part should be
+                # pylint: disable=consider-using-with
                 if idx == len(self._funcs) - 1:
                     # At the end, so just go to standard out
                     open_out_stream = nullcontext(self._out_stream)
                 else:
                     # Need to output to the next commands input
                     _next_read, next_write = self._pipes[idx + 1]
-                    open_out_stream = open(next_write, 'w')
+                    open_out_stream = open(next_write, 'w', encoding=self.encoding)
 
                 done_redirecting = threading.Event()
 
-                future = self._thread_pool.submit(self._run_func, func, open(read, 'r'),
-                                                  open_out_stream, done_redirecting)
+                future = self._thread_pool.submit(self._run_func, func,
+                                                  open(read, 'r', encoding=self.encoding),
+                                                  open_out_stream, done_redirecting)  # pylint: disable=consider-using-with
 
                 try:
                     done_redirecting.wait(timeout=0.1)
@@ -180,8 +183,9 @@ class Piper:
                     future.result(timeout=0.)
 
                     # Didn't raise, so we need to raise ourselves
-                    raise RuntimeError("Failed to redirect streams for command '{}' in a timely "
-                                       'manner'.format(func)) from timeout
+                    raise RuntimeError(
+                        f"Failed to redirect streams for command '{func}' in a timely "
+                        'manner') from timeout
                 else:
                     del done_redirecting
 

@@ -70,7 +70,7 @@ class Meta(cmd2.CommandSet):
     parser.add_argument('path', nargs='*', type=str, completer_method=completion.path_complete)
 
     @cmd2.with_argparser(parser)
-    def do_meta(self, args):  # pylint: disable=no-self-use
+    def do_meta(self, args):
         command = meta
         if args.u:
             command = command - psh.u

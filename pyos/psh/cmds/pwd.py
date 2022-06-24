@@ -17,5 +17,5 @@ class Pwd(cmd2.CommandSet):
     parser = argparse.ArgumentParser()
 
     @cmd2.with_argparser(parser)
-    def do_pwd(self, _):  # pylint: disable=no-self-use
+    def do_pwd(self, _):
         print(pwd())

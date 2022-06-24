@@ -67,7 +67,7 @@ def fspath(file_path: types.PathSpec) -> Union[str, bytes]:
     # Work from the object's type to match method resolution of other magic methods.
     path_type = type(file_path)
     try:
-        path_repr = path_type.__fspath__(file_path)
+        path_repr = path_type.__fspath__(file_path)  # pylint: disable=unnecessary-dunder-call
     except AttributeError:
         if hasattr(path_type, '__fspath__'):
             raise

@@ -248,7 +248,7 @@ def scandir(scan_path='.') -> Iterator[nodb.DirEntry]:
                           obj_path=nodb.join(scan_path, obj_name),
                           is_file=fs.Entry.is_obj(descendent)))
 
-    return _ScandirIter(contents.__iter__())
+    return _ScandirIter(iter(contents))
 
 
 def unlink(file_path: types.PathSpec):
