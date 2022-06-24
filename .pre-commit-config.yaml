@@ -13,7 +13,7 @@ repos:
     -   id: trailing-whitespace
 
 -   repo: https://github.com/PyCQA/pylint
-    rev: pylint-2.5.2
+    rev: v2.13.7
     hooks:
     -   id: pylint
         language: system

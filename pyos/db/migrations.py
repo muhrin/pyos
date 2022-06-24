@@ -34,11 +34,27 @@ def add_pyos_collections(historian: mincepy.Historian):
     archive: mincepy.mongo.MongoArchive = historian.archive
     db = archive.database  # pylint: disable=invalid-name
 
-    metas = db[archive.META_COLLECTION]
+    schema_version = getattr(archive, 'schema_version', 0)
+
+    if schema_version >= 2:
+        meta_entries = archive.data_collection.aggregate([{
+            '$match': {
+                'meta': {
+                    '$exists': True
+                }
+            }
+        }, {
+            '$replaceRoot': {
+                'newRoot': '$meta'
+            }
+        }])
+    else:
+        metas = db[archive.META_COLLECTION]
+        meta_entries = metas.find({config.DIR_KEY: {'$exists': True}})
 
     # Find all the objects that have a directory key
     root = fs.FilesystemBuilder(is_root=True)
-    for meta in metas.find({config.DIR_KEY: {'$exists': True}}):
+    for meta in meta_entries:
         obj_id = meta['_id']
         directory = root
         for entry in meta[config.DIR_KEY].split('/')[1:-1]:

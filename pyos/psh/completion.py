@@ -22,12 +22,10 @@ class PathCompletion(pyos.os.PathLike):
     def __fspath__(self):
         return str(self._path)
 
-    def __dir__(self) -> Iterable[str]:
+    def __dir__(self) -> Optional[Iterable[str]]:
         try:
-            for path in self._path.to_dir().iterdir():
+            for path in self._path.iterdir():
                 name = path.name
-                if name.endswith('/'):
-                    name = name[:-1]
 
                 # Skip strings that aren't python identifiers
                 if name.isidentifier():
@@ -39,7 +37,7 @@ class PathCompletion(pyos.os.PathLike):
     def _ipython_key_completions_(self):
         """This allows getitem style (["<tab>) style completion"""
         try:
-            for path in self._path.to_dir().iterdir():
+            for path in self._path.iterdir():
                 yield path.name
 
         except (pyos.FileNotFoundError, pyos.NotADirectoryError):
@@ -47,29 +45,16 @@ class PathCompletion(pyos.os.PathLike):
 
     def __getattr__(self, item: str) -> 'PathCompletion':
         """Attribute access for paths"""
-        # This creates a file (because forward slash isn't a valid python variable name character),
-        # but it may be a directory..
-
         path = self._path / item
-        # ..check:
-        if not path.exists():
-            path = path.to_dir()
-            if not path.exists():
-                try:
-                    return super().__getattr__(item)
-                except AttributeError:
-                    raise AttributeError(f"Path does not exist: '{item}'") from None
+        if path.exists():
+            return PathCompletion(path)
 
-        return PathCompletion(path)
+        raise FileNotFoundError(f"Path does not exist: '{item}'")
 
     def __getitem__(self, item):
         """Square bracket notation.  Allows arbitrary strings which is needed if the path name isn't
         a valid python variable"""
         path = self._path / item
-        if path.exists():
-            return PathCompletion(path)
-
-        path = path.to_dir()
         if path.exists():
             return PathCompletion(path)
 

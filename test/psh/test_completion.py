@@ -21,3 +21,11 @@ def test_completion_simple():
 
     assert isinstance(getattr(comp, 'sub'), psh.completion.PathCompletion)
     assert isinstance(getattr(comp, 'my_car'), psh.completion.PathCompletion)
+    assert set(comp._ipython_key_completions_()) == {'sub', 'my_car'}  # pylint: disable=protected-access
+
+    # Check __repr__
+    assert psh.completion.PathCompletion.__name__ in repr(comp)
+    assert comp.__fspath__() in repr(comp)
+
+    # Check for non-existent paths
+    assert not list(psh.completion.PathCompletion('/does_not_exist/').__dir__())

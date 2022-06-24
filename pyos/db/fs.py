@@ -474,7 +474,7 @@ def get_entry(
 
 
 def find_path_entries(path: Path, historian: mincepy.Historian = None) -> List[Dict]:
-    """Find all the entries along a path"""
+    """Find all filesystem the entries along a path"""
     coll = get_fs_collection(historian=historian)
     res = list(coll.aggregate(_path_lookup(path)))
 
@@ -829,6 +829,7 @@ def iter_children(
     batch_size=1024,
 ) -> Iterator[Dict]:
     """Given a filesystem directory id iterate over all of its children"""
+    # pylint: disable=too-many-branches
     if type is not None and type not in (Schema.TYPE_DIR, Schema.TYPE_OBJ):
         raise ValueError(f'Invalid type filter: {type}')
 
@@ -849,6 +850,7 @@ def iter_children(
                 entry = res.next()
             except StopIteration:
                 has_more = False
+                break
             else:
                 # Only need to check objects, directories are always returned directly
                 if Entry.is_obj(entry):
@@ -856,30 +858,31 @@ def iter_children(
                 else:
                     found.append(entry)
 
-        # Now check that the objects still exist and extract some additional info
-        # pylint: disable=protected-access
+        if objects:
+            # Now check that the objects still exist and extract some additional info
+            # pylint: disable=protected-access
 
-        # Create the filter to be used for finding records
-        data_filter = mincepy.DataRecord.obj_id.in_(*objects.keys())
-        if obj_filter:
-            data_filter &= obj_filter
+            # Create the filter to be used for finding records
+            data_filter = mincepy.DataRecord.obj_id.in_(*objects.keys())
+            if obj_filter:
+                data_filter &= obj_filter
 
-        record_find = historian.records.find(data_filter, obj_type=obj_type, meta=meta_filter)
-        records = {
-            entry[mincepy.OBJ_ID]: entry
-            for entry in record_find._project(mincepy.OBJ_ID, *FIELD_MAP.keys())
-        }
+            record_find = historian.records.find(data_filter, obj_type=obj_type, meta=meta_filter)
+            records = {
+                entry[mincepy.OBJ_ID]: entry
+                for entry in record_find._project(mincepy.OBJ_ID, *FIELD_MAP.keys())
+            }
 
-        for obj_id, entry in objects.items():
-            try:
-                data_entry = records[obj_id]
-            except KeyError:
-                # Pass this one, doesn't match the filter
-                pass
-            else:
-                # Copy over the additional fields we want
-                _copy_fields(entry, data_entry)
-                found.append(entry)
+            for obj_id, entry in objects.items():
+                try:
+                    data_entry = records[obj_id]
+                except KeyError:
+                    # Pass this one, doesn't match the filter
+                    pass
+                else:
+                    # Copy over the additional fields we want
+                    _copy_fields(entry, data_entry)
+                    found.append(entry)
 
         yield from found
 

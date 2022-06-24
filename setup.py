@@ -30,7 +30,7 @@ setup(
         'anytree',
         'cmd2 ~= 1.3.2',
         'columnize',
-        'mincepy>=0.15.26, <0.16.0',
+        'mincepy>=0.16.1, <0.17',
         'click',
         'ipython',
         'pandas',

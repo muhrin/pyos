@@ -16,11 +16,6 @@ def save(options, *args):
         dest = pyos.pathlib.Path(objs[-1]).resolve()
         objs = objs[:-1]
 
-        if len(objs) > 1 and dest.is_file():
-            # Automatically convert to directory if there are many objects as they can't save
-            # more than one with the same filename in the same folder!
-            dest = dest.to_dir()
-
         save_args = [(obj, dest) for obj in objs]
     else:
         save_args = [(obj, None) for obj in objs]

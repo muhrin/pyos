@@ -61,12 +61,14 @@ def rsync(options, *args, progress=False, history=False, meta=None):  # pylint: 
         if src_url:
             src = db.connect(src_url, use_globally=False)
         else:
+            # We are the source database
             src = db.get_historian()
 
         # 2. Set up the destination
         if dest_url:
             dest = db.connect(dest_url, use_globally=False)
         else:
+            # We are the destination database
             dest = db.get_historian()
     except pymongo.errors.OperationFailure as exc:
         print(
@@ -114,7 +116,7 @@ def _sync_objects(src: mincepy.Historian,
     path = os.path.abspath(src_path)
     obj_ids = set(entry.obj_id for entry in fs.find(path, historian=src).objects)  # DB HIT
 
-    # This is the set of objects we will be syncing
+    # Choose the collection to sync from (either history or live objects)
     src_collection = src.snapshots if history else src.objects
 
     sync_set = src_collection.find(mincepy.DataRecord.obj_id.in_(*obj_ids))

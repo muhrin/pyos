@@ -43,9 +43,6 @@ def find(*starting_point,
     if state:
         expr &= mincepy.build_expr(mincepy.frontend.flatten_filter('state', state)[0])
 
-    results = nodes.ResultsNode()
-    results.show('relpath', mode=nodes.SINGLE_COLUMN_VIEW)
-
     def yield_results():
         for path in starting_point:
             for matching in _iter_matching(path,
@@ -59,7 +56,9 @@ def find(*starting_point,
                 path = os.withdb.from_fs_path(descendent_path)
                 yield nodes.ObjectNode(db.fs.Entry.id(matching), path)
 
-    return nodes.FrozenResultsNode(pyos.psh_lib.CachingResults(yield_results()))
+    results = nodes.FrozenResultsNode(pyos.psh_lib.CachingResults(yield_results()))
+    results.show('relpath', mode=nodes.SINGLE_COLUMN_VIEW)
+    return results
 
 
 def _iter_matching(path, obj_filter, obj_type, meta_filter, mindepth: int, maxdepth: int,

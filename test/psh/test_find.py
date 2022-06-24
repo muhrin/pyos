@@ -39,6 +39,16 @@ def test_simple_find():
     assert car2.obj_id in results
 
 
+def test_find_paths():
+    pyos.os.makedirs('subdir/')
+    psh.save(Car(), 'subdir/car_a')
+
+    res = psh.find()
+    assert len(res) == 1
+    assert res[0].abspath == pyos.pathlib.Path('subdir/car_a').resolve()
+    assert 'subdir/car_a' in str(res)
+
+
 def test_subdirs_find():
     subdirs = ['./', 'a/', 'b/', 'c/', 'd/']
     fill_with_cars(subdirs)

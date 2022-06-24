@@ -20,12 +20,18 @@ class CachingResults(collections.abc.Sequence, pyos.results.BaseResults):
         :param representer: the representer to use, if None the current default will be used.
         """
         super().__init__()
+        if not isinstance(iterator, Iterator):
+            raise TypeError(f'Expected Iterator, got {iterator.__class__.__name__}')
+
         self._iterator = iterator
         self._representer = representer or representers.get_default()
         self._cache = []
 
     def __getitem__(self, item):
-        self._ensure_cache(item)
+        if isinstance(item, slice):
+            self._ensure_cache(item.stop - 1 if item.stop is not None else -1)
+        else:
+            self._ensure_cache(item)
         return self._cache[item]
 
     def __iter__(self):
@@ -66,7 +72,7 @@ class CachingResults(collections.abc.Sequence, pyos.results.BaseResults):
             try:
                 next(self_iter)
                 idx += 1
-                if max_index != -1 and idx >= max_index:
+                if max_index != -1 and idx > max_index:
                     return
             except StopIteration:
                 return

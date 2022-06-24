@@ -38,10 +38,6 @@ def mv(options, *args):  # pylint: disable=invalid-name
     args = list(args)
     dest = pyos.Path(args.pop())
 
-    if len(args) > 1:
-        # If there is more than one thing to move then we assume that dest is a directory
-        dest = dest.to_dir()
-
     to_move = psh.ls(-psh.d, *args)
 
     if dest.is_dir():
