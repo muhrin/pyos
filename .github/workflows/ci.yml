@@ -13,10 +13,10 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Set up Python 3.8
+    - name: Set up Python 3.10
       uses: actions/setup-python@v2
       with:
-        python-version: 3.8
+          python-version: '3.10'
 
     - name: Install python dependencies
       run: |
@@ -33,7 +33,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.7', '3.8', '3.9', '3.10']
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
 
     steps:
       - uses: actions/checkout@v2
@@ -48,7 +48,7 @@ jobs:
 
       - name: Create MongoDB Docker container
         id: build_mongo_docker
-        uses: DigiPie/mongo-action@v1.0.1
+        uses: DigiPie/mongo-action@v2.0.1
         with:
           port: 27017
 
