@@ -56,3 +56,8 @@ def test_shell_meta(pyos_shell):
     res = pyos_shell.app_cmd(f'meta {car.obj_id}')
     assert not res.stderr
     assert 'reg│123' in res.stdout
+
+    res = pyos_shell.app_cmd(f'meta -s {car.obj_id} reg=456')
+    res = pyos_shell.app_cmd(f'meta {car.obj_id}')
+    assert not res.stderr
+    assert 'reg│456' in res.stdout
