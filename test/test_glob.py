@@ -1,12 +1,10 @@
-# -*- coding: utf-8 -*-
 import functools
 from typing import List
 
 import pytest
 
-from pyos import glob
-from pyos import os
-from pyos import psh
+from pyos import glob, os, psh
+
 from . import support
 
 # pylint: disable=invalid-name, redefined-outer-name
@@ -33,16 +31,16 @@ change_cwd = support.change_cwd
 
 @pytest.fixture
 def test_dir():
-    tempdir = 'globtest_dir'
-    mktemp(tempdir, 'a', 'D')
-    mktemp(tempdir, 'aab', 'F')
-    mktemp(tempdir, '.aa', 'G')
-    mktemp(tempdir, '.bb', 'H')
-    mktemp(tempdir, 'aaa', 'zzzF')
-    mktemp(tempdir, 'ZZZ')
-    mktemp(tempdir, 'EF')
-    mktemp(tempdir, 'a', 'bcd', 'EF')
-    mktemp(tempdir, 'a', 'bcd', 'efg', 'ha')
+    tempdir = "globtest_dir"
+    mktemp(tempdir, "a", "D")
+    mktemp(tempdir, "aab", "F")
+    mktemp(tempdir, ".aa", "G")
+    mktemp(tempdir, ".bb", "H")
+    mktemp(tempdir, "aaa", "zzzF")
+    mktemp(tempdir, "ZZZ")
+    mktemp(tempdir, "EF")
+    mktemp(tempdir, "a", "bcd", "EF")
+    mktemp(tempdir, "a", "bcd", "efg", "ha")
 
     yield tempdir
     psh.rm - psh.r(tempdir)  # pylint: disable=expression-not-assigned
@@ -71,17 +69,17 @@ def test_glob_literal(test_dir):
     do_check = functools.partial(check_glob, test_dir)
     do_norm = functools.partial(norm, test_dir)
 
-    eq(do_check('a'), [do_norm('a')])
+    eq(do_check("a"), [do_norm("a")])
 
-    eq(do_check('a', 'D'), [do_norm('a', 'D')])
+    eq(do_check("a", "D"), [do_norm("a", "D")])
 
-    eq(do_check('aab'), [do_norm('aab')])
+    eq(do_check("aab"), [do_norm("aab")])
 
-    eq(do_check('zymurgy'), [])
+    eq(do_check("zymurgy"), [])
 
-    res = check_glob(test_dir, '*')
+    res = check_glob(test_dir, "*")
     assert {type(r) for r in res} == {str}
-    res = glob.glob(os.path.join(test_dir, '*'))
+    res = glob.glob(os.path.join(test_dir, "*"))
     assert {type(r) for r in res} == {str}
 
 
@@ -90,13 +88,13 @@ def test_glob_one_directory(test_dir):
     do_norm = functools.partial(norm, test_dir)
     do_check = functools.partial(check_glob, test_dir)
 
-    eq(do_check('a*'), map(do_norm, ['a', 'aab', 'aaa']))
-    eq(do_check('*a'), map(do_norm, ['a', 'aaa']))
-    eq(do_check('.*'), map(do_norm, ['.aa', '.bb']))
-    eq(do_check('?aa'), map(do_norm, ['aaa']))
-    eq(do_check('aa?'), map(do_norm, ['aaa', 'aab']))
-    eq(do_check('aa[ab]'), map(do_norm, ['aaa', 'aab']))
-    eq(do_check('*q'), [])
+    eq(do_check("a*"), map(do_norm, ["a", "aab", "aaa"]))
+    eq(do_check("*a"), map(do_norm, ["a", "aaa"]))
+    eq(do_check(".*"), map(do_norm, [".aa", ".bb"]))
+    eq(do_check("?aa"), map(do_norm, ["aaa"]))
+    eq(do_check("aa?"), map(do_norm, ["aaa", "aab"]))
+    eq(do_check("aa[ab]"), map(do_norm, ["aaa", "aab"]))
+    eq(do_check("*q"), [])
 
 
 def test_glob_nested_directory(test_dir):
@@ -104,8 +102,8 @@ def test_glob_nested_directory(test_dir):
     do_norm = functools.partial(norm, test_dir)
     do_check = functools.partial(check_glob, test_dir)
 
-    eq(do_check('a', 'bcd', 'E*'), [do_norm('a', 'bcd', 'EF')])
-    eq(do_check('a', 'bcd', '*g'), [do_norm('a', 'bcd', 'efg')])
+    eq(do_check("a", "bcd", "E*"), [do_norm("a", "bcd", "EF")])
+    eq(do_check("a", "bcd", "*g"), [do_norm("a", "bcd", "efg")])
 
 
 def test_glob_directory_names(test_dir):
@@ -113,28 +111,28 @@ def test_glob_directory_names(test_dir):
     do_norm = functools.partial(norm, test_dir)
     do_check = functools.partial(check_glob, test_dir)
 
-    eq(do_check('*', 'D'), [do_norm('a', 'D')])
-    eq(do_check('*', '*a'), [])
-    eq(do_check('a', '*', '*', '*a'), [do_norm('a', 'bcd', 'efg', 'ha')])
-    eq(do_check('?a?', '*F'), [do_norm('aaa', 'zzzF'), do_norm('aab', 'F')])
+    eq(do_check("*", "D"), [do_norm("a", "D")])
+    eq(do_check("*", "*a"), [])
+    eq(do_check("a", "*", "*", "*a"), [do_norm("a", "bcd", "efg", "ha")])
+    eq(do_check("?a?", "*F"), [do_norm("aaa", "zzzF"), do_norm("aab", "F")])
 
 
 def test_glob_directory_with_trailing_slash(test_dir):
     do_norm = functools.partial(norm, test_dir)
 
     # Patterns ending with a slash shouldn't match non-dirs
-    res = glob.glob(do_norm('Z*Z') + os.sep)
+    res = glob.glob(do_norm("Z*Z") + os.sep)
     assert res == []  # pylint: disable=use-implicit-booleaness-not-comparison
-    res = glob.glob(do_norm('ZZZ') + os.sep)
+    res = glob.glob(do_norm("ZZZ") + os.sep)
     assert res == []  # pylint: disable=use-implicit-booleaness-not-comparison
     # When there is a wildcard pattern which ends with os.sep, glob()
     # doesn't blow up.
-    res = glob.glob(do_norm('aa*') + os.sep)
+    res = glob.glob(do_norm("aa*") + os.sep)
     assert len(res) == 2
     # either of these results is reasonable
     assert set(res) in [
-        {do_norm('aaa'), do_norm('aab')},
-        {do_norm('aaa') + os.sep, do_norm('aab') + os.sep},
+        {do_norm("aaa"), do_norm("aab")},
+        {do_norm("aaa") + os.sep, do_norm("aab") + os.sep},
     ]
 
 
@@ -144,12 +142,12 @@ def check_escape(arg, expected):
 
 def test_escape():
     check = check_escape
-    check('abc', 'abc')
-    check('[', '[[]')
-    check('?', '[?]')
-    check('*', '[*]')
-    check('[[_/*?*/_]]', '[[][[]_/[*][?][*]/_]]')
-    check('/[[_/*?*/_]]/', '/[[][[]_/[*][?][*]/_]]/')
+    check("abc", "abc")
+    check("[", "[[]")
+    check("?", "[?]")
+    check("*", "[*]")
+    check("[[_/*?*/_]]", "[[][[]_/[*][?][*]/_]]")
+    check("/[[_/*?*/_]]/", "/[[][[]_/[*][?][*]/_]]/")
 
 
 def rglob(tempdir, *parts, **kwargs):
@@ -159,53 +157,69 @@ def rglob(tempdir, *parts, **kwargs):
 def test_recursive_glob(test_dir):
     eq = assertSequencesEqual_noorder
     full = [
-        ('EF',),
-        ('ZZZ',),
-        ('a',),
-        ('a', 'D'),
-        ('a', 'bcd'),
-        ('a', 'bcd', 'EF'),
-        ('a', 'bcd', 'efg'),
-        ('a', 'bcd', 'efg', 'ha'),
-        ('aaa',),
-        ('aaa', 'zzzF'),
-        ('aab',),
-        ('aab', 'F'),
+        ("EF",),
+        ("ZZZ",),
+        ("a",),
+        ("a", "D"),
+        ("a", "bcd"),
+        ("a", "bcd", "EF"),
+        ("a", "bcd", "efg"),
+        ("a", "bcd", "efg", "ha"),
+        ("aaa",),
+        ("aaa", "zzzF"),
+        ("aab",),
+        ("aab", "F"),
     ]
-    eq(rglob(test_dir, '**'), joins(test_dir, ('',), *full))
-    eq(rglob(test_dir, os.curdir, '**'),
-       joins(test_dir, (os.curdir, ''), *((os.curdir,) + i for i in full)))
-    dirs = [('a', ''), ('a', 'bcd', ''), ('a', 'bcd', 'efg', ''), ('aaa', ''), ('aab', '')]
+    eq(rglob(test_dir, "**"), joins(test_dir, ("",), *full))
+    eq(
+        rglob(test_dir, os.curdir, "**"),
+        joins(test_dir, (os.curdir, ""), *((os.curdir,) + i for i in full)),
+    )
+    dirs = [("a", ""), ("a", "bcd", ""), ("a", "bcd", "efg", ""), ("aaa", ""), ("aab", "")]
 
-    eq(rglob(test_dir, '**', ''), joins(test_dir, ('',), *dirs))
+    eq(rglob(test_dir, "**", ""), joins(test_dir, ("",), *dirs))
 
     eq(
-        rglob(test_dir, 'a', '**'),
-        joins(test_dir, ('a', ''), ('a', 'D'), ('a', 'bcd'), ('a', 'bcd', 'EF'),
-              ('a', 'bcd', 'efg'), ('a', 'bcd', 'efg', 'ha')))
-    eq(rglob(test_dir, 'a**'), joins(test_dir, ('a',), ('aaa',), ('aab',)))
-    expect = [('a', 'bcd', 'EF'), ('EF',)]
+        rglob(test_dir, "a", "**"),
+        joins(
+            test_dir,
+            ("a", ""),
+            ("a", "D"),
+            ("a", "bcd"),
+            ("a", "bcd", "EF"),
+            ("a", "bcd", "efg"),
+            ("a", "bcd", "efg", "ha"),
+        ),
+    )
+    eq(rglob(test_dir, "a**"), joins(test_dir, ("a",), ("aaa",), ("aab",)))
+    expect = [("a", "bcd", "EF"), ("EF",)]
 
-    eq(rglob(test_dir, '**', 'EF'), joins(test_dir, *expect))
-    expect = [('a', 'bcd', 'EF'), ('aaa', 'zzzF'), ('aab', 'F'), ('EF',)]
+    eq(rglob(test_dir, "**", "EF"), joins(test_dir, *expect))
+    expect = [("a", "bcd", "EF"), ("aaa", "zzzF"), ("aab", "F"), ("EF",)]
 
-    eq(rglob(test_dir, '**', '*F'), joins(test_dir, *expect))
-    eq(rglob(test_dir, '**', '*F', ''), [])
-    eq(rglob(test_dir, '**', 'bcd', '*'), joins(test_dir, ('a', 'bcd', 'EF'), ('a', 'bcd', 'efg')))
-    eq(rglob(test_dir, 'a', '**', 'bcd'), joins(test_dir, ('a', 'bcd')))
+    eq(rglob(test_dir, "**", "*F"), joins(test_dir, *expect))
+    eq(rglob(test_dir, "**", "*F", ""), [])
+    eq(rglob(test_dir, "**", "bcd", "*"), joins(test_dir, ("a", "bcd", "EF"), ("a", "bcd", "efg")))
+    eq(rglob(test_dir, "a", "**", "bcd"), joins(test_dir, ("a", "bcd")))
 
     with change_cwd(test_dir):
         join = os.path.join
-        eq(glob.glob('**', recursive=True), [join(*i) for i in full])
-        eq(glob.glob(join('**', ''), recursive=True), [join(*i) for i in dirs])
-        eq(glob.glob(join('**', '*'), recursive=True), [join(*i) for i in full])
-        eq(glob.glob(join(os.curdir, '**'), recursive=True),
-           [join(os.curdir, '')] + [join(os.curdir, *i) for i in full])
-        eq(glob.glob(join(os.curdir, '**', ''), recursive=True),
-           [join(os.curdir, '')] + [join(os.curdir, *i) for i in dirs])
-        eq(glob.glob(join(os.curdir, '**', '*'), recursive=True),
-           [join(os.curdir, *i) for i in full])
-        eq(glob.glob(join('**', 'zz*F'), recursive=True), [join('aaa', 'zzzF')])
-        eq(glob.glob('**zz*F', recursive=True), [])
-        expect = [join('a', 'bcd', 'EF'), 'EF']
-        eq(glob.glob(join('**', 'EF'), recursive=True), expect)
+        eq(glob.glob("**", recursive=True), [join(*i) for i in full])
+        eq(glob.glob(join("**", ""), recursive=True), [join(*i) for i in dirs])
+        eq(glob.glob(join("**", "*"), recursive=True), [join(*i) for i in full])
+        eq(
+            glob.glob(join(os.curdir, "**"), recursive=True),
+            [join(os.curdir, "")] + [join(os.curdir, *i) for i in full],
+        )
+        eq(
+            glob.glob(join(os.curdir, "**", ""), recursive=True),
+            [join(os.curdir, "")] + [join(os.curdir, *i) for i in dirs],
+        )
+        eq(
+            glob.glob(join(os.curdir, "**", "*"), recursive=True),
+            [join(os.curdir, *i) for i in full],
+        )
+        eq(glob.glob(join("**", "zz*F"), recursive=True), [join("aaa", "zzzF")])
+        eq(glob.glob("**zz*F", recursive=True), [])
+        expect = [join("a", "bcd", "EF"), "EF"]
+        eq(glob.glob(join("**", "EF"), recursive=True), expect)

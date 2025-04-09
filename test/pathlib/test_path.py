@@ -1,45 +1,43 @@
-# -*- coding: utf-8 -*-
 from mincepy.testing import Car
 
 import pyos
+from pyos import pathlib, psh
 import pyos.os
-from pyos import psh
-from pyos import pathlib
 
 
 def test_root():
     """Make sure that root is represented as '/' always"""
-    assert str(pathlib.Path('/')) == '/'
-    assert str(pathlib.Path('//').resolve()) == '/'
+    assert str(pathlib.Path("/")) == "/"
+    assert str(pathlib.Path("//").resolve()) == "/"
 
 
 def test_iterdir():
-    psh.save(Car(), 'my_car')
-    pyos.os.makedirs('sub/')
-    with pathlib.working_path('sub/'):
-        psh.save(Car(), 'my_sub_car')
+    psh.save(Car(), "my_car")
+    pyos.os.makedirs("sub/")
+    with pathlib.working_path("sub/"):
+        psh.save(Car(), "my_sub_car")
     cwd = pathlib.Path()
 
     content = tuple(map(pathlib.Path.name.fget, cwd.iterdir()))
     assert len(content) == 2
 
-    assert 'my_car' in content
-    assert 'sub' in content
+    assert "my_car" in content
+    assert "sub" in content
 
 
 def test_resolve_parent_dir():
-    expected_result = pathlib.PurePath('a/')
-    assert pathlib.PurePath('a/b/') / pathlib.PurePath('../') == expected_result
-    assert pathlib.PurePath('a/b/') / pathlib.PurePath('..') == expected_result
+    expected_result = pathlib.PurePath("a/")
+    assert pathlib.PurePath("a/b/") / pathlib.PurePath("../") == expected_result
+    assert pathlib.PurePath("a/b/") / pathlib.PurePath("..") == expected_result
 
 
 def test_resolve_current_dir():
-    expected_result = pathlib.PurePath('a/b/')
-    assert pathlib.PurePath('a/b/') / pathlib.PurePath('./') == expected_result
-    assert pathlib.PurePath('a/b/') / pathlib.PurePath('.') == expected_result
+    expected_result = pathlib.PurePath("a/b/")
+    assert pathlib.PurePath("a/b/") / pathlib.PurePath("./") == expected_result
+    assert pathlib.PurePath("a/b/") / pathlib.PurePath(".") == expected_result
 
 
 def test_path_joining():
     # Check that we can join with a file path and it will be promoted to a directory
-    result = pathlib.PurePath('/home') / pathlib.PurePath('martin')
-    assert pyos.os.fspath(result) == '/home/martin'
+    result = pathlib.PurePath("/home") / pathlib.PurePath("martin")
+    assert pyos.os.fspath(result) == "/home/martin"

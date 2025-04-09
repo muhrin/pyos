@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 import mincepy
 from mincepy.testing import Car
 
-import pyos.os
 from pyos import psh
+import pyos.os
 
 # pylint: disable=no-value-for-parameter
 
@@ -45,27 +44,27 @@ def test_rm_multiple(historian: mincepy.Historian):  # pylint: disable=unused-ar
 
 
 def test_rm_directory():
-    pyos.os.makedirs('/cars/')
+    pyos.os.makedirs("/cars/")
 
     car1 = Car()
     psh.save(car1)
-    psh.cd('/cars/')
+    psh.cd("/cars/")
     car2 = Car()
     car3 = Car()
     psh.save(car2, car3)
 
-    assert len(psh.ls('/cars/')) == 2
+    assert len(psh.ls("/cars/")) == 2
 
     # First without -r flag
-    psh.rm('/cars/')
-    assert len(psh.ls('/cars/')) == 2
+    psh.rm("/cars/")
+    assert len(psh.ls("/cars/")) == 2
     assert car1.is_saved()
     assert car2.is_saved()
     assert car3.is_saved()
 
     # Now with
-    psh.rm(-psh.r, '/cars/')
-    assert len(psh.ls('/cars/')) == 0
+    psh.rm(-psh.r, "/cars/")
+    assert len(psh.ls("/cars/")) == 0
     assert car1.is_saved()
     assert not car2.is_saved()
     assert not car3.is_saved()
@@ -73,23 +72,23 @@ def test_rm_directory():
 
 def test_rm_objects_with_references():
     """Test deleting objects in a directory that reference each other"""
-    pyos.os.makedirs('/cars/garage/')
+    pyos.os.makedirs("/cars/garage/")
 
     num_cars = 10
-    psh.cd('/cars/garage/')
+    psh.cd("/cars/garage/")
     for _ in range(num_cars):
         Car().save()
 
-    psh.cd('/cars/')
+    psh.cd("/cars/")
     cars = mincepy.RefList()
-    cars.extend(psh.load(psh.ls('garage/')))
+    cars.extend(psh.load(psh.ls("garage/")))
 
     psh.save(cars)
     results = psh.ls()
     assert len(results) == 2  # the list plus the 'garage' folder
 
-    psh.cd('/')
+    psh.cd("/")
     # Delete the folder
-    psh.rm - psh.r('/cars/')  # pylint: disable=expression-not-assigned
+    psh.rm - psh.r("/cars/")  # pylint: disable=expression-not-assigned
 
-    assert len(psh.ls('/cars/')) == 0
+    assert len(psh.ls("/cars/")) == 0

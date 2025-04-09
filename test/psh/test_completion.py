@@ -1,31 +1,33 @@
-# -*- coding: utf-8 -*-
 from mincepy.testing import Car
 
-import pyos.os
 from pyos import psh
+import pyos.os
 
 
 def test_completion_simple():
-    pyos.os.makedirs('/test/sub/')
+    pyos.os.makedirs("/test/sub/")
 
-    psh.cd('/test')
-    psh.save(Car(), 'my_car')
-    psh.cd('sub/')
+    psh.cd("/test")
+    psh.save(Car(), "my_car")
+    psh.cd("sub/")
     Car().save()
 
-    comp = psh.completion.PathCompletion('/test/')
+    comp = psh.completion.PathCompletion("/test/")
     content = tuple(dir(comp))
     assert len(content) == 2
-    assert 'sub' in content
-    assert 'my_car' in content
+    assert "sub" in content
+    assert "my_car" in content
 
-    assert isinstance(getattr(comp, 'sub'), psh.completion.PathCompletion)
-    assert isinstance(getattr(comp, 'my_car'), psh.completion.PathCompletion)
-    assert set(comp._ipython_key_completions_()) == {'sub', 'my_car'}  # pylint: disable=protected-access
+    assert isinstance(getattr(comp, "sub"), psh.completion.PathCompletion)
+    assert isinstance(getattr(comp, "my_car"), psh.completion.PathCompletion)
+    assert set(comp._ipython_key_completions_()) == {
+        "sub",
+        "my_car",
+    }  # pylint: disable=protected-access
 
     # Check __repr__
     assert psh.completion.PathCompletion.__name__ in repr(comp)
     assert pyos.os.fspath(comp) in repr(comp)
 
     # Check for non-existent paths
-    assert not list(dir(psh.completion.PathCompletion('/does_not_exist/')))
+    assert not list(dir(psh.completion.PathCompletion("/does_not_exist/")))

@@ -1,0 +1,102 @@
+import argparse
+import logging
+import re
+import sys
+
+import cmd2
+
+from . import ls
+from .. import completion, flags
+from ... import db, fs, pathlib, psh_lib, representers
+from ... import results as results_
+
+_LOGGER = logging.getLogger(__name__)
+
+
+@psh_lib.command()
+def cat(*obj_or_ids, representer=None):
+    """Convert the contents of objects into strings.
+    A representer can optionally be passed in which should take the passed object and convert it to
+    a string.
+    """
+    if not obj_or_ids:
+        return None
+
+    hist = db.get_historian()
+    to_cat = []
+
+    for entry in obj_or_ids:
+        if isinstance(entry, (str, pathlib.Path, fs.BaseNode)):
+            to_cat.extend(ls.ls(-flags.d, entry))
+        else:
+            to_cat.append(entry)
+
+    representer = representer or representers.get_default()
+
+    def iterator():
+        for entry in to_cat:
+            try:
+                if isinstance(entry, fs.DirectoryNode):
+                    yield f"cat: {entry.abspath.name}: Is a directory"
+                elif isinstance(entry, fs.ObjectNode):
+                    yield representer(entry.obj)
+                elif hist.is_obj_id(entry):
+                    yield representer(hist.load(entry))
+                else:
+                    yield representer(entry)
+            except Exception as exc:  # pylint: disable=broad-except
+                yield representer(exc)
+
+    results = results_.CachingResults(iterator(), representer=str)
+
+    if len(to_cat) == 1:
+        return results_.ResultsString(results[0])
+
+    return results
+
+
+class FstringRepresenter:
+    REGEXP = re.compile(r"{(\S*)}")
+
+    def __init__(self, fstring):
+        # Create the adapted f-string with 'obj' representing the passed object
+        self._fstring = self.REGEXP.subn("{obj\\1}", fstring)[0]
+
+    def __call__(self, obj) -> str:
+        return self._fstring.format(obj=obj)
+
+
+class Cat(cmd2.CommandSet):
+    ls_parser = argparse.ArgumentParser()
+    ls_parser.add_argument(
+        "-f",
+        dest="fstring",
+        type=str,
+        help="optional f-string for printing attributes e.g. -f {colour} prints "
+        "obj.colour for each object",
+    )
+    ls_parser.add_argument("path", nargs="*", type=str, completer_method=completion.file_completer)
+
+    @cmd2.with_argparser(ls_parser)
+    def do_cat(self, args):
+        if not args.path:
+            # Read from standard in
+            _LOGGER.debug("cat: getting input from stdin")
+            try:
+                args.path = [line.rstrip() for line in sys.stdin.readlines()]
+            except Exception:
+                _LOGGER.exception("Exception trying to readlines")
+                raise
+            _LOGGER.debug("cat: got input' %s' from stdin", args.path)
+
+        representer = None
+        if args.fstring:
+            representer = FstringRepresenter(args.fstring)
+
+        results = cat(*args.path, representer=representer)
+
+        if isinstance(results, results_.ResultsString):
+            print(results)
+        else:
+            for entry in results:
+                print(entry)

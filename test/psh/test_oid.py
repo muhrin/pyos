@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 from mincepy.testing import Car
 
-import pyos.psh
 from pyos import db
+import pyos.psh
 from pyos.psh import cmds
 
 
@@ -17,7 +16,7 @@ def test_oid():
     paths = []
     for idx in range(10):
         cars.append(Car())
-        paths.append(f'car_{idx}')
+        paths.append(f"car_{idx}")
 
     db.save_many(zip(cars, paths))
 
@@ -36,17 +35,17 @@ def test_oid():
 
 
 def test_shell_oid(pyos_shell):
-    yellow = Car('ferrari', 'yellow')
+    yellow = Car("ferrari", "yellow")
     yellow.save()
 
     # Test using the OID
-    res = pyos_shell.app_cmd(f'oid {yellow.obj_id}')
+    res = pyos_shell.app_cmd(f"oid {yellow.obj_id}")
     assert not res.stderr
     assert str(yellow.obj_id) in res.stdout
 
-    pyos.psh.mv(str(yellow.obj_id), 'ferrari')
+    pyos.psh.mv(str(yellow.obj_id), "ferrari")
 
     # Now try by filename
-    res = pyos_shell.app_cmd('oid ferrari')
+    res = pyos_shell.app_cmd("oid ferrari")
     assert not res.stderr
     assert str(yellow.obj_id) in res.stdout

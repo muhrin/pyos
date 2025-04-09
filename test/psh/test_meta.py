@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from mincepy.testing import Car
 
 from pyos import psh
@@ -16,11 +15,11 @@ def test_meta_basic():
     car = Car()
     car.save()
 
-    psh.meta(-psh.s, car, fast=True, colour='blue')
-    assert dict_in(psh.meta(car), {'fast': True, 'colour': 'blue'})
+    psh.meta(-psh.s, car, fast=True, colour="blue")
+    assert dict_in(psh.meta(car), {"fast": True, "colour": "blue"})
 
     psh.meta(-psh.u, car, fast=False)
-    assert dict_in(psh.meta(car), {'fast': False, 'colour': 'blue'})
+    assert dict_in(psh.meta(car), {"fast": False, "colour": "blue"})
 
 
 def test_meta_update_upsert():
@@ -31,10 +30,10 @@ def test_meta_update_upsert():
     # Get original
     orig = psh.meta(car)
     # Update and get
-    psh.meta(-psh.u, car, fast=True, colour='blue')
+    psh.meta(-psh.u, car, fast=True, colour="blue")
     new = psh.meta(car)
 
-    assert dict_in(new, {'fast': True, 'colour': 'blue'})
+    assert dict_in(new, {"fast": True, "colour": "blue"})
     assert new != orig
 
 
@@ -42,22 +41,22 @@ def test_meta_many():
     car1 = Car().save()
     car2 = Car().save()
 
-    new_meta = {'fast': True, 'colour': 'blue'}
+    new_meta = {"fast": True, "colour": "blue"}
 
-    psh.meta(-psh.s, car1, car2, fast=True, colour='blue')
+    psh.meta(-psh.s, car1, car2, fast=True, colour="blue")
     assert dict_in(psh.meta(car1), new_meta)
     assert dict_in(psh.meta(car2), new_meta)
 
 
 def test_shell_meta(pyos_shell):
     car = Car()
-    car.save(meta={'reg': 123})
+    car.save(meta={"reg": 123})
 
-    res = pyos_shell.app_cmd(f'meta {car.obj_id}')
+    res = pyos_shell.app_cmd(f"meta {car.obj_id}")
     assert not res.stderr
-    assert 'reg│123' in res.stdout
+    assert "reg│123" in res.stdout
 
-    res = pyos_shell.app_cmd(f'meta -s {car.obj_id} reg=456')
-    res = pyos_shell.app_cmd(f'meta {car.obj_id}')
+    res = pyos_shell.app_cmd(f"meta -s {car.obj_id} reg=456")
+    res = pyos_shell.app_cmd(f"meta {car.obj_id}")
     assert not res.stderr
-    assert 'reg│456' in res.stdout
+    assert "reg│456" in res.stdout

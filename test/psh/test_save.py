@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
+from mincepy.testing import Car
 import pytest
 
-from mincepy.testing import Car
-
 import pyos
-import pyos.os
 from pyos import psh
+import pyos.os
 
 
 def test_save():
@@ -16,56 +14,56 @@ def test_save():
 
 def test_save_with_name():
     car = Car()
-    obj_id = psh.save(car, 'my_car')
+    obj_id = psh.save(car, "my_car")
     assert obj_id is car.obj_id
 
-    results = psh.ls('my_car')
+    results = psh.ls("my_car")
     assert len(results) == 1
-    assert results[0].name == 'my_car'
+    assert results[0].name == "my_car"
 
 
 def test_save_to_dir():
-    pyos.os.makedirs('test/')
+    pyos.os.makedirs("test/")
 
     for _ in range(10):
-        psh.save(Car(), 'test/')
+        psh.save(Car(), "test/")
 
-    results = psh.ls('test/')
+    results = psh.ls("test/")
     assert len(results) == 10
 
     # Now check that save will promote a file to a directory
-    psh.save(Car(), 'test')
-    assert len(psh.ls('test/')) == 11
+    psh.save(Car(), "test")
+    assert len(psh.ls("test/")) == 11
 
 
 def test_save_same_name():
     car = Car()
-    car_id = psh.save(car, 'my_car')
+    car_id = psh.save(car, "my_car")
     car2 = Car()
     with pytest.raises(pyos.exceptions.FileExistsError):
         # For now this raises but this may change in the future
-        psh.save(car2, 'my_car')
+        psh.save(car2, "my_car")
 
     # Now test the force flags
-    car2_id = psh.save(-psh.f, car2, 'my_car')
+    car2_id = psh.save(-psh.f, car2, "my_car")
     assert car_id != car2_id
 
 
 def test_resave_doesnt_move():
     """Test that saving an object whilst in a new path doesn't automatically move it"""
-    pyos.os.makedirs('sub/')
+    pyos.os.makedirs("sub/")
 
     car = Car()
-    car.make = 'ferrari'
+    car.make = "ferrari"
     home = pyos.Path().resolve()
     car_id = car.save()
     car_loc = home / str(car_id)
     assert psh.locate(car) == car_loc
 
-    pyos.os.chdir('sub/')
+    pyos.os.chdir("sub/")
     sub = pyos.Path().resolve()
     assert home != sub
 
-    car.make = 'fiat'
+    car.make = "fiat"
     psh.save(car)
     assert psh.locate(car) == car_loc

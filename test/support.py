@@ -1,7 +1,4 @@
-# -*- coding: utf-8 -*-
-from pyos import db
-from pyos import os
-from pyos import pathlib
+from pyos import db, os, pathlib
 
 
 def create_empty_file(filename: os.PathSpec):

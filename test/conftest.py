@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import os
 
 from mincepy.testing import historian, mongodb_archive  # pylint: disable=unused-import
@@ -23,7 +22,10 @@ def archive_uri():
 
 
 @pytest.fixture(autouse=True)
-def lib(historian):  # pylint: disable=unused-argument
+def lib(
+    # flake8: noqa: F811
+    historian,
+):  # pylint: disable=unused-argument
     pyos.init()
     yield pyos.db.lib
     pyos.reset()

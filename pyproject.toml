@@ -1,0 +1,130 @@
+[build-system]
+requires = ['flit_core >=3.9,<4']
+build-backend = 'flit_core.buildapi'
+
+[project]
+name = "pyos"
+dynamic = ["version"]
+description = "Browse python objects as if they were files on disk"
+readme = "README.rst"
+authors = [
+    {name = "Martin Uhrin", email = "martin.uhrin.10@ucl.ac.uk"}
+]
+license = {file = "LICENSE"}
+classifiers = [
+    'Development Status :: 4 - Beta',
+    'License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+    'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3.13',
+]
+keywords = ["database", "schemaless", "nosql", "orm", "object-store", "concurrent", "optimistic-locking"]
+requires-python = ">=3.9"
+dependencies = [
+    "anytree",
+    "cmd2 ~= 1.3.2",
+    "columnize",
+    "mincepy>=0.16.1, <0.18",
+    "click",
+    "ipython",
+    "pandas",
+    "pymongo",
+    "pyprnt",
+    "pytray >= 0.3.0",
+    "stevedore",
+    "tqdm",
+    "yarl"
+]
+
+[project.optional-dependencies]
+gui = ["mincepy[gui]"]
+dev = [
+    "cmd2-ext-test",
+    "ipython",
+    "jupyter-sphinx",
+    "nbsphinx",
+    "pip",
+    "pytest>4",
+    "pytest-cov",
+    "pre-commit",
+    "sphinx",
+    "sphinx-autobuild",
+    "yapf",
+    "pylint",
+    "twine"
+]
+
+[project.urls]
+Documentation = "https://pyos.readthedocs.org/"
+Source = "https://github.com/muhrin/pyos/"
+
+[project.scripts]
+pyos = "pyos.cli:pyos"
+psh = "pyos.cli:psh_"
+
+[project.entry-points."mincepy.plugins.types"]
+pyos_types = "pyos.provides:get_types"
+
+[tool.flit.module]
+name = 'pyos'
+
+[tool.flit.sdist]
+exclude = [
+    '.github/',
+    'docs/',
+    'examples/',
+    'test/',
+]
+
+[tool.flynt]
+line-length = 100
+fail-on-change = true
+
+[tool.isort]
+profile = "black"
+force_sort_within_sections = true
+include_trailing_comma = true
+line_length = 100
+multi_line_output = 3
+
+[tool.pylint.MASTER]
+ignore-paths = '^src/reax/lightning/.*$'  # These are copy-paste from lightning, so don't lint
+
+[tool.pylint.format]
+max-line-length = 100
+
+[tool.pylint.messages_control]
+disable = [
+    # Unfortunately jaxtyping decorator creates a function that seems to mistakenly be identified as
+    # not returning anything, so we have to disable the error below for now
+    'assignment-from-no-return',
+    'duplicate-code',
+    'import-outside-toplevel',
+    'missing-docstring',
+    'locally-disabled',
+    'too-few-public-methods',
+    'too-many-arguments',
+    'too-many-instance-attributes',
+    'use-dict-literal',
+    'fixme',
+]
+
+[tool.pylint.design]
+max-locals = 20
+max-branches = 14
+max-returns = 8
+max-positional-arguments = 8
+
+[tool.bandit]
+exclude_dirs = ["test/"]
+skips = ["B101"]
+
+[tool.black]
+line-length = 100
+
+[tool.docformatter]
+wrap-summaries = 100
+wrap-descriptions = 100

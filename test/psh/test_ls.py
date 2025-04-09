@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
 from mincepy.testing import Car, Person
 
 import pyos
-import pyos.os
-from pyos import psh
-from pyos import fs
+from pyos import fs, psh
 from pyos.fs import nodes
+import pyos.os
 
 # Disable this here because, e.g., ls() causes the linter to warn because it is the
 # decorator that takes care of passing the first argument
@@ -13,7 +11,7 @@ from pyos.fs import nodes
 
 
 def test_ls_basic():
-    pyos.os.makedirs('test/')
+    pyos.os.makedirs("test/")
 
     assert len(psh.ls()) == 1
 
@@ -23,7 +21,7 @@ def test_ls_basic():
     assert len(psh.ls()) == 2
 
     # Now save in a different directory
-    psh.cd('test')
+    psh.cd("test")
 
     assert len(psh.ls()) == 0
 
@@ -32,13 +30,13 @@ def test_ls_basic():
 
     assert len(psh.ls()) == 1
 
-    psh.cd('..')
+    psh.cd("..")
     contents = psh.ls()
     assert len(contents) == 2  # Now there is a directory and a file
     found = []
     for entry in contents:
         if isinstance(entry, pyos.fs.DirectoryNode):
-            assert entry.name == 'test'
+            assert entry.name == "test"
             found.append(True)
             continue
 
@@ -52,20 +50,20 @@ def test_ls_basic():
 def test_ls_path():
     """Test that ls lists the contents of a folder when given a path"""
     car = Car()
-    pyos.os.makedirs('a/')
-    psh.save(car, 'a/')
+    pyos.os.makedirs("a/")
+    psh.save(car, "a/")
 
     res = psh.ls()
     assert len(res) == 1  # Should have the directory in home
-    assert 'a' in repr(res)
+    assert "a" in repr(res)
 
-    res = psh.ls('a/')
+    res = psh.ls("a/")
     assert len(res) == 1
     assert str(car.obj_id) in repr(res)
 
 
 def test_ls_dirs():
-    subdirs = ['a', 'b', 'c', 'd']
+    subdirs = ["a", "b", "c", "d"]
     for subdir in subdirs:
         pyos.os.makedirs(subdir)
         # Put a couple of cars in just to make it more realistic
@@ -84,12 +82,12 @@ def test_ls_dirs():
 
 def test_ls_minus_d():
     # Two cars at top level and two in the garage
-    pyos.os.makedirs('garage/')
+    pyos.os.makedirs("garage/")
 
     psh.save(Car())
     psh.save(Car())
-    psh.save(Car(), 'garage/')
-    psh.save(Car(), 'garage/')
+    psh.save(Car(), "garage/")
+    psh.save(Car(), "garage/")
 
     # The two cars, plus the directory
     assert len(psh.ls()) == 3
@@ -102,18 +100,18 @@ def test_ls_minus_d():
 
 
 def test_ls_lots():
-    paths = ['test/', 'b/', 'test/b/', 'my_dir/', 'my_dir/sub/', 'test/b/b_sub/']
+    paths = ["test/", "b/", "test/b/", "my_dir/", "my_dir/sub/", "test/b/b_sub/"]
     num = len(paths)
     for idx in range(20):
         path = paths[idx % num]
         pyos.os.makedirs(path, exists_ok=True)
         psh.save(Car(), path)
-        psh.save(Person('random', 35), path)
+        psh.save(Person("random", 35), path)
 
     # Now save some in the root
     for _ in range(2):
         Car().save()
-        Person('person a', 23).save()
+        Person("person a", 23).save()
 
     # We should have 3 paths and 4 objects
     results = psh.ls()
@@ -122,26 +120,26 @@ def test_ls_lots():
 
 
 def test_ls_minus_l():
-    pyos.os.makedirs('garage/')
+    pyos.os.makedirs("garage/")
 
     car1_id = psh.save(Car())
     car2_id = psh.save(Car())
-    car3_id = psh.save(Car(), 'garage/')
-    car4_id = psh.save(Car(), 'garage/')
+    car3_id = psh.save(Car(), "garage/")
+    car4_id = psh.save(Car(), "garage/")
 
     res = psh.ls(-psh.l)
     assert len(res) == 3
     res_repr = repr(res)
-    assert 'garage' in res_repr
+    assert "garage" in res_repr
     assert str(car1_id) in res_repr
     assert str(car2_id) in res_repr
     assert str(car3_id) not in res_repr
     assert str(car4_id) not in res_repr
 
-    res = psh.ls(-psh.l, 'garage/')
+    res = psh.ls(-psh.l, "garage/")
     assert len(res) == 2
     res_repr = repr(res)
-    assert 'garage' not in res_repr
+    assert "garage" not in res_repr
     assert str(car1_id) not in res_repr
     assert str(car2_id) not in res_repr
     assert str(car3_id) in res_repr
@@ -150,21 +148,21 @@ def test_ls_minus_l():
 
 def test_inexistent():
     """This used to raise but shouldn't do make sure it's possible"""
-    assert len(psh.ls('not_there')) == 0
+    assert len(psh.ls("not_there")) == 0
 
 
 def test_vanishing_folders():
     """Test for bug we had where folders would vanish if changed to their parent directory"""
-    pyos.os.makedirs('/test/')
+    pyos.os.makedirs("/test/")
 
-    psh.cd('/test/')
+    psh.cd("/test/")
     car_id = psh.save(Car())
     results = psh.ls()
     assert len(results) == 1
     assert isinstance(results[0], fs.nodes.ObjectNode)
     assert results[0].entry_id == car_id  # pylint: disable = no-member
 
-    results = psh.ls('/')
+    results = psh.ls("/")
     assert len(results) == 1
     assert isinstance(results[0], fs.nodes.DirectoryNode)
-    assert results[0].abspath == pyos.Path('/test/')  # pylint: disable = no-member
+    assert results[0].abspath == pyos.Path("/test/")  # pylint: disable = no-member

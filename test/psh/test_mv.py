@@ -1,66 +1,65 @@
-# -*- coding: utf-8 -*-
 import io
 
 from mincepy.testing import Car
 
 import pyos
-import pyos.os
 from pyos import psh
 from pyos.fs import nodes
+import pyos.os
 
 # pylint: disable=no-value-for-parameter
 
 
 def test_mv_basic():
-    pyos.os.makedirs('test/')
-    pyos.os.makedirs('sub/')
+    pyos.os.makedirs("test/")
+    pyos.os.makedirs("sub/")
 
     car = Car()
     car.save()
 
     # Move to test subdirectory
-    psh.mv(str(car.obj_id), 'test/')
+    psh.mv(str(car.obj_id), "test/")
 
-    assert psh.locate(car) == psh.pwd() / 'test' / str(car.obj_id)
+    assert psh.locate(car) == psh.pwd() / "test" / str(car.obj_id)
 
-    contents = psh.ls('test/')
+    contents = psh.ls("test/")
     assert len(contents) == 1
     assert isinstance(contents[0], nodes.FilesystemNode)
     assert contents[0].entry_id == car.obj_id  # pylint: disable=no-member
 
     # Now move test into a subfolder
-    psh.mv('test/', 'sub/')
+    psh.mv("test/", "sub/")
     contents = psh.ls()
     assert len(contents) == 1
     assert isinstance(contents[0], nodes.FilesystemNode)
-    assert contents[0].name == 'sub'  # pylint: disable=no-member
+    assert contents[0].name == "sub"  # pylint: disable=no-member
 
-    contents = psh.ls('sub/')
+    contents = psh.ls("sub/")
     assert len(contents) == 1
-    assert contents[0].name == 'test'
+    assert contents[0].name == "test"
 
 
 def test_mv_from_str():
-    pyos.os.makedirs('test/')
+    pyos.os.makedirs("test/")
 
     car = Car()
     car.save()
 
-    psh.mv(str(car.obj_id), 'test/')
-    contents = psh.ls('test/')
+    psh.mv(str(car.obj_id), "test/")
+    contents = psh.ls("test/")
     assert len(contents) == 1
     assert isinstance(contents[0], nodes.FilesystemNode)
     assert contents[0].entry_id == car.obj_id  # pylint: disable=no-member
 
 
 def test_mv_from_path():
-    pyos.os.makedirs('test/')
+    pyos.os.makedirs("test/")
 
     car = Car()
     car.save()
 
-    psh.mv(psh.locate(car), 'test/')
-    contents = psh.ls('test/')
+    psh.mv(psh.locate(car), "test/")
+    contents = psh.ls("test/")
     assert len(contents) == 1
     assert isinstance(contents[0], nodes.FilesystemNode)
     assert contents[0].entry_id == car.obj_id  # pylint: disable=no-member
@@ -81,13 +80,13 @@ def test_mv_from_path():
 
 
 def test_mv_dest_as_path():
-    pyos.os.makedirs('test/')
+    pyos.os.makedirs("test/")
 
     car = Car()
     car.save()
 
-    psh.mv(str(car.obj_id), pyos.pathlib.Path('test/'))
-    contents = psh.ls('test/')
+    psh.mv(str(car.obj_id), pyos.pathlib.Path("test/"))
+    contents = psh.ls("test/")
     assert len(contents) == 1
     assert isinstance(contents[0], nodes.FilesystemNode)
     assert contents[0].entry_id == car.obj_id  # pylint: disable=no-member
@@ -95,14 +94,14 @@ def test_mv_dest_as_path():
 
 def test_mv_remote():
     """Test moving an object from one remote path to another"""
-    pyos.os.makedirs('/test/path_a/')
-    pyos.os.makedirs('/a/different/path/')
+    pyos.os.makedirs("/test/path_a/")
+    pyos.os.makedirs("/a/different/path/")
 
     car = Car()
-    psh.save(car, '/test/path_a/')
-    psh.mv(f'/test/path_a/{car.obj_id}', '/a/different/path/')
+    psh.save(car, "/test/path_a/")
+    psh.mv(f"/test/path_a/{car.obj_id}", "/a/different/path/")
 
-    contents = psh.ls('/a/different/path/')
+    contents = psh.ls("/a/different/path/")
     assert len(contents) == 1
     assert isinstance(contents[0], nodes.FilesystemNode)
     assert contents[0].entry_id == car.obj_id  # pylint: disable=no-member
@@ -111,60 +110,60 @@ def test_mv_remote():
 def test_mv_overwrite():
     """Test that mv overwrites an existing object correctly"""
     car1 = Car()
-    psh.save(car1, 'my_car')
+    psh.save(car1, "my_car")
 
     car2 = Car()
     car2.save()
-    psh.mv(psh.f, str(car2.obj_id), 'my_car')
+    psh.mv(psh.f, str(car2.obj_id), "my_car")
 
 
 def test_mv_overwrite_prompt(monkeypatch):
     """Test moving with that would cause an overwrite without force"""
     car1 = Car()
-    psh.save(car1, 'my_car')
+    psh.save(car1, "my_car")
 
     car2 = Car()
-    psh.save(car2, 'my_car2')
+    psh.save(car2, "my_car2")
 
     assert len(psh.ls()) == 2
 
     # This will prompt
-    confirm = io.StringIO('N')
-    monkeypatch.setattr('sys.stdin', confirm)
-    psh.mv('my_car2', 'my_car')
+    confirm = io.StringIO("N")
+    monkeypatch.setattr("sys.stdin", confirm)
+    psh.mv("my_car2", "my_car")
     assert len(psh.ls()) == 2  # Still 2
 
     # Now overwrite
-    confirm = io.StringIO('Y')
-    monkeypatch.setattr('sys.stdin', confirm)
-    psh.mv('my_car2', 'my_car')
+    confirm = io.StringIO("Y")
+    monkeypatch.setattr("sys.stdin", confirm)
+    psh.mv("my_car2", "my_car")
     assert len(psh.ls()) == 1
 
 
 def test_mv_multiple():
-    pyos.os.makedirs('garage/')
+    pyos.os.makedirs("garage/")
 
     ferrari = Car()
-    psh.save(ferrari, 'ferrari')
+    psh.save(ferrari, "ferrari")
     skoda = Car()
-    psh.save(skoda, 'skoda')
+    psh.save(skoda, "skoda")
 
     assert len(psh.ls()) == 3
 
-    psh.mv('skoda', 'ferrari', 'garage/')
-    assert psh.ls('garage/') | len == 2
+    psh.mv("skoda", "ferrari", "garage/")
+    assert psh.ls("garage/") | len == 2
 
 
 def test_mv_rename_directory():
-    pyos.os.makedirs('cars/')
+    pyos.os.makedirs("cars/")
 
-    psh.cd('cars/')
+    psh.cd("cars/")
     car_id = Car().save()
-    psh.cd('../')
+    psh.cd("../")
 
     # Now, rename the directory using mv
-    psh.mv('cars/', 'new_cars')
-    results = psh.ls('new_cars/')
+    psh.mv("cars/", "new_cars")
+    results = psh.ls("new_cars/")
 
     assert len(results) == 1
     assert isinstance(results[0], nodes.FilesystemNode)
