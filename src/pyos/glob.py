@@ -146,9 +146,11 @@ def _glob2(dirname, pattern, dironly, include_hidden=False):
     yield from _rlistdir(dirname, dironly, include_hidden=include_hidden)
 
 
-# If dironly is false, yields all file names inside a directory.
-# If dironly is true, yields only directory names.
 def _iterdir(dirname, dironly: bool):
+    """
+    If dironly is `False`, yields all file names inside a directory.
+    If dironly is `True`, yields only directory names.
+    """
     try:
         if dirname:
             arg = dirname
@@ -164,7 +166,7 @@ def _iterdir(dirname, dironly: bool):
                 except exceptions.PyOSError:
                     pass
     except exceptions.PyOSError:
-        return
+        pass
 
 
 def _listdir(dirname, dironly):

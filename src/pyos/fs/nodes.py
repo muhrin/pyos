@@ -3,14 +3,17 @@ import collections.abc
 import copy
 import functools
 import io
-from typing import Iterable, Optional, Sequence, TextIO, Type
+from typing import TYPE_CHECKING, Iterable, Optional, Sequence, TextIO
 
 import anytree
 import columnize
 import mincepy
 import pandas as pd
 
-from .. import db, exceptions, fmt, os, pathlib, results, utils
+from .. import _globals, db, exceptions, fmt, os, pathlib, results, utils
+
+if TYPE_CHECKING:
+    import pyos
 
 __all__ = (
     "BaseNode",
@@ -38,14 +41,16 @@ UNSET = tuple()
 class BaseNode(collections.abc.Sequence, results.BaseResults, metaclass=abc.ABCMeta):
     """Base node for the object system in pyos"""
 
-    __slots__ = "_name", "_parent", "_children", "_hist"
+    __slots__ = "_name", "_parent", "_children", "_session"
 
-    def __init__(self, name: str, parent: "BaseNode" = UNSET, historian: mincepy.Historian = None):
+    def __init__(
+        self, name: str, parent: "BaseNode" = UNSET, session: Optional["pyos.Session"] = None
+    ):
         super().__init__()
         self._name = name
         self._parent = parent
         self._children = UNSET
-        self._hist = historian or db.get_historian()
+        self._session = session if session is not None else _globals.get_global_session()
 
     def __getitem__(self, item):
         if isinstance(item, (int, slice)):
@@ -89,7 +94,7 @@ class BaseNode(collections.abc.Sequence, results.BaseResults, metaclass=abc.ABCM
 
         self._invalidate_cache()
 
-    def move(self, dest: os.PathSpec, overwrite=False):
+    def move(self, dest: "pyos.os.PathSpec", overwrite=False):
         """Move this object (with any children) into the directory given by dest
 
         :param dest: the destination to move the node to
@@ -115,27 +120,27 @@ class FilesystemNode(BaseNode):
 
     def __init__(
         self,
-        path: os.PathSpec = None,
+        path: "pyos.os.PathSpec" = None,
         parent: BaseNode = None,
         entry_id=None,
         entry: dict = None,
         *,
-        historian: mincepy.Historian = None,
+        session: Optional["pyos.Session"] = None,
     ):
         """
         :param path: the path this node represents
         :param parent: parent node
         """
-        historian = historian or db.get_historian()
+        session = session if session is not None else _globals.get_global_session()
 
         # First we have to try and get a filesystem entry
         if entry is None:
             if entry_id is not None:
-                entry = db.fs.get_entry(entry_id, include_path=True, historian=historian)  # DB HIT
+                entry = db.fs.get_entry(entry_id, include_path=True, session=session)  # DB HIT
                 if entry is None:
                     raise exceptions.FileNotFoundError(entry_id)
             elif path is not None:
-                entry = db.fs.find_entry(os.withdb.to_fs_path(path), historian=historian)  # DB HIT
+                entry = db.fs.find_entry(os.withdb.to_fs_path(path), session=session)  # DB HIT
                 if entry is None:
                     raise exceptions.FileNotFoundError(path)
             else:
@@ -149,12 +154,12 @@ class FilesystemNode(BaseNode):
                 path = os.withdb.from_fs_path(entry_path)
 
         path = pathlib.PurePath(os.path.abspath(path))
-        super().__init__(path.name, parent, historian=historian)
+        super().__init__(path.name, parent, session=session)
         self._abspath = path
         self._entry = entry
 
     @property
-    def abspath(self) -> "pathlib.PurePath":
+    def abspath(self) -> "pyos.pathlib.PurePath":
         return self._abspath
 
     @abc.abstractmethod
@@ -242,7 +247,7 @@ class ContainerNode(BaseNode):
 
             return False
 
-        if self._hist.is_obj_id(item):
+        if self._session.historian.is_obj_id(item):
             for node in self.objects:
                 if item == node.obj_id:
                     return True
@@ -433,13 +438,13 @@ class DirectoryNode(ContainerNode, FilesystemNode):
         parent: BaseNode = UNSET,
         entry: dict = None,
         *,
-        historian: mincepy.Historian = None,
+        session: Optional["pyos.Session"] = None,
     ):
         super().__init__(
             path=pathlib.PurePath(os.path.abspath(path)),
             parent=parent,
             entry=entry,
-            historian=historian,
+            session=session,
         )
         if not db.fs.Entry.is_dir(self._entry):
             raise exceptions.NotADirectoryError(path)
@@ -483,14 +488,13 @@ class DirectoryNode(ContainerNode, FilesystemNode):
         if CHILDREN in self._entry:
             self._children = self._entry[CHILDREN]
         else:
-            from pyos import psh_lib
 
             def yield_results():
-                for child in db.fs.iter_children(self.entry_id, historian=self._hist):
+                for child in db.fs.iter_children(self.entry_id, session=self._session):
                     path = os.path.join(self._abspath, db.fs.Entry.name(child))
                     if db.fs.Entry.is_dir(child):
                         dir_node = DirectoryNode(
-                            path, parent=self, entry=child, historian=self._hist
+                            path, parent=self, entry=child, session=self._session
                         )
                         if abs(child_expand_depth) > 0:
                             dir_node.expand(child_expand_depth)
@@ -502,7 +506,7 @@ class DirectoryNode(ContainerNode, FilesystemNode):
                             path=path,
                             parent=self,
                             entry=child,
-                            historian=self._hist,
+                            session=self._session,
                         )
                         yield obj_node
 
@@ -510,19 +514,19 @@ class DirectoryNode(ContainerNode, FilesystemNode):
 
     def delete(self):
         # 1. Find all filesystem entries that need to be deleted
-        descendents = tuple(db.fs.iter_descendents(self.entry_id, historian=self._hist))
+        descendents = tuple(db.fs.iter_descendents(self.entry_id, session=self._session))
 
         obj_ids = tuple(db.fs.Entry.id(entry) for entry in descendents if db.fs.Entry.is_obj(entry))
 
         # 2. Delete the objects
         if obj_ids:
-            with self._hist.transaction():
-                self._hist.delete(*obj_ids)
+            with self._session.historian.transaction():
+                self._session.historian.delete(*obj_ids)
 
         # 3. Delete the filesystem entries
         # pylint: disable=protected-access
         db.fs._delete_entries(
-            *map(db.fs.Entry.id, descendents + (self._entry,)), historian=self._hist
+            *map(db.fs.Entry.id, descendents + (self._entry,)), session=self._session
         )
 
         self._invalidate_cache()
@@ -544,10 +548,11 @@ class ObjectNode(FilesystemNode):
     __slots__ = "_obj_id", "_record", "_children"
 
     @classmethod
-    def from_path(cls, path: os.PathLike, historian: mincepy.Historian = None):
+    def from_path(cls, path: "pyos.os.PathLike", session: Optional["pyos.Session"] = None):
         full_path = os.path.abspath(path)
 
-        entry = db.fs.find_entry(os.withdb.to_fs_path(full_path), historian=historian)
+        session = session if session is not None else _globals.get_global_session()
+        entry = db.fs.find_entry(os.withdb.to_fs_path(full_path), session=session)
         if entry is None:
             raise ValueError(f"'{full_path}' is not a valid object path")
 
@@ -555,7 +560,7 @@ class ObjectNode(FilesystemNode):
             raise exceptions.IsADirectoryError(path)
 
         obj_id = db.fs.Entry.id(entry)
-        return ObjectNode(obj_id, path, entry=entry, historian=historian)
+        return ObjectNode(obj_id, path, entry=entry, session=session)
 
     def __init__(
         self,
@@ -564,14 +569,12 @@ class ObjectNode(FilesystemNode):
         record: mincepy.DataRecord = None,
         parent=None,
         entry: dict = None,
-        historian: mincepy.Historian = None,
+        session: Optional["pyos.Session"] = None,
     ):
         if record:
             assert obj_id == record.obj_id, "Obj id and record don't match!"
 
-        super().__init__(
-            entry_id=obj_id, path=path, parent=parent, entry=entry, historian=historian
-        )
+        super().__init__(entry_id=obj_id, path=path, parent=parent, entry=entry, session=session)
         if not db.fs.Entry.is_obj(self._entry):
             raise exceptions.FileNotFoundError(path)
         if not db.fs.Entry.id(self._entry) == obj_id:
@@ -594,21 +597,21 @@ class ObjectNode(FilesystemNode):
             path=self._abspath,
             entry=self._entry,
             record=self._record,
-            historian=self._hist,
+            session=self._session,
         )
 
     @property
     def record(self) -> mincepy.DataRecord:
         if self._record is None:
             # Lazily load
-            self._record = self._hist.records.get(self.obj_id)
+            self._record = self._session.historian.records.get(self.obj_id)
 
         return self._record
 
     @property
     def loaded(self):
         try:
-            self._hist.get_obj(self._obj_id)
+            self._session.historian.get_obj(self._obj_id)
             return True
         except mincepy.NotFound:
             return False
@@ -626,8 +629,8 @@ class ObjectNode(FilesystemNode):
         return db.fs.Entry.type_id(self._entry)
 
     @property
-    def type(self) -> Type:
-        return self._hist.get_obj_type(self.type_id)
+    def type(self) -> type:
+        return self._session.historian.get_obj_type(self.type_id)
 
     @property
     def ctime(self):
@@ -647,10 +650,10 @@ class ObjectNode(FilesystemNode):
 
     @property
     def meta(self) -> Optional[dict]:
-        return self._hist.meta.get(self._obj_id)
+        return self._session.historian.meta.get(self._obj_id)
 
     def delete(self):
-        self._hist.delete(self._obj_id, imperative=False)
+        self._session.historian.delete(self._obj_id, imperative=False)
 
     def move(self, dest: os.PathSpec, overwrite=False):
         dest = pathlib.Path(dest).resolve() / self.name
@@ -670,8 +673,8 @@ class ObjectNode(FilesystemNode):
 
 class ResultsNode(ContainerNode):
 
-    def __init__(self, name="results", parent=None, historian: mincepy.Historian = None):
-        super().__init__(name, parent, historian=historian)
+    def __init__(self, name="results", parent=None, session: Optional["pyos.Session"] = None):
+        super().__init__(name, parent, session=session)
         assert parent is None
         self._children = []
 
@@ -695,9 +698,9 @@ class FrozenResultsNode(ContainerNode):
         children: Iterable[FilesystemNode],
         name="results",
         parent=None,
-        historian: mincepy.Historian = None,
+        session: Optional["pyos.Session"] = None,
     ):
-        super().__init__(name, parent, historian=historian)
+        super().__init__(name, parent, session=session)
         assert parent is None
         self._children = children
 
@@ -718,16 +721,17 @@ def _(entry: FilesystemNode, historian: mincepy.Historian = None):
 
 
 @to_node.register(os.PathLike)
-def _(path: os.PathLike, historian: mincepy.Historian = None):
+def _(path: os.PathLike, session: Optional["pyos.Session"] = None):
     # Make sure we've got a pure path so we don't actually check that database
     path = os.path.abspath(path)
 
-    fs_entry = db.fs.find_entry(os.withdb.to_fs_path(path), historian=historian)
+    session = session if session is not None else _globals.get_global_session()
+    fs_entry = db.fs.find_entry(os.withdb.to_fs_path(path), session=session)
     if fs_entry is None:
         raise ValueError(f"'{path}' is not a valid object path")
 
     if db.fs.Entry.is_dir(fs_entry):
-        return DirectoryNode(path, entry=fs_entry, historian=historian)
+        return DirectoryNode(path, entry=fs_entry, session=session)
 
-    # Must be object
-    return ObjectNode(db.fs.Entry.id(fs_entry), path=path, entry=fs_entry, historian=historian)
+    # Must be an `object`
+    return ObjectNode(db.fs.Entry.id(fs_entry), path=path, entry=fs_entry, session=session)

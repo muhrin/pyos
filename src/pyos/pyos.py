@@ -1,4 +1,4 @@
-from . import db, psh, version
+from . import psh, version
 from .pathlib import Path, PurePath  # pylint: disable=unused-import
 from .psh import *  # pylint: disable=unused-wildcard-import, wildcard-import
 
@@ -11,4 +11,3 @@ def _mod() -> str:
 
 
 print(_mod())
-db.init()

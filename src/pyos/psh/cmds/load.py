@@ -1,7 +1,7 @@
 from typing import Any, Iterable, Union
 
 from . import ls
-from ... import db, psh_lib
+from ... import _globals, psh_lib
 
 
 @psh_lib.command()
@@ -14,7 +14,7 @@ def load(*obj_or_ids) -> Union[Iterable[Any], Any]:
     # First load any by object id directly
     loaded = []
     rest = []
-    hist = db.get_historian()
+    hist = _globals.get_global_session().historian
     for entry in args:
         if hist.is_obj_id(entry):
             try:

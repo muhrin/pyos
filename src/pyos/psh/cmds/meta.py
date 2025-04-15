@@ -8,7 +8,7 @@ import cmd2
 
 from . import ls
 from .. import completion, flags
-from ... import db, fs, psh_lib
+from ... import _globals, db, fs, psh_lib
 from ... import results as results_
 
 logger = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ def meta(options, *obj_or_ids, **updates):  # pylint: disable=too-many-return-st
     if not obj_or_ids:
         return None
 
-    hist = db.get_historian()
+    hist = _globals.get_global_session().historian
     obj_ids, rest = psh_lib.gather_obj_ids(obj_or_ids, hist)
 
     # Assume that anything left is something like a path or filesystem node

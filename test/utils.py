@@ -2,6 +2,7 @@ import contextlib
 import os
 import random
 import string
+from typing import ContextManager, Generator
 
 import mincepy.testing as mince_testing
 
@@ -29,10 +30,10 @@ def create_archive_uri(base_uri="", db_name=""):
 
 
 @contextlib.contextmanager
-def temporary_historian(db_name: str = ""):
+def temporary_session(db_name: str = "") -> Generator[tuple[str, pyos.Session], None, None]:
     """Create a temporary database using the base archive URI and the given db name or a random one.  Yields a tuple
     consisting of the archive uri and the historian"""
     archive_uri = mince_testing.create_archive_uri(get_base_uri(), db_name)
     with mince_testing.temporary_historian(archive_uri) as historian:
-        pyos.db.init(historian, use_globally=False)
-        yield archive_uri, historian
+        session = pyos.init(historian, use_globally=False)
+        yield archive_uri, session

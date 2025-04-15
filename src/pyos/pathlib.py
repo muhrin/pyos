@@ -6,7 +6,7 @@ from typing import Iterable, Sequence, Union
 import uuid
 
 import deprecation
-import mincepy
+import mincepy.types
 
 from . import exceptions, fs, os, version
 
@@ -27,7 +27,7 @@ class PurePath(os.PathLike):
         self._path = os.path.normpath(path)
 
     @property
-    def parts(self) -> tuple[str]:
+    def parts(self) -> tuple[str, ...]:
         return pathlib.PurePosixPath(self._path).parts
 
     @property
@@ -117,13 +117,14 @@ class PurePath(os.PathLike):
         return self.__class__(os.path.join(self, *other))
 
 
-class Path(PurePath, mincepy.SimpleSavable):
+class Path(
+    PurePath, mincepy.SimpleSavable, type_id=uuid.UUID("5eac541e-848c-43aa-818d-50cf8a2b8507")
+):
     """A path in Pyos.  Where possible the convention follows that of a PurePosixPath in pathlib.
     The one major exception is that folders are represented with an explicit trailing '/' and
     anything else is a file."""
 
     ATTRS = ("_path",)
-    TYPE_ID = uuid.UUID("5eac541e-848c-43aa-818d-50cf8a2b8507")
 
     def is_file(self) -> bool:
         """Returns True if this path is a file path and exists"""

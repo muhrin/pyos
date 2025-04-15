@@ -1,5 +1,7 @@
-"""Methods and classes that do not need interaction with the database and are therefore safe to use from modules
-that need access to pyos.db without causing a cyclic dependency."""
+"""
+Methods and classes that do not need interaction with the database and are therefore safe to use
+from modules that need access to pyos.db without causing a cyclic dependency.
+"""
 
 import posixpath
 from typing import Union
