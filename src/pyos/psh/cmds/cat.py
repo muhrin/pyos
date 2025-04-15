@@ -7,7 +7,7 @@ import cmd2
 
 from . import ls
 from .. import completion, flags
-from ... import db, fs, pathlib, psh_lib, representers
+from ... import _globals, fs, pathlib, psh_lib, representers
 from ... import results as results_
 
 _LOGGER = logging.getLogger(__name__)
@@ -22,7 +22,7 @@ def cat(*obj_or_ids, representer=None):
     if not obj_or_ids:
         return None
 
-    hist = db.get_historian()
+    hist = _globals.get_global_session().historian
     to_cat = []
 
     for entry in obj_or_ids:

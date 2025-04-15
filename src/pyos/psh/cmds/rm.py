@@ -8,7 +8,7 @@ import tqdm
 
 from . import ls
 from .. import completion, flags
-from ... import db, fs, psh_lib
+from ... import _globals, fs, psh_lib
 
 
 def _remove_directories(nodes):
@@ -31,7 +31,7 @@ def rm(options, *obj_or_ids):  # pylint: disable=invalid-name
     if not obj_or_ids:
         return
 
-    hist = db.get_historian()
+    hist = _globals.get_global_session().historian
     obj_ids, rest = psh_lib.gather_obj_ids(obj_or_ids, hist)
 
     with hist.transaction():

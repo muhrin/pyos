@@ -1,29 +1,34 @@
-"""Methods and classes that can require interaction with the db module and therefore cannot be used by db itself."""
+"""
+Methods and classes that can require interaction with the db module and therefore cannot be used
+by db itself.
+"""
 
 import pathlib
-from typing import Iterator
+from typing import TYPE_CHECKING, Iterator
 
 import mincepy
 
 from . import nodb, types
-from .. import db, exceptions
-from ..db import fs
+from .. import _globals, db, exceptions
 from .nodb import curdir, pardir, sep
+
+if TYPE_CHECKING:
+    import pyos
 
 
 def isdir(path: types.PathSpec) -> bool:
     """Return True if path is an existing directory."""
-    entry = fs.find_entry(to_fs_path(path))
+    entry = db.fs.find_entry(to_fs_path(path))
     if not entry:
         return False
-    return fs.Entry.is_dir(entry)
+    return db.fs.Entry.is_dir(entry)
 
 
 def isfile(path: types.PathSpec) -> bool:
-    entry = fs.find_entry(to_fs_path(path))
+    entry = db.fs.find_entry(to_fs_path(path))
     if not entry:
         return False
-    return fs.Entry.is_obj(entry)
+    return db.fs.Entry.is_obj(entry)
 
 
 def exists(path: types.PathSpec) -> bool:
@@ -36,7 +41,8 @@ lexists = exists
 
 
 def abspath(path: types.PathSpec) -> str:
-    """Return a normalised absolutised version of the pathname path. This is equivalent to calling
+    """
+    Return a normalised absolutised version of the pathname path. This is equivalent to calling
     the function normpath() as follows: normpath(join(os.getcwd(), path)).
     """
     path = nodb.fspath(path)
@@ -115,12 +121,12 @@ def chdir(path: types.PathSpec):
     if not isdir(path):
         raise exceptions.NotADirectoryError(f"Not a directory {path}")
 
-    db.get_session().set_cwd(to_fs_path(path))
+    _globals.get_global_session().set_cwd(to_fs_path(path))
 
 
 def getcwd() -> str:
     """Return a string representing the current working directory."""
-    return from_fs_path(db.get_session().cwd)
+    return from_fs_path(_globals.get_global_session().cwd)
 
 
 def listdir(lsdir: types.PathSpec = ".") -> list[str]:
@@ -131,7 +137,7 @@ def listdir(lsdir: types.PathSpec = ".") -> list[str]:
     if db.fs.Entry.is_obj(entry):
         raise exceptions.NotADirectoryError(f"Not a directory: '{lsdir}'")
 
-    return [db.fs.Entry.name(child) for child in fs.iter_children(fs.Entry.id(entry))]
+    return [db.fs.Entry.name(child) for child in db.fs.iter_children(db.fs.Entry.id(entry))]
 
 
 def open(
@@ -153,13 +159,13 @@ def open(
 
     if entry is None:
         # Create a new one
-        fileobj = db.get_historian().create_file(file_path, encoding=encoding)
+        fileobj = _globals.get_global_session().historian.create_file(file_path, encoding=encoding)
         db.save_one(fileobj, file_path)
     else:
-        if fs.Entry.is_dir(entry):
+        if db.fs.Entry.is_dir(entry):
             raise exceptions.IsADirectoryError(file_path)
 
-        fileobj = db.load(fs.Entry.id(entry))
+        fileobj = db.load(db.fs.Entry.id(entry))
         if not isinstance(file, mincepy.File):
             raise ValueError(f"open: {fileobj}: is not a file")
 
@@ -205,7 +211,7 @@ def remove(file_path: types.PathSpec):
         raise exceptions.IsADirectoryError(file_path)
 
     obj_id = next(db.get_obj_id_from_path(file_path))
-    db.get_historian().delete(obj_id)
+    _globals.get_global_session().historian.delete(obj_id)
     db.fs.remove_obj(obj_id)
 
 
@@ -245,7 +251,7 @@ def scandir(scan_path=".") -> Iterator[nodb.DirEntry]:
             nodb.DirEntry(
                 obj_name=obj_name,
                 obj_path=nodb.join(scan_path, obj_name),
-                is_file=fs.Entry.is_obj(descendent),
+                is_file=db.fs.Entry.is_obj(descendent),
             )
         )
 
@@ -274,12 +280,12 @@ def makedirs(name: types.PathSpec, exists_ok=False):
 # endregion
 
 
-def to_fs_path(path: types.PathSpec) -> db.fs.Path:
+def to_fs_path(path: types.PathSpec) -> "pyos.db.fs.Path":
     parts = pathlib.PosixPath(abspath(path)).parts
     db.fs.validate_path(parts)
     return parts
 
 
-def from_fs_path(fs_path: db.fs.Path) -> str:
+def from_fs_path(fs_path: "pyos.db.fs.Path") -> str:
     db.fs.validate_path(fs_path)
     return str(pathlib.PosixPath(*fs_path))

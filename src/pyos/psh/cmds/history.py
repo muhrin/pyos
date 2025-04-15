@@ -1,11 +1,13 @@
 """The history command"""
 
+import mincepy
+
 from . import cat
-from ... import db, psh_lib
+from ... import _globals, psh_lib
 
 
 @psh_lib.command()
 def history(obj):
-    hist = db.get_historian()
+    hist: mincepy.Historian = _globals.get_global_session().historian
     for entry in hist.history(obj):
         cat.cat(entry.obj)

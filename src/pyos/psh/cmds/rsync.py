@@ -2,7 +2,7 @@
 
 import argparse
 import collections
-from typing import Callable, Optional
+from typing import TYPE_CHECKING, Callable, Optional
 
 import cmd2
 import mincepy
@@ -10,7 +10,10 @@ import pymongo.errors
 import yarl
 
 from .. import completion
-from ... import db, fs, os, psh_lib
+from ... import _globals, db, fs, os, psh_lib
+
+if TYPE_CHECKING:
+    import pyos
 
 META_UPDATE = "update"
 META_OVERWRITE = "overwrite"
@@ -57,66 +60,70 @@ def rsync(
     dest_url, dest_path = _parse_location(dest)
     try:
         # 1. Set up the source
-        if src_url:
-            src = db.connect(src_url, use_globally=False)
-        else:
-            # We are the source database
-            src = db.get_historian()
+        src: "pyos.Session" = (
+            _globals.connect(src_url, use_globally=False)
+            if src_url
+            else _globals.get_global_session()
+        )
 
         # 2. Set up the destination
-        if dest_url:
-            dest = db.connect(dest_url, use_globally=False)
-        else:
-            # We are the destination database
-            dest = db.get_historian()
+        dest: "pyos.Session" = (
+            _globals.connect(dest_url, use_globally=False)
+            if dest_url
+            else _globals.get_global_session()
+        )
+
     except pymongo.errors.OperationFailure as exc:
         print(
-            f"Error trying to connect with src '{src_url} {src_paths}', and dest '{dest_url} {dest_path}'"
+            f"Error trying to connect with src '{src_url} {src_paths}', and dest "
+            f"'{dest_url} {dest_path}'"
         )
         print(exc)
         return 1
-    else:
-        # 3. Perform historian merge on objects
-        def show_progress(prog, _merge_results):
-            if progress:
-                print(prog)
 
-        result = fs.ResultsNode()
-        for src_path in src_paths:
-            sync_result, merged_paths = _sync_objects(
-                src,
-                src_path,
-                dest,
-                dest_path,
-                history=history,
-                meta=meta,
-                progress_cb=show_progress,
+    # 3. Perform historian merge on objects
+    def show_progress(prog, _merge_results):
+        if progress:
+            print(prog)
+
+    result = fs.ResultsNode()
+    for src_path in src_paths:
+        sync_result, merged_paths = _sync_objects(
+            src,
+            src_path,
+            dest,
+            dest_path,
+            history=history,
+            meta=meta,
+            progress_cb=show_progress,
+        )
+        for entry in sync_result.merged:
+            # result.append(pyos.fs.to_node(entry.obj_id, historian=dest))
+            result.append(
+                fs.ObjectNode(entry.obj_id, path=merged_paths[entry.obj_id], session=dest)
             )
-            for entry in sync_result.merged:
-                # result.append(pyos.fs.to_node(entry.obj_id, historian=dest))
-                result.append(
-                    fs.ObjectNode(entry.obj_id, path=merged_paths[entry.obj_id], historian=dest)
-                )
 
-        return result
+    return result
 
 
 def _sync_objects(
-    src: mincepy.Historian,
+    src: "pyos.Session",
     src_path: str,
-    dest: mincepy.Historian,
+    dest: "pyos.Session",
     dest_path: str,
     history=False,
     meta=None,
     progress_cb: Callable = None,
 ):
-    """Synchronise objects from a given source at the given path, to the destination at the given path"""
+    """
+    Synchronise objects from a given source at the given path, to the destination at the given path
+    """
     # Get the object ids at the source path
     path = os.path.abspath(src_path)
-    obj_ids = set(entry.obj_id for entry in fs.find(path, historian=src).objects)  # DB HIT
+    obj_ids = set(entry.obj_id for entry in fs.find(path, session=src).objects)  # DB HIT
 
     # Choose the collection to sync from (either history or live objects)
-    src_collection = src.snapshots if history else src.objects
+    src_collection = src.historian.snapshots if history else src.historian.objects
 
     sync_set = src_collection.find(mincepy.DataRecord.obj_id.in_(*obj_ids))
     merged_paths = {}
@@ -128,7 +135,7 @@ def _sync_objects(
         all_obj_ids = set(sid.obj_id for sid in result.all)
 
         # 1. Get all paths
-        paths = dict(db.get_paths(*all_obj_ids, historian=src))
+        paths = dict(db.get_paths(*all_obj_ids, session=src))
 
         # 2. Create the new abspaths
         new_paths = {
@@ -143,18 +150,18 @@ def _sync_objects(
 
         # 4. Create the directories
         for objdir in dirs:
-            db.fs.make_dirs(os.withdb.to_fs_path(objdir), exists_ok=True, historian=dest)
+            db.fs.make_dirs(os.withdb.to_fs_path(objdir), exists_ok=True, session=dest)
 
         # 5. Set the paths
         for obj_id, path in new_paths.items():
-            db.fs.set_obj_path(obj_id, os.withdb.to_fs_path(path), historian=dest)
+            db.fs.set_obj_path(obj_id, os.withdb.to_fs_path(path), session=dest)
 
         # 6. Copy over metadata
         # Dictionary to store the metadatas we need to set at the dest
         dest_metas = collections.defaultdict(dict)
 
         # Get all the metadata at the source
-        src_metas = dict(src.meta.find({}, obj_id=all_obj_ids))
+        src_metas = dict(src.historian.meta.find({}, obj_id=all_obj_ids))
 
         if meta is not None:
             # We're being asked to merge metadata at the source so update our dictionary
@@ -163,9 +170,9 @@ def _sync_objects(
         # Now update all the metadata dictionaries
         if dest_metas:
             if meta == META_UPDATE:
-                dest.meta.update_many(dest_metas)
+                dest.historian.meta.update_many(dest_metas)
             else:
-                dest.meta.set_many(dest_metas)
+                dest.historian.meta.set_many(dest_metas)
 
         if progress_cb is not None:
             progress_cb(progress, result)
@@ -173,7 +180,7 @@ def _sync_objects(
         merged_paths.update(new_paths)
 
     return (
-        dest.merge(sync_set, progress_callback=batch_merged, batch_size=256),
+        dest.historian.merge(sync_set, progress_callback=batch_merged, batch_size=256),
         merged_paths,
     )
 

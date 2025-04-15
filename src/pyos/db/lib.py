@@ -1,12 +1,15 @@
 import collections
-from typing import Any, Iterable, Iterator, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Any, Iterable, Iterator, Optional, Sequence, Union
 
 import deprecation
 import mincepy
 from tqdm import tqdm
 
-from . import database, fs
-from .. import exceptions, os, version
+from . import fs
+from .. import _globals, exceptions, os, version
+
+if TYPE_CHECKING:
+    import pyos
 
 __all__ = (
     "get_meta",
@@ -29,36 +32,39 @@ __all__ = (
     "set_paths",
 )
 
+
 # region metadata
 
 
-def get_meta(obj_id: Union[Any, Iterable[Any]]):
+def get_meta(obj_id: Union[Any, Iterable[Any]], session: Optional["pyos.Session"] = None):
     """Get the metadata for a bunch of objects"""
-    hist = database.get_historian()
-    return hist.archive.meta_get(obj_id)
+    session = session if session is not None else _globals.get_global_session()
+    return session.historian.archive.meta_get(obj_id)
 
 
-def update_meta(*obj_or_identifier, meta: dict):
+def update_meta(*obj_or_identifier, meta: dict, session: Optional["pyos.Session"] = None):
     """Update the metadata for a bunch of objects"""
-    hist = database.get_historian()
+    session = session if session is not None else _globals.get_global_session()
     for obj_id in obj_or_identifier:
-        hist.meta.update(obj_id, meta)
+        session.historian.meta.update(obj_id, meta)
 
 
-def set_meta(*obj_or_identifier, meta: dict):
+def set_meta(*obj_or_identifier, meta: dict, session: Optional["pyos.Session"] = None):
     """Set the metadata for a bunch of objects"""
-    hist = database.get_historian()
+    session = session if session is not None else _globals.get_global_session()
     obj_ids = tuple(map(to_obj_id, obj_or_identifier))
 
     # Preserve the internal keys
     for obj_id in obj_ids:
-        hist.meta.set(obj_id, meta)
+        session.historian.meta.set(obj_id, meta)
 
 
-def find_meta(filter: dict = None, obj_ids=None):  # pylint: disable=redefined-builtin
+def find_meta(
+    filter: dict = None, obj_ids=None, session: Optional["pyos.Session"] = None
+):  # pylint: disable=redefined-builtin
+    session = session if session is not None else _globals.get_global_session()
     filter = filter or {}
-    hist = database.get_historian()
-    return hist.meta.find(filter, obj_ids)
+    return session.historian.meta.find(filter, obj_ids)
 
 
 # endregion
@@ -73,7 +79,7 @@ def get_path(obj_or_id) -> Optional[str]:
     return get_paths(obj_or_id)[0].path
 
 
-def get_paths(*obj_or_id, historian: mincepy.Historian = None) -> Sequence[PathInfo]:
+def get_paths(*obj_or_id, session: Optional["pyos.Session"] = None) -> Sequence[PathInfo]:
     """Given objects or identifier this will return their current paths as PathInfo tuples in the
     order that they were passed in.  A PathInfo consists of the object id and the corresponding
     path.
@@ -84,51 +90,52 @@ def get_paths(*obj_or_id, historian: mincepy.Historian = None) -> Sequence[PathI
     constructing such a dictionary duplicate values will be joined.  Whether this is desired will
     depend on the use case.
     """
-    hist = historian or database.get_historian()
-    obj_ids = tuple(map(hist.to_obj_id, obj_or_id))
+    session = session if session is not None else _globals.get_global_session()
+
+    obj_ids = tuple(map(session.historian.to_obj_id, obj_or_id))
 
     paths = []
-    for obj_id, path in zip(obj_ids, fs.get_paths(*obj_ids, historian=historian)):
+    for obj_id, path in zip(obj_ids, fs.get_paths(*obj_ids, session=session)):
         paths.append(PathInfo(obj_id, os.withdb.from_fs_path(path)))
 
     return paths
 
 
-def set_path(obj_id, path: os.PathSpec) -> str:
+def set_path(obj_id, path: "pyos.os.PathSpec") -> str:
     """Given an object or object id set the current path and return the new abspath"""
     return set_paths((obj_id, path))[0].path
 
 
 def set_paths(
-    *obj_id_path: tuple[Any, os.PathSpec], historian: mincepy.Historian = None
+    *obj_id_path: tuple[Any, "pyos.os.PathSpec"], session: Optional["pyos.Session"] = None
 ) -> Sequence[PathInfo]:
     """Set the path for one or more objects.  This function expects (object or identifier, path)
     tuples and returns the corresponding PathInfo objects with absolute paths in the same order
     as the arguments
     """
-    hist = historian or database.get_historian()
+    session = session if session is not None else _globals.get_global_session()
     paths = []
 
     for obj_or_id, path in obj_id_path:
-        obj_id = hist.to_obj_id(obj_or_id)
+        obj_id = session.historian.to_obj_id(obj_or_id)
 
-        fs.set_obj_path(obj_id, os.withdb.to_fs_path(path), historian=historian)
+        fs.set_obj_path(obj_id, os.withdb.to_fs_path(path), session=session)
 
         paths.append(PathInfo(obj_id, os.path.abspath(path)))
 
     return paths
 
 
-def rename(obj_or_id, dest: os.PathSpec):
+def rename(obj_or_id, dest: "pyos.os.PathSpec", session: Optional["pyos.Session"] = None):
     """Rename an object to the dest.  If dest is a directory IsADirectoryError is raised."""
     dest = os.fspath(dest)
     if dest.endswith(os.sep):
         raise exceptions.IsADirectoryError(dest)
 
-    hist = database.get_historian()
-    obj_id = hist.to_obj_id(obj_or_id)
+    session = session if session is not None else _globals.get_global_session()
+    obj_id = session.historian.to_obj_id(obj_or_id)
 
-    fs.rename(src_id=obj_id, dest=os.withdb.to_fs_path(dest), historian=hist)  # DB HIT
+    fs.rename(src_id=obj_id, dest=os.withdb.to_fs_path(dest), session=session)  # DB HIT
 
 
 def get_abspath(obj_id, _meta: dict) -> str:
@@ -138,10 +145,12 @@ def get_abspath(obj_id, _meta: dict) -> str:
     return os.sep.join(fs.get_paths(obj_id)[0])
 
 
-def homedir(user: str = "") -> str:
+def homedir(user: str = "", session: Optional["pyos.Session"] = None) -> str:
     """Return the user's home directory"""
+    session = session if session is not None else _globals.get_global_session()
+
     if not user:
-        user_info = database.get_historian().get_user_info()
+        user_info = session.historian.get_user_info()
         user_name = user_info[mincepy.ExtraKeys.USER]
     else:
         user_name = user
@@ -155,8 +164,8 @@ def save_one(
     obj,
     path: os.PathSpec = None,
     overwrite=False,
-    meta=None,
-    historian: mincepy.Historian = None,
+    meta: dict = None,
+    session: Optional["pyos.Session"] = None,
 ):
     """Save one object at the given path.  The path can be a filename or a directory or a filename
     in a directory
@@ -167,10 +176,10 @@ def save_one(
     :param meta: an optional dictionary of metadata to store with the object
     :param historian: the historian to use for saving
     """
-    hist = historian or database.get_historian()
-    obj_id = save_many(((obj, path),), overwrite=overwrite, show_progress=False, historian=hist)[0]
+    obj_id = save_many(((obj, path),), overwrite=overwrite, show_progress=False, session=session)[0]
     if meta:
-        hist.meta.set(obj_id, meta)
+        session = session if session is not None else _globals.get_global_session()
+        session.historian.meta.set(obj_id, meta)
 
     return obj_id
 
@@ -179,7 +188,7 @@ def save_many(
     to_save: Iterable[Union[Any, tuple[Any, os.PathSpec]]],
     overwrite=False,
     show_progress=True,
-    historian: mincepy.Historian = None,
+    session: Optional["pyos.Session"] = None,
 ):
     """
     Save many objects, expects an iterable where each entry is an object to save or a tuple of
@@ -202,7 +211,7 @@ def save_many(
             raise ValueError("Can only pass sequences of at most length 2")
 
     obj_ids = []
-    historian = historian or database.get_historian()
+    session = session if session is not None else _globals.get_global_session()
 
     progress_opts = dict(desc="Saving", disable=not show_progress)
     try:
@@ -211,14 +220,14 @@ def save_many(
         pass
     progress_bar = tqdm(**progress_opts)
 
-    cache = fs.EntriesCache(historian)
+    cache = fs.EntriesCache(session)
     exc = None
-    with historian.transaction():
+    with cache.historian.transaction():
         for entry in to_save:
             obj, path = _parse_entry(entry)
 
             # Set the object to be saved at the end of the transaction
-            obj_id = historian.save_one(obj)
+            obj_id = cache.historian.save_one(obj)
             if path is not None:
                 # Get information about the source
                 source_entry = cache.get_entry_from_id(obj_id)
@@ -249,16 +258,20 @@ def save_many(
     return obj_ids
 
 
-def load(*identifier):
+def load(*identifier, session: Optional["pyos.Session"] = None):
     """Load one or more objects"""
-    database.get_historian().load(*identifier)
+    session = session if session is not None else _globals.get_global_session()
+    session.historian.load(*identifier)
 
 
-def to_obj_id(identifier):
-    """Get the database object id from the passed identifier.  If the identifier is already a
+def to_obj_id(identifier, session: Optional["pyos.Session"] = None):
+    """
+    Get the database object id from the passed identifier.  If the identifier is already a
     mincePy object id it will be returned unaltered.  Otherwise, mincePy will try and turn the type
-    into an object id.  If it fails, None is returned"""
-    return database.get_historian().to_obj_id(identifier)
+    into an object id.  If it fails, `None` is returned
+    """
+    session = session if session is not None else _globals.get_global_session()
+    return session.historian.to_obj_id(identifier)
 
 
 @deprecation.deprecated(
@@ -272,29 +285,30 @@ def get_obj_id(path: os.PathSpec):
     return next(get_obj_id_from_path(path))
 
 
-def get_obj_id_from_path(*path: os.PathSpec) -> Iterator:
+def get_obj_id_from_path(*path: os.PathSpec, session: Optional["pyos.Session"] = None) -> Iterator:
     """Given a path yield the id of the corresponding object.  Yields None if not found."""
+    session = session if session is not None else _globals.get_global_session()
+
     for entry in path:
         entry = os.fspath(entry)
 
         # Check if the basename is an object id
         basename = os.path.basename(entry)
         if basename:
-            hist = database.get_historian()
             try:
-                yield hist.archive.construct_archive_id(basename)
+                yield session.historian.archive.construct_archive_id(basename)
                 continue
             except ValueError:
                 pass
 
-        entry = fs.find_entry(os.withdb.to_fs_path(entry))
+        entry = fs.find_entry(os.withdb.to_fs_path(entry), session=session)
         if entry is None:
             yield None
         else:
             yield fs.Entry.id(entry)
 
 
-def get_oid(*identifier) -> Iterator:
+def get_oid(*identifier, session: Optional["pyos.Session"] = None) -> Iterator:
     """Get one or more object ids.
 
     :param identifier: can be any of the following:
@@ -305,14 +319,14 @@ def get_oid(*identifier) -> Iterator:
         these will be tested in order in an attempt to get the object id.  If all fail then None
         will be yielded.
     """
-    hist = database.get_historian()
+    session = session if session is not None else _globals.get_global_session()
 
     for ident in identifier:
         obj_id = None
 
         if ident is not None:
             # Let the historian try to interpret it, no db access
-            obj_id = hist.to_obj_id(ident)
+            obj_id = session.historian.to_obj_id(ident)
 
             if obj_id is None:
                 # Maybe it is a path
@@ -321,9 +335,9 @@ def get_oid(*identifier) -> Iterator:
                 except TypeError:
                     pass
                 else:
-                    obj_id = next(
+                    obj_id = next(  # pylint: disable=stop-iteration-return
                         get_obj_id_from_path(path)
-                    )  # pylint: disable=stop-iteration-return
+                    )
 
         yield obj_id
 
@@ -332,10 +346,10 @@ def _insert(
     obj_id,
     dest: fs.Path,
     overwrite=False,
-    historian: mincepy.Historian = None,
+    session: Optional["pyos.Session"] = None,
     cache: fs.EntriesCache = None,
 ):
-    cache = cache or fs.EntriesCache(historian)
+    cache = cache or fs.EntriesCache(session)
     historian = cache.historian
 
     try:
@@ -344,7 +358,7 @@ def _insert(
         if overwrite:
             conflicting_id = fs.Entry.id(cache.get_entry_from_path(dest))
             historian.delete(conflicting_id)
-            fs.remove_obj(conflicting_id, historian=historian)  # DB HIT
+            fs.remove_obj(conflicting_id, session=cache.session)  # DB HIT
 
             # Try again
             fs.insert_obj(obj_id, dest, cache=cache)  # DB HIT
@@ -356,10 +370,10 @@ def _rename(
     obj_id,
     dest: fs.Path,
     overwrite=False,
-    historian: mincepy.Historian = None,
+    session: Optional["pyos.Session"] = None,
     cache: fs.EntriesCache = None,
 ):
-    cache = cache or fs.EntriesCache(historian)
+    cache = cache or fs.EntriesCache(session)
     historian = cache.historian
 
     try:
@@ -368,7 +382,7 @@ def _rename(
         if overwrite:
             conflicting_id = fs.Entry.id(cache.get_entry_from_path(dest))  # DB HIT
             historian.delete(conflicting_id)
-            fs.remove_obj(conflicting_id, historian=historian)  # DB HIT
+            fs.remove_obj(conflicting_id, session=cache.session)  # DB HIT
 
             # Try again
             fs.rename(src_id=obj_id, dest=dest, cache=cache)  # DB_HIT

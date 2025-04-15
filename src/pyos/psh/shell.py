@@ -12,8 +12,8 @@ import cmd2.utils
 import mincepy
 
 from . import constants, utils
-from .. import db
-from .. import os as pos
+from .. import _globals
+from .. import os as pos  # pylint: disable=reimported
 from .. import version
 
 _LOGGER = logging.getLogger(__name__)
@@ -94,7 +94,7 @@ class PyosShell(cmd2.Cmd):
 
     def _update_prompt(self):
         try:
-            historian = db.get_historian()
+            historian = _globals.get_global_session().historian
         except RuntimeError:
             # Happens when there is a global historian but pyos.db.init() hasn't been called
             historian = None
@@ -110,7 +110,7 @@ class PyosShell(cmd2.Cmd):
             saved = self._create_redirection_save()
 
             _LOGGER.debug(
-                "Attempting piped command:\n" "%s\n" "stdin=%s, stdout=%s",
+                "Attempting piped command:\n%s\nstdin=%s, stdout=%s",
                 statement.pipe_to,
                 saved.saved_sys_stdin,
                 saved.saved_self_stdout,
@@ -199,14 +199,16 @@ class PyosShell(cmd2.Cmd):
             # noinspection PyUnusedLocal
             def load_ipy(cmd2_app: PyosShell, py_bridge: PyBridge):
                 """
-                Embed an IPython shell in an environment that is restricted to only the variables in this function
+                Embed an IPython shell in an environment that is restricted to only the variables
+                in this function
 
                 :param cmd2_app: instance of the cmd2 app
                 :param py_bridge: a PyBridge
                 """
                 from pyos import psh
 
-                # Create a variable pointing to py_bridge and name it using the value of py_bridge_name
+                # Create a variable pointing to py_bridge and name it using the value of
+                # py_bridge_name
                 exec(f"{cmd2_app.py_bridge_name} = py_bridge")  # pylint: disable=exec-used # nosec
 
                 # Add self variable pointing to cmd2_app, if allowed

@@ -10,15 +10,18 @@ The edge also stores the name of the entry.
 import abc
 import collections
 import datetime
-from typing import Iterable, Iterator, Optional
+from typing import TYPE_CHECKING, Iterable, Iterator, Optional
 
 import bson
 import mincepy
 import mincepy.mongo.db
 import pymongo.errors
 
-from . import constants, database
-from .. import exceptions
+from . import constants
+from .. import _globals, exceptions
+
+if TYPE_CHECKING:
+    import pyos
 
 COLLECTION = "pyos_fs"
 
@@ -115,8 +118,8 @@ class Entry:
         return entry[Schema.PARENT]
 
     @staticmethod
-    def set_parent(entry_id, parent_id, historian: mincepy.Historian):
-        coll = get_fs_collection(historian)
+    def set_parent(entry_id, parent_id, session: "pyos.Session"):
+        coll = get_fs_collection(session)
         coll.update_one({Schema.ID: entry_id}, {Schema.PARENT: parent_id})
 
     @staticmethod
@@ -203,26 +206,30 @@ class FilesystemBuilder:
         for name, value in self._entries.items():
             if isinstance(value, FilesystemBuilder):
                 yield Schema.dir_dict(
-                    name=name, parent=self._id, dir_id=value._id
-                )  # pylint: disable=protected-access
+                    name=name,
+                    parent=self._id,
+                    dir_id=value._id,  # pylint: disable=protected-access
+                )
                 yield from value.yield_edges()
             else:
-                yield Schema.obj_dict(
-                    obj_id=value, parent=self._id, name=name
-                )  # pylint: disable=protected-access
+                yield Schema.obj_dict(obj_id=value, parent=self._id, name=name)
 
 
 class EntriesCache:
 
-    def __init__(self, historian: mincepy.Historian):
-        self._hist = historian or database.get_historian()
+    def __init__(self, session: "pyos.Session"):
+        self._session = session if session is not None else _globals.get_global_session()
         self._entry_ids = {}
         self._paths = {}
         self._path_entries = {}
 
     @property
+    def session(self) -> "pyos.Session":
+        return self._session
+
+    @property
     def historian(self) -> mincepy.Historian:
-        return self._hist
+        return self._session.historian
 
     def get_entry(self, id_or_path) -> dict:
         if isinstance(id_or_path, tuple):
@@ -238,7 +245,7 @@ class EntriesCache:
         try:
             return self._paths[path]
         except KeyError:
-            entry = find_entry(path, historian=self._hist)
+            entry = find_entry(path, session=self._session)
             if entry is not None:
                 # Cache the entry
                 self._paths[path] = entry
@@ -250,7 +257,7 @@ class EntriesCache:
         try:
             return self._entry_ids[entry_id]
         except KeyError:
-            entry = get_entry(entry_id, historian=self._hist)
+            entry = get_entry(entry_id, session=self._session)
             if entry is not None:
                 # Cache the entry
                 self._entry_ids[Entry.id(entry)] = entry
@@ -261,16 +268,16 @@ class EntriesCache:
         try:
             return self._path_entries[path]
         except KeyError:
-            entries = find_path_entries(path, self._hist)
+            entries = find_path_entries(path, self._session)
             for entry in entries:
                 self._entry_ids[Entry.id(entry)] = entry
             self._path_entries[path] = entries
             return entries
 
 
-def get_fs_collection(historian: mincepy.Historian = None):
-    historian = historian or database.get_historian()
-    archive: mincepy.mongo.MongoArchive = historian.archive
+def get_fs_collection(session: Optional["pyos.Session"] = None):
+    session: "pyos.Session" = session if session is not None else _globals.get_global_session()
+    archive: mincepy.mongo.MongoArchive = session.historian.archive
     return archive.database[constants.FILESYSTEM_COLLECTION]
 
 
@@ -390,16 +397,12 @@ def _ancestors_lookup() -> list[dict]:
 # endregion
 
 
-def find_entry(
-    path: Path,
-    *,
-    historian: mincepy.Historian = None,
-) -> Optional[dict]:
+def find_entry(path: Path, *, session: Optional["pyos.Session"] = None) -> Optional[dict]:
     """Find an entry in the filesystem collection based on the path"""
     aggregate = _path_lookup(path)
-    historian = historian or database.get_historian()
+    session: "pyos.Session" = session if session is not None else _globals.get_global_session()
 
-    res = list(get_fs_collection(historian).aggregate(aggregate, allowDiskUse=True))
+    res = list(get_fs_collection(session).aggregate(aggregate, allowDiskUse=True))
     if not res:
         return None
 
@@ -418,7 +421,7 @@ def find_entry(
         try:
             # pylint: disable=protected-access
             data_entry = tuple(
-                historian.records.find(obj_id=Entry.id(entry))._project(*FIELD_MAP.keys())
+                session.historian.records.find(obj_id=Entry.id(entry))._project(*FIELD_MAP.keys())
             )[0]
         except IndexError:
             return None
@@ -429,17 +432,14 @@ def find_entry(
 
 
 def get_entry(
-    entry_id,
-    include_path=False,
-    *,
-    historian: mincepy.Historian = None,
+    entry_id, include_path=False, *, session: Optional["pyos.Session"] = None
 ) -> Optional[dict]:
     aggregate = _entries_lookup(entry_id)
 
     if include_path:
         aggregate.extend(_ancestors_lookup())
 
-    res = list(get_fs_collection(historian).aggregate(aggregate, allowDiskUse=True))
+    res = list(get_fs_collection(session).aggregate(aggregate, allowDiskUse=True))
     if not res:
         return None
 
@@ -457,7 +457,7 @@ def get_entry(
         try:
             # pylint: disable=protected-access
             data_entry = tuple(
-                historian.records.find(obj_id=Entry.id(entry))._project(*FIELD_MAP.keys())
+                session.historian.records.find(obj_id=Entry.id(entry))._project(*FIELD_MAP.keys())
             )[0]
         except IndexError:
             return None
@@ -467,9 +467,9 @@ def get_entry(
     return entry
 
 
-def find_path_entries(path: Path, historian: mincepy.Historian = None) -> list[dict]:
+def find_path_entries(path: Path, session: Optional["pyos.Session"] = None) -> list[dict]:
     """Find all filesystem the entries along a path"""
-    coll = get_fs_collection(historian=historian)
+    coll = get_fs_collection(session=session)
     res = list(coll.aggregate(_path_lookup(path)))
 
     if not res:
@@ -482,11 +482,11 @@ def find_path_entries(path: Path, historian: mincepy.Historian = None) -> list[d
     return res[0][Schema.PATH_ENTRIES]
 
 
-def get_paths(*obj_id, historian: mincepy.Historian = None) -> tuple[Path]:
+def get_paths(*obj_id, session: Optional["pyos.Session"] = None) -> tuple[Path]:
     if not obj_id:
         return tuple()
 
-    coll = get_fs_collection(historian=historian)
+    coll = get_fs_collection(session=session)
     aggregate = [*_entries_lookup(*obj_id), *_ancestors_lookup()]
 
     res = list(coll.aggregate(aggregate))
@@ -509,7 +509,7 @@ def get_paths(*obj_id, historian: mincepy.Historian = None) -> tuple[Path]:
 def set_obj_path(
     obj_id,
     new_path: Path,
-    historian: mincepy.Historian = None,
+    session: Optional["pyos.Session"] = None,
     cache: EntriesCache = None,
 ):
     """
@@ -518,11 +518,11 @@ def set_obj_path(
     :param parent: the path to save the object at.  path[:-1] will be the absolute path to the
         directory while path[-1] will be the filename.  Note that the directory must already exist.
     """
-    cache = cache or EntriesCache(historian)
+    cache = cache or EntriesCache(session)
     instruction = SetObjPath(obj_id, new_path)
     ops = instruction.get_ops(cache)
 
-    coll = get_fs_collection(historian=historian)
+    coll = get_fs_collection(cache.session)
     try:
         coll.bulk_write(ops)
     except pymongo.errors.BulkWriteError as exc:
@@ -634,17 +634,19 @@ class Rename(Instruction):
             raise exceptions.FileExistsError()
 
 
-def execute_instructions(instructions: Iterable[Instruction], historian: mincepy.Historian = None):
-    cache = EntriesCache(historian)
+def execute_instructions(
+    instructions: Iterable[Instruction], session: Optional["pyos.Session"] = None
+):
+    cache = EntriesCache(session)
     ops = []
     for instruction in instructions:
         ops.extend(instruction.get_ops(cache))
 
     if ops:
-        get_fs_collection(historian).bulk_write(ops)
+        get_fs_collection(cache.session).bulk_write(ops)
 
 
-def make_dirs(path: Path, exists_ok=False, historian: mincepy.Historian = None):
+def make_dirs(path: Path, exists_ok=False, session: Optional["pyos.Session"] = None):
     def already_exists():
         if not exists_ok:
             raise exceptions.FileExistsError(path)
@@ -652,7 +654,7 @@ def make_dirs(path: Path, exists_ok=False, historian: mincepy.Historian = None):
     if path == ROOT_PATH:
         return already_exists()
 
-    fs_coll = get_fs_collection(historian)
+    fs_coll = get_fs_collection(session)
     aggregate = _path_lookup(path)
     res = list(fs_coll.aggregate(aggregate, allowDiskUse=True))
     if res:
@@ -682,11 +684,11 @@ def rename(
     src: Path = None,
     dest: Path = None,
     src_id=None,
-    historian: mincepy.Historian = None,
+    session: Optional["pyos.Session"] = None,
     cache: EntriesCache = None,
 ):
     """Rename a filesystem entry"""
-    cache = cache or EntriesCache(historian)
+    cache = cache or EntriesCache(session)
 
     if src_id is None:
         if src is None:
@@ -704,7 +706,7 @@ def rename(
         raise exceptions.FileNotFoundError(f"File not found: {dirpath}")
 
     # Update the object to be in the new location
-    coll = get_fs_collection(historian=historian)
+    coll = get_fs_collection(session=cache.session)
     try:
         res = coll.update_one(
             {Schema.ID: src_id},
@@ -723,9 +725,9 @@ def rename(
 RemoveResult = collections.namedtuple("RemoveResult", "dirs_removed objs_removed")
 
 
-def remove_obj(obj_id, historian: mincepy.Historian = None) -> bool:
+def remove_obj(obj_id, session: Optional["pyos.Session"] = None) -> bool:
     """Remove a single object entry"""
-    coll = get_fs_collection(historian)
+    coll = get_fs_collection(session)
     res = coll.delete_one({Schema.ID: obj_id, Schema.TYPE: Schema.TYPE_OBJ})
     if res.deleted_count == 1:
         return True
@@ -733,15 +735,17 @@ def remove_obj(obj_id, historian: mincepy.Historian = None) -> bool:
     return False
 
 
-def remove_objs(obj_ids: tuple, historian: mincepy.Historian = None) -> int:
+def remove_objs(obj_ids: tuple, session: Optional["pyos.Session"] = None) -> int:
     """Remove many object entries"""
-    coll = get_fs_collection(historian)
+    coll = get_fs_collection(session)
     res = coll.delete_many({Schema.ID: {"$in": list(obj_ids)}, Schema.TYPE: Schema.TYPE_OBJ})
     return res.deleted_count
 
 
-def remove_dir(entry_id, recursive=False, historian: mincepy.Historian = None) -> RemoveResult:
-    entry = get_entry(entry_id, historian=historian)  # DB HIT
+def remove_dir(entry_id, recursive=False, session: Optional["pyos.Session"] = None) -> RemoveResult:
+    session = session if session is not None else _globals.get_global_session()
+
+    entry = get_entry(entry_id, session=session)  # DB HIT
     if entry is None:
         raise exceptions.FileNotFoundError(entry_id)
 
@@ -752,7 +756,7 @@ def remove_dir(entry_id, recursive=False, historian: mincepy.Historian = None) -
     result = RemoveResult([], [])
 
     # Check for descendents
-    descendents = tuple(iter_descendents(entry_id, historian=historian))
+    descendents = tuple(iter_descendents(entry_id, session=session))
     if recursive:
         for descendent in descendents:
             descendent_id = Entry.id(descendent)
@@ -770,28 +774,30 @@ def remove_dir(entry_id, recursive=False, historian: mincepy.Historian = None) -
     result.dirs_removed.append(entry_id)
 
     # Delete
-    _delete_entries(*to_delete, historian=historian)  # DB HIT
+    _delete_entries(*to_delete, session=session)  # DB HIT
 
     return result
 
 
-def _delete_entries(*entry_id, historian: mincepy.Historian = None):
+def _delete_entries(*entry_id, session: Optional["pyos.Session"] = None):
     """
     Delete entries from the filesystem collection.  No checks are done, just does a raw delete.
     """
     delete_ops = list(pymongo.DeleteOne({Schema.ID: fsid}) for fsid in entry_id)
-    return get_fs_collection(historian).bulk_write(delete_ops)  # DB HIT
+    return get_fs_collection(session).bulk_write(delete_ops)  # DB HIT
 
 
-def insert_obj(obj_id, dest: Path, historian: mincepy.Historian = None, cache: EntriesCache = None):
-    cache = cache or EntriesCache(historian)
+def insert_obj(
+    obj_id, dest: Path, session: Optional["pyos.Session"] = None, cache: EntriesCache = None
+):
+    cache = cache or EntriesCache(session)
     dirpath, name = dest[:-1], dest[-1]
     dest_entry = cache.get_entry_from_path(dirpath)
 
     if dest_entry is None:
         raise exceptions.FileNotFoundError(f"File not found: {dirpath}")
 
-    coll = get_fs_collection(cache.historian)
+    coll = get_fs_collection(cache.session)
     try:
         coll.insert_one(Schema.obj_dict(obj_id, Entry.id(dest_entry), name))
     except pymongo.errors.DuplicateKeyError:
@@ -820,7 +826,7 @@ def iter_children(
     obj_filter: mincepy.Expr = None,
     obj_type=None,
     meta_filter=None,
-    historian: mincepy.Historian = None,
+    session: Optional["pyos.Session"] = None,
     batch_size=1024,
 ) -> Iterator[dict]:
     """Given a filesystem directory id iterate over all of its children"""
@@ -828,8 +834,8 @@ def iter_children(
     if type is not None and type not in (Schema.TYPE_DIR, Schema.TYPE_OBJ):
         raise ValueError(f"Invalid type filter: {type}")
 
-    historian = historian or database.get_historian()
-    coll = get_fs_collection(historian)
+    session = session if session is not None else _globals.get_global_session()
+    coll = get_fs_collection(session=session)
 
     find_filter = {Schema.PARENT: entry_id}
     if type is not None:
@@ -862,7 +868,9 @@ def iter_children(
             if obj_filter:
                 data_filter &= obj_filter
 
-            record_find = historian.records.find(data_filter, obj_type=obj_type, meta=meta_filter)
+            record_find = session.historian.records.find(
+                data_filter, obj_type=obj_type, meta=meta_filter
+            )
             records = {
                 entry[mincepy.OBJ_ID]: entry
                 for entry in record_find._project(mincepy.OBJ_ID, *FIELD_MAP.keys())
@@ -892,10 +900,12 @@ def iter_descendents(
     max_depth=None,
     depth=0,
     path: Path = (),
-    historian: mincepy.Historian = None,
+    session: Optional["pyos.Session"] = None,
 ):
     if type is not None and type not in (Schema.TYPE_DIR, Schema.TYPE_OBJ):
         raise ValueError(f"Invalid type filter: {type}")
+
+    session = session if session is not None else _globals.get_global_session()
 
     if max_depth is not None and depth >= max_depth:
         return
@@ -904,7 +914,7 @@ def iter_descendents(
         obj_filter=obj_filter,
         obj_type=obj_type,
         meta_filter=meta_filter,
-        historian=historian,
+        session=session,
     ):
         child_path = path + (Entry.name(child),)
         if type is None or Entry.type(child) == type:
@@ -922,7 +932,7 @@ def iter_descendents(
                 max_depth=max_depth,
                 depth=depth + 1,
                 path=child_path,
-                historian=historian,
+                session=session,
             )
 
 

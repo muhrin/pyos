@@ -1,11 +1,14 @@
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 import mincepy
 import mincepy.frontend
 
 from . import nodes
-from .. import db, os
+from .. import _globals, db, os
 from .. import results as results_
+
+if TYPE_CHECKING:
+    import pyos
 
 __all__ = ("find",)
 
@@ -19,7 +22,7 @@ def find(
     obj_filter: mincepy.Expr = None,
     mindepth=0,
     maxdepth=-1,
-    historian: Optional[mincepy.Historian] = None,
+    session: Optional["pyos.Session"] = None,
 ) -> nodes.FrozenResultsNode:
     """
     Find objects matching the given criteria
@@ -54,7 +57,7 @@ def find(
                 meta_filter=meta,
                 mindepth=mindepth,
                 maxdepth=maxdepth,
-                historian=historian,
+                session=session,
             ):
                 descendent_path = db.fs.Entry.path(matching)
                 path = os.withdb.from_fs_path(descendent_path)
@@ -72,11 +75,11 @@ def _iter_matching(
     meta_filter,
     mindepth: int,
     maxdepth: int,
-    historian: mincepy.Historian,
+    session: Optional["pyos.Session"],
 ):
     # Find the filesystem entry we're looking for
     start_fs_path = os.withdb.to_fs_path(path)
-    entry = db.fs.find_entry(start_fs_path, historian=historian)
+    entry = db.fs.find_entry(start_fs_path, session=session)
     entry_id = db.fs.Entry.id(entry)
 
     if db.fs.Entry.is_obj(entry):
@@ -92,7 +95,7 @@ def _iter_matching(
             meta_filter=meta_filter,
             mindepth=mindepth,
             maxdepth=maxdepth,
-            historian=historian,
+            session=session,
         )
 
 
@@ -104,10 +107,10 @@ def _iter_descendents(
     meta_filter=None,
     mindepth=0,
     maxdepth=-1,
-    historian: mincepy.Historian = None,
+    session: Optional["pyos.Session"] = None,
 ):
     # Find the filesystem entry we're looking for
-    historian = historian or db.get_historian()
+    session = session if session is not None else _globals.get_global_session()
 
     objects_iter = db.fs.iter_descendents(
         dir_fsid,
@@ -117,7 +120,7 @@ def _iter_descendents(
         meta_filter=meta_filter,
         max_depth=maxdepth if maxdepth != -1 else None,
         path=start_path,
-        historian=historian,
+        session=session,
     )
 
     for descendent in objects_iter:

@@ -1,7 +1,9 @@
-from typing import Callable, Iterable, List, Optional
+from typing import TYPE_CHECKING, Callable, Iterable, List, Optional
 
-from . import shell
 from .. import exceptions, glob, os, pathlib
+
+if TYPE_CHECKING:
+    import pyos
 
 __all__ = ("PathCompletion",)
 
@@ -60,7 +62,7 @@ class PathCompletion(os.PathLike):
 
 
 def path_complete(
-    app: shell.PyosShell,
+    app: "pyos.psh.PyosShell",
     text: str,
     _line: str,
     _begidx: int,
@@ -114,7 +116,7 @@ def path_complete(
 
 
 def file_completer(
-    app: shell.PyosShell, text: str, line: str, begidx: int, endidx: int
+    app: "pyos.psh.PyosShell", text: str, line: str, begidx: int, endidx: int
 ) -> List[str]:
 
     def is_file(path: str):
@@ -124,7 +126,7 @@ def file_completer(
 
 
 def dir_completer(
-    app: shell.PyosShell, text: str, line: str, begidx: int, endidx: int
+    app: "pyos.psh.PyosShell", text: str, line: str, begidx: int, endidx: int
 ) -> List[str]:
 
     def is_dir(path: str):

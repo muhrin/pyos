@@ -5,7 +5,7 @@ from typing import Optional, Sequence, Union
 
 import cmd2
 
-from ... import db, os, pathlib, psh_lib
+from ... import _globals, db, os, pathlib, psh_lib
 from ... import results as results_
 
 
@@ -17,14 +17,14 @@ def locate(
     if not obj_or_ids:
         return None
 
-    hist = db.get_historian()
-    obj_ids = tuple(map(hist.to_obj_id, obj_or_ids))
+    session = _globals.get_global_session()
+    obj_ids = tuple(map(session.historian.to_obj_id, obj_or_ids))
 
     # Convert to abspaths
     def to_path(fs_path):
         return pathlib.Path(os.withdb.from_fs_path(fs_path))
 
-    paths = tuple(map(to_path, db.fs.get_paths(*obj_ids, historian=hist)))
+    paths = tuple(map(to_path, db.fs.get_paths(*obj_ids, session=session)))
     results = results_.CachingResults(iter(paths), representer=str)
 
     if len(obj_or_ids) == 1 and len(results) == 1:

@@ -131,9 +131,9 @@ class Piper:
 
         # Open up the 0th pipe and set up our input stream
         _read, write = self._get_pipe(0)
-        self._in_steam = open(
+        self._in_steam = open(  # pylint: disable=consider-using-with
             write, "w", encoding=self.encoding
-        )  # pylint: disable=consider-using-with
+        )
 
         # Input/Output redirectors
         self._in_redir = ThreadStreamRedirector(name="stdin", default=self._orig_stdin)
@@ -198,8 +198,8 @@ class Piper:
                     raise RuntimeError(
                         f"Failed to redirect streams for command '{func}' in a timely " "manner"
                     ) from timeout
-                else:
-                    del done_redirecting
+
+                del done_redirecting
 
         except Exception:
             self.shutdown(wait=True)

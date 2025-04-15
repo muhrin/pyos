@@ -1,11 +1,10 @@
 import datetime
 import inspect
-import typing
 from typing import Mapping
 
 
-def pretty_type_string(obj_type: typing.Type) -> str:
-    """Given an type will return a simple type string"""
+def pretty_type_string(obj_type: type) -> str:
+    """Given a type will return a simple type string"""
     type_str = str(obj_type)
     if type_str.startswith("<class "):
         type_str = type_str[8:-2]

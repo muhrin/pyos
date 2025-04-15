@@ -17,7 +17,8 @@ logger = logging.getLogger(__name__)
 @psh_lib.flag(flags.p, help="print the str() value of each object")
 @psh_lib.flag(
     psh_lib.Option(1),
-    help="list one file per line.  This will avoid waiting for all results to be loaded before printing",
+    help="list one file per line.  This will avoid waiting for all results to be loaded before "
+    "printing",
 )
 def ls(options, *args) -> fs.ContainerNode:  # pylint: disable=invalid-name, too-many-branches
     """List the contents of a directory

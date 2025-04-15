@@ -1,11 +1,12 @@
 import mincepy.testing as mince_testing
 import yarl
 
+import pyos
 from pyos import fs, os, psh
 
 
-def ensure_at_path(*objs, path, historian):
-    at_destination = fs.find(path, historian=historian)
+def ensure_at_path(*objs, path, session: pyos.Session):
+    at_destination = fs.find(path, session=session)
     not_found = tuple(obj for obj in objs if obj not in at_destination)
     assert not not_found
 
@@ -21,14 +22,14 @@ def test_rsync_basic(historian, test_utils):
     person = mince_testing.Person("martin", 35, car=car)
     historian.save(car, person)
 
-    with test_utils.temporary_historian("test-rsync") as (uri, remote):
+    with test_utils.temporary_session("test-rsync") as (uri, remote):
         dest_path = "/home"
         dest = get_uri_with_objsys_path(uri, dest_path)
         result = psh.rsync("./", dest)
         assert car.obj_id in result
         assert person.obj_id in result
 
-        ensure_at_path(car.obj_id, person.obj_id, path=dest_path, historian=remote)
+        ensure_at_path(car.obj_id, person.obj_id, path=dest_path, session=remote)
 
         # Make a mutation and see if it is synced
         person.age = 36
@@ -45,12 +46,12 @@ def test_rsync_history(historian, test_utils):
     car.colour = "blue"
     car.save()
 
-    with test_utils.temporary_historian("test-rsync") as (uri, remote):
+    with test_utils.temporary_session("test-rsync") as (uri, remote):
         dest_path = "/home"
         dest = get_uri_with_objsys_path(uri, dest_path)
         result = psh.rsync("./", dest)
         assert car.obj_id in result
-        ensure_at_path(car.obj_id, path=dest_path, historian=remote)
+        ensure_at_path(car.obj_id, path=dest_path, session=remote)
 
         # Check that, by default, history is not transferred
         results = list(remote.snapshots.records.find(obj_id=car_id))
@@ -63,20 +64,20 @@ def test_shell_rsync(historian, test_utils, pyos_shell):
     person = mince_testing.Person("martin", 35, car=car)
     car_id, person_id = historian.save(car, person)
 
-    with test_utils.temporary_historian("test-rsync") as (uri, remote):
+    with test_utils.temporary_session("test-rsync") as (uri, remote):
         dest_path = "/home"
         dest = get_uri_with_objsys_path(uri, dest_path)
         res = pyos_shell.app_cmd(f"rsync ./ {dest}")
         assert not res.stderr
-        assert remote.objects.find(obj_id=[car_id, person_id]).count() == 2
-        ensure_at_path(car_id, person_id, path=dest_path, historian=remote)
+        assert remote.historian.objects.find(obj_id=[car_id, person_id]).count() == 2
+        ensure_at_path(car_id, person_id, path=dest_path, session=remote)
 
         # Make a mutation and see if it is synced
         person.age = 36
         person.save()
         res = pyos_shell.app_cmd(f"rsync ./ {dest}")
         assert not res.stderr
-        assert remote.objects.records.find(obj_id=person_id, version=1).count() == 1
+        assert remote.historian.objects.records.find(obj_id=person_id, version=1).count() == 1
 
 
 def test_rsync_meta(historian, test_utils):
@@ -90,7 +91,7 @@ def test_rsync_meta(historian, test_utils):
     car.update_meta(car_meta)
     person.update_meta(person_meta)
 
-    with test_utils.temporary_historian("test-rsync") as (uri, remote):
+    with test_utils.temporary_session("test-rsync") as (uri, remote):
         dest_path = "/home/"
         dest = get_uri_with_objsys_path(uri, dest_path)
         result = psh.rsync("./", dest, meta="overwrite")
@@ -98,14 +99,14 @@ def test_rsync_meta(historian, test_utils):
         assert person_id in result
 
         # Now, check that the meta has been transferred
-        assert check_meta_contains(car_meta, remote.meta.get(car.obj_id))
-        assert check_meta_contains(person_meta, remote.meta.get(person.obj_id))
+        assert check_meta_contains(car_meta, remote.historian.meta.get(car.obj_id))
+        assert check_meta_contains(person_meta, remote.historian.meta.get(person.obj_id))
 
         # Now, change the metadata and sync again
         car_meta = {"age": 12}
         car.set_meta(car_meta)
         psh.rsync("./", dest, meta="overwrite")
-        assert check_meta_contains(car_meta, remote.meta.get(car.obj_id))
+        assert check_meta_contains(car_meta, remote.historian.meta.get(car.obj_id))
 
         # Now try update
         combined = car_meta.copy()
@@ -113,7 +114,7 @@ def test_rsync_meta(historian, test_utils):
         combined.update(car_meta)
         car.set_meta(car_meta)
         psh.rsync("./", dest, meta="update")
-        assert check_meta_contains(combined, remote.meta.get(car.obj_id))
+        assert check_meta_contains(combined, remote.historian.meta.get(car.obj_id))
 
 
 def check_meta_contains(template: dict, meta: dict):

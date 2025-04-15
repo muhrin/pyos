@@ -22,12 +22,13 @@ indeed any python type that can be stored by PyOS's backend.
 # pylint: disable=wrong-import-position
 # Order is important here, first we list all the 'base' modules, then the rest
 from . import (
+    _globals,
+    _sessions,
     config,
     db,
     exceptions,
     fmt,
     fs,
-    lib,
     os,
     pathlib,
     psh,
@@ -36,15 +37,23 @@ from . import (
     results,
     version,
 )
-from .db import connect
+from ._globals import *
+from ._sessions import *
 from .exceptions import *  # pylint: disable=redefined-builtin
-from .lib import *
 from .pathlib import Path, PurePath, working_path
 from .version import *
 from .version import __version__
 
 _MODULES = "os", "config", "db", "fmt", "fs", "pathlib", "psh_lib", "psh"
 _DEPRECATED = ("working_path",)
-_ADDITIONAL = ("PurePath", "Path", "__version__", "connect" "results", "representers")
+_ADDITIONAL = "PurePath", "Path", "__version__", "connect", "results", "representers"
 
-__all__ = version.__all__ + lib.__all__ + exceptions.__all__ + _MODULES + _DEPRECATED + _ADDITIONAL
+__all__ = (
+    _globals.__all__
+    + version.__all__
+    + exceptions.__all__
+    + _sessions.__all__
+    + _MODULES
+    + _DEPRECATED
+    + _ADDITIONAL
+)

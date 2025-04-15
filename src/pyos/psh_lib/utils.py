@@ -1,10 +1,13 @@
 import copy
 import functools
-from typing import Sequence
+from typing import TYPE_CHECKING, Sequence
 
 import mincepy
 
 from .. import fs, glob, os, pathlib
+
+if TYPE_CHECKING:
+    import pyos
 
 __all__ = ("parse_fs_entry", "gather_obj_ids")
 
@@ -15,22 +18,22 @@ def parse_arg(arg) -> Sequence:
 
 
 @parse_arg.register(fs.ObjectNode)
-def _(arg: fs.ObjectNode):
+def _(arg: "pyos.fs.ObjectNode"):
     return [copy.copy(arg)]
 
 
 @parse_arg.register(fs.DirectoryNode)
-def _(arg: fs.DirectoryNode):
+def _(arg: "pyos.fs.DirectoryNode"):
     return [copy.copy(arg)]
 
 
 @parse_arg.register(fs.ResultsNode)
-def _(arg: fs.ResultsNode):
+def _(arg: "pyos.fs.ResultsNode"):
     return parse_fs_entry(*arg.children)
 
 
 @parse_arg.register(os.PathLike)
-def _(arg: os.PathLike):
+def _(arg: "pyos.os.PathLike"):
     return [arg]
 
 
@@ -47,7 +50,8 @@ def _(arg: str):
 
 
 def parse_fs_entry(*args) -> Sequence:
-    """Parse objects that can be interpreted as filesystem entries.  This can be a path, or a filesystem node."""
+    """Parse objects that can be interpreted as filesystem entries.
+    This can be a path, or a filesystem node."""
     parsed = []
     for arg in args:
         parsed.extend(parse_arg(arg))

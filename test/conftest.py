@@ -22,13 +22,20 @@ def archive_uri():
 
 
 @pytest.fixture(autouse=True)
-def lib(
-    # flake8: noqa: F811
-    historian,
-):  # pylint: disable=unused-argument
-    pyos.init()
-    yield pyos.db.lib
-    pyos.reset()
+def session(historian):  # noqa: F811
+    session = pyos.init(historian)
+    yield session
+    session.close()
+
+
+# @pytest.fixture(autouse=True)
+# def lib(
+#     # flake8: noqa: F811
+#     historian,
+# ):  # pylint: disable=unused-argument
+#     pyos.init()
+#     yield pyos.db.lib
+#     pyos.reset()
 
 
 @pytest.fixture
