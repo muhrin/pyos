@@ -60,8 +60,7 @@ def iglob(pathname, *, root_dir=None, recursive=False, include_hidden=False):
     return itr
 
 
-def _iglob(pathname, root_dir, recursive, dironly, include_hidden=False):
-    # pylint: disable=too-many-branches
+def _iglob(pathname, root_dir, recursive, dironly, include_hidden=False):  # noqa: PLR0912
 
     dirname, basename = os.path.split(pathname)
     if not has_magic(pathname):
@@ -69,10 +68,9 @@ def _iglob(pathname, root_dir, recursive, dironly, include_hidden=False):
         if basename:
             if _lexists(_join(root_dir, pathname)):
                 yield pathname
-        else:
-            # Patterns ending with a slash should match only directories
-            if _isdir(_join(root_dir, dirname)):
-                yield pathname
+        # Patterns ending with a slash should match only directories
+        elif _isdir(_join(root_dir, dirname)):
+            yield pathname
         return
     if not dirname:
         if recursive and _isrecursive(basename):
@@ -113,15 +111,14 @@ def _glob1(dirname, pattern, dironly, include_hidden=False):
     return fnmatch.filter(names, pattern)
 
 
-def _glob0(dirname, basename, dironly, include_hidden=False):  # pylint: disable=unused-argument
+def _glob0(dirname, basename, dironly, include_hidden=False):
     if basename:
         if _lexists(_join(dirname, basename)):
             return [basename]
-    else:
-        # `os.path.split()` returns an empty basename for paths ending with a
-        # directory separator.  'q*x/' should match only directories.
-        if _isdir(dirname):
-            return [basename]
+    # `os.path.split()` returns an empty basename for paths ending with a
+    # directory separator.  'q*x/' should match only directories.
+    elif _isdir(dirname):
+        return [basename]
     return []
 
 
@@ -158,7 +155,7 @@ def _iterdir(dirname, dironly: bool):
             arg = bytes(os.curdir, "ASCII")
         else:
             arg = os.curdir
-        with os.scandir(arg) as it:  # pylint: disable=invalid-name
+        with os.scandir(arg) as it:
             for entry in it:
                 try:
                     if not dironly or entry.is_dir():
@@ -170,7 +167,7 @@ def _iterdir(dirname, dironly: bool):
 
 
 def _listdir(dirname, dironly):
-    with contextlib.closing(_iterdir(dirname, dironly)) as it:  # pylint: disable=invalid-name
+    with contextlib.closing(_iterdir(dirname, dironly)) as it:
         return list(it)
 
 

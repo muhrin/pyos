@@ -31,7 +31,7 @@ Installation
 
 As easy as:
 
-1. Install MongoDB
+1. Install MongoDB (or skip this step and use litemongo_, see below)
 
    Ubuntu:
 
@@ -56,4 +56,12 @@ As easy as:
     In [2]: ls()
 
 
+No MongoDB server?  pyos can also store everything in a local directory using litemongo_:
+
+.. code-block:: shell
+
+    export MINCEPY_ARCHIVE="litemongo:///path/to/my/db#pyos"
+
 From here you can `save()` objects, use familiar linux commands (`ls()`, `mv()`, `find()`, etc) and a whole lot more.  Head over to the documentation_ to find out how.
+
+.. _litemongo: https://github.com/muhrin/litemongo

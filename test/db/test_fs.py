@@ -104,4 +104,4 @@ def test_delete_many_entries():
     for obj_id in fake_objects:
         db.fs.insert_obj(obj_id, ("/", str(obj_id)))
 
-    db.fs._delete_entries(*fake_objects)  # pylint: disable=protected-access
+    db.fs._delete_entries(*fake_objects)

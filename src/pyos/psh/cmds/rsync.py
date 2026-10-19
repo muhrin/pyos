@@ -9,8 +9,8 @@ import mincepy
 import pymongo.errors
 import yarl
 
-from .. import completion
 from ... import _globals, db, fs, os, psh_lib
+from .. import completion
 
 if TYPE_CHECKING:
     import pyos
@@ -20,9 +20,7 @@ META_OVERWRITE = "overwrite"
 
 
 @psh_lib.command(pass_options=True)
-def rsync(
-    options, *args, progress=False, history=False, meta=None
-):  # pylint: disable=invalid-name, unused-argument
+def rsync(options, *args, progress=False, history=False, meta=None):
     """Remote sync.
 
     Synchronise the source and destination.  The src and destination can be
@@ -31,6 +29,10 @@ def rsync(
     remote server path, database name followed by the path e.g.:
 
     mongodb://localhost/my_db/my_folder/my_sub_folder/
+
+    or, for litemongo, after the database name in the fragment e.g.:
+
+    litemongo:///path/to/db_dir#my_db/my_folder/my_sub_folder/
 
     rsync uses similar path syntax to mv, e.g.:
 
@@ -193,11 +195,10 @@ def _get_sources(*src) -> tuple[Optional[str], list[str]]:
         if this_url:
             if url is None:
                 url = this_url
-            else:
-                if url != this_url:
-                    raise ValueError(
-                        f"Cannot have two different remote sources, got {url} and {this_url}"
-                    )
+            elif url != this_url:
+                raise ValueError(
+                    f"Cannot have two different remote sources, got {url} and {this_url}"
+                )
         else:
             paths.append(this_path)
 
@@ -208,6 +209,14 @@ def _parse_location(location: str) -> tuple[Optional[str], str]:
     url = yarl.URL(location)
     if not url.scheme:
         return None, location
+
+    if url.scheme == "litemongo":
+        # litemongo keeps the database name in the fragment, so the path follows it:
+        # litemongo:///path/to/dir#my_db/my_folder.  This is split by hand because yarl would
+        # normalise away the '//' of URIs that have no host (e.g. litemongo://?engine=memory#db)
+        base, _, fragment = location.partition("#")
+        db_name, _, fs_path = fragment.partition("/")
+        return f"{base}#{db_name}", "/" + fs_path
 
     # Skip the first entry as it is empty after splitting, and the second which is the database name
     path_parts = url.path.split("/")
@@ -242,7 +251,7 @@ class Rsync(cmd2.CommandSet):
                             overwrite   - replace any existing metadata with that from SRC
                             """,
     )
-    parser.add_argument("path", nargs="*", type=str, completer_method=completion.path_complete)
+    parser.add_argument("path", nargs="*", type=str, completer=completion.path_complete)
 
     @cmd2.with_argparser(parser)
     def do_rsync(self, args):

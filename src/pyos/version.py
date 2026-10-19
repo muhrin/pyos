@@ -1,4 +1,3 @@
-# pylint: disable=undefined-all-variable
 __all__ = ("__version__",)
 
 author_info = (("Martin Uhrin", "martin.uhrin.10@ucl.ac.uk"),)

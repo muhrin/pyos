@@ -1,31 +1,41 @@
 name: continuous-integration
 
-on: [ push, pull_request ]
+on: [ push, pull_request, workflow_dispatch ]
 
+env:
+  DEFAULT_PYTHON: '3.13'
 
 jobs:
-
   pre-commit:
-
     runs-on: ubuntu-latest
-    timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - name: Set up Python ${{ env.DEFAULT_PYTHON }}
+        uses: actions/setup-python@v7
         with:
-          python-version: 3.12
+          python-version: ${{ env.DEFAULT_PYTHON }}
+      - uses: pre-commit/action@v3.0.1
+
+  ty:
+    name: ty
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python ${{ env.DEFAULT_PYTHON }}
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.DEFAULT_PYTHON }}
 
       - name: Install python dependencies
-        run: |
-          pip install -e .[dev,gui]
-          pip freeze
-      - name: Run pre-commit
-        run:
-          pre-commit run --all-files || ( git status --short ; git diff ; exit 1 )
+        run: pip install -e .[dev,gui]
 
+      - name: Run ty checks
+        # Point ty at the interpreter that has the dependencies installed
+        run: ty check --python "$(which python)"
 
   tests:
     runs-on: ubuntu-latest
@@ -33,24 +43,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ '3.9', '3.10', '3.11', '3.12' ]
+        python-version: [ '3.11', '3.12', '3.13', '3.14' ]
+
+    services:
+      mongodb:
+        image: mongo:latest
+        ports:
+          - 27017:27017
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v7
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Install python dependencies
         run: pip install -e .[dev,gui]
-
-      - name: Create MongoDB Docker container
-        id: build_mongo_docker
-        uses: DigiPie/mongo-action@v1.0.1
-        with:
-          port: 27017
 
       - name: Run pytest
         run: pytest --cov=pyos -sv -p no:nb_regression test
@@ -60,7 +70,35 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: github.repository == 'muhrin/pyos'
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v7.1.1
         with:
-          file: ./coverage.xml
+          files: ./coverage.xml
           name: pyos
+
+  tests-litemongo:
+    # The test suite without a MongoDB server, using litemongo's in-memory and SQLite engines
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [ memory, sqlite ]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python ${{ env.DEFAULT_PYTHON }}
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.DEFAULT_PYTHON }}
+
+      - name: Install python dependencies
+        run: pip install -e .[dev,gui]
+
+      - name: Run pytest
+        env:
+          MINCEPY_TEST_URI: >-
+            ${{ matrix.engine == 'memory'
+            && 'litemongo://?engine=memory#pyos-tests'
+            || format('litemongo://{0}/litemongo-db#pyos-tests', runner.temp) }}
+        run: pytest -sv -p no:nb_regression test

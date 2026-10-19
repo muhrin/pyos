@@ -4,9 +4,9 @@ import argparse
 
 import cmd2
 
-from . import ls
-from .. import completion, flags
 from ... import fs, psh_lib
+from .. import completion, flags
+from . import ls
 
 
 @psh_lib.command(pass_options=True)
@@ -25,7 +25,7 @@ def tree(options, *paths):
 class Tree(cmd2.CommandSet):
     parser = argparse.ArgumentParser()
     parser.add_argument("-L", type=int, help="max display depth of the directory tree")
-    parser.add_argument("path", nargs="*", type=str, completer_method=completion.path_complete)
+    parser.add_argument("path", nargs="*", type=str, completer=completion.path_complete)
 
     @cmd2.with_argparser(parser)
     def do_tree(self, args):

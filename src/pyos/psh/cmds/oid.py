@@ -6,9 +6,9 @@ import sys
 
 import cmd2
 
-from .. import completion
 from ... import db, psh_lib
 from ... import results as results_
+from .. import completion
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ class Oid(cmd2.CommandSet):
         "path",
         nargs="*",
         type=str,
-        completer_method=completion.path_complete,
+        completer=completion.path_complete,
         help="the objects to get ids for",
     )
 

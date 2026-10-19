@@ -2,8 +2,8 @@
 
 import mincepy
 
-from . import cat
 from ... import _globals, psh_lib
+from . import cat
 
 
 @psh_lib.command()

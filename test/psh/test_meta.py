@@ -60,3 +60,7 @@ def test_shell_meta(pyos_shell):
     res = pyos_shell.app_cmd(f"meta {car.obj_id}")
     assert not res.stderr
     assert "reg│456" in res.stdout
+
+    # Updating keeps the existing entries and values are interpreted as Python literals
+    pyos_shell.app_cmd(f"meta -u {car.obj_id} colour=red doors=4")
+    assert car.get_meta() == {"reg": 456, "colour": "red", "doors": 4}

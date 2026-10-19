@@ -1,7 +1,7 @@
 from typing import Any, Iterable, Union
 
-from . import ls
 from ... import _globals, psh_lib
+from . import ls
 
 
 @psh_lib.command()
@@ -19,17 +19,17 @@ def load(*obj_or_ids) -> Union[Iterable[Any], Any]:
         if hist.is_obj_id(entry):
             try:
                 loaded.append(hist.load(entry))
-            except Exception as exc:  # pylint: disable=broad-except
+            except Exception as exc:
                 loaded.append(exc)
         else:
             rest.append(entry)
 
     # The remaining arguments are passed to ls which will try to find the corresponding objects
-    to_load = ls.ls(*rest)  # pylint: disable=no-value-for-parameter
+    to_load = ls.ls(*rest)
     for node in to_load:
         try:
             loaded.append(node.obj)
-        except Exception as exc:  # pylint: disable=broad-except
+        except Exception as exc:
             loaded.append(exc)
 
     if len(to_load) == 1:

@@ -12,4 +12,4 @@ def create_empty_file(filename: os.PathSpec, session: pyos.Session = None):
     db.save_one(file, path=filename)
 
 
-change_cwd = pathlib.working_path  # pylint: disable=invalid-name
+change_cwd = pathlib.working_path

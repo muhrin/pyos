@@ -17,8 +17,8 @@ import mincepy
 import mincepy.mongo.db
 import pymongo.errors
 
-from . import constants
 from .. import _globals, exceptions
+from . import constants
 
 if TYPE_CHECKING:
     import pyos
@@ -42,7 +42,7 @@ class Schema:
     Schema for the edges in the filesystem collection
     """
 
-    ID = "_id"  # pylint: disable=invalid-name
+    ID = "_id"
     NAME = "name"
     PARENT = "parent"
     TYPE = "type"
@@ -89,7 +89,6 @@ class Schema:
 
 
 class Entry:
-
     def __init__(self):
         raise RuntimeError("Cannot instantiate")
 
@@ -106,7 +105,7 @@ class Entry:
         return entry[Schema.NAME]
 
     @staticmethod
-    def id(entry: dict):  # pylint: disable=invalid-name
+    def id(entry: dict):
         return entry[Schema.ID]
 
     @staticmethod
@@ -173,7 +172,6 @@ FIELD_MAP = {
 
 
 class FilesystemBuilder:
-
     def __init__(self, is_root=False):
         self._id = "root" if is_root else bson.ObjectId()
         self._entries = {}
@@ -208,7 +206,7 @@ class FilesystemBuilder:
                 yield Schema.dir_dict(
                     name=name,
                     parent=self._id,
-                    dir_id=value._id,  # pylint: disable=protected-access
+                    dir_id=value._id,
                 )
                 yield from value.yield_edges()
             else:
@@ -216,7 +214,6 @@ class FilesystemBuilder:
 
 
 class EntriesCache:
-
     def __init__(self, session: "pyos.Session"):
         self._session = session if session is not None else _globals.get_global_session()
         self._entry_ids = {}
@@ -302,7 +299,7 @@ def path_part_lookup(name: str) -> dict:
     }
 
 
-def _path_lookup(path: Path, start_id=Entry.id(ROOT)) -> list[dict]:
+def _path_lookup(path: Path, start_id=ROOT_ID) -> list[dict]:
     """
     Returns a list of MongoDB aggregate stage operations that will match a filesystem path based
     on the passed parts
@@ -419,7 +416,6 @@ def find_entry(path: Path, *, session: Optional["pyos.Session"] = None) -> Optio
 
     if Entry.is_obj(entry):
         try:
-            # pylint: disable=protected-access
             data_entry = tuple(
                 session.historian.records.find(obj_id=Entry.id(entry))._project(*FIELD_MAP.keys())
             )[0]
@@ -455,7 +451,6 @@ def get_entry(
 
     if Entry.is_obj(entry):
         try:
-            # pylint: disable=protected-access
             data_entry = tuple(
                 session.historian.records.find(obj_id=Entry.id(entry))._project(*FIELD_MAP.keys())
             )[0]
@@ -531,7 +526,6 @@ def set_obj_path(
 
 
 class Instruction(metaclass=abc.ABCMeta):
-
     @abc.abstractmethod
     def get_ops(self, cache: EntriesCache):
         """Get the bulk operations needed to carry out this instruction"""
@@ -601,7 +595,6 @@ class SetObjPath(Instruction):
 
 
 class Rename(Instruction):
-
     def __init__(self, src_id, dest_path):
         self.src_id = src_id
         self.dest_path = dest_path
@@ -822,7 +815,7 @@ def validate_path(path: Path, absolute=True):
 def iter_children(
     entry_id,
     *,
-    type: str = None,  # pylint: disable=redefined-builtin
+    type: str = None,
     obj_filter: mincepy.Expr = None,
     obj_type=None,
     meta_filter=None,
@@ -830,7 +823,6 @@ def iter_children(
     batch_size=1024,
 ) -> Iterator[dict]:
     """Given a filesystem directory id iterate over all of its children"""
-    # pylint: disable=too-many-branches
     if type is not None and type not in (Schema.TYPE_DIR, Schema.TYPE_OBJ):
         raise ValueError(f"Invalid type filter: {type}")
 
@@ -861,7 +853,6 @@ def iter_children(
 
         if objects:
             # Now check that the objects still exist and extract some additional info
-            # pylint: disable=protected-access
 
             # Create the filter to be used for finding records
             data_filter = mincepy.DataRecord.obj_id.in_(*objects.keys())
@@ -893,7 +884,7 @@ def iter_children(
 def iter_descendents(
     entry_id,
     *,
-    type: str = None,  # pylint: disable=redefined-builtin
+    type: str = None,
     obj_filter: mincepy.Expr = None,
     obj_type=None,
     meta_filter=None,
@@ -943,7 +934,7 @@ def _copy_fields(fs_entry: dict, mincepy_entry: dict):
 
 
 def _consume_batch(cursor, batch_size: int) -> list:
-    return [entry for entry, _ in zip(cursor, range(batch_size))]
+    return [entry for entry, _ in zip(cursor, range(batch_size), strict=False)]
 
 
 def _get_path_from_entries(path_entries: list[dict]) -> Path:

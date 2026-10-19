@@ -202,9 +202,7 @@ class ContainerNode(BaseNode):
     _view_mode = TABLE_VIEW
     _show = {"name"}
 
-    def __contains__(self, item):
-        # pylint: disable=too-many-nested-blocks, too-many-branches, too-many-return-statements
-        # flake8: noqa: C901
+    def __contains__(self, item):  # noqa: C901, PLR0911, PLR0912
         if isinstance(item, pathlib.PurePath):
             path = pathlib.Path(item)
             if path.is_absolute():
@@ -233,17 +231,16 @@ class ContainerNode(BaseNode):
                     for node in self.directories:
                         if node.abspath.name == parts[0] and subpath in node:
                             return True
+                elif path.is_dir():
+                    # It's a directory
+                    for node in self.directories:
+                        if node.abspath.name == parts[0]:
+                            return True
                 else:
-                    if path.is_dir():
-                        # It's a directory
-                        for node in self.directories:
-                            if node.abspath.name == parts[0]:
-                                return True
-                    else:
-                        # It's a filename
-                        for obj in self.objects:
-                            if obj.abspath.name == parts[0]:
-                                return True
+                    # It's a filename
+                    for obj in self.objects:
+                        if obj.abspath.name == parts[0]:
+                            return True
 
             return False
 
@@ -315,8 +312,7 @@ class ContainerNode(BaseNode):
         if properties:
             self._show = set(properties)
 
-    def _get_row(self, child) -> Sequence[str]:
-        # pylint: disable=too-many-branches # flake8: noqa: C901
+    def _get_row(self, child) -> Sequence[str]:  # noqa: PLR0912
         empty = ""
         row = []
 
@@ -467,7 +463,7 @@ class DirectoryNode(ContainerNode, FilesystemNode):
             self.expand()
         return super().__contains__(item)
 
-    def expand(self, depth=1, populate_objects=False):  # pylint: disable=unused-argument
+    def expand(self, depth=1, populate_objects=False):
         """Populate the children with what is currently in the database
 
         :param depth: expand to the given depth, 0 means no expansion, 1 means my child nodes, etc
@@ -524,7 +520,6 @@ class DirectoryNode(ContainerNode, FilesystemNode):
                 self._session.historian.delete(*obj_ids)
 
         # 3. Delete the filesystem entries
-        # pylint: disable=protected-access
         db.fs._delete_entries(
             *map(db.fs.Entry.id, descendents + (self._entry,)), session=self._session
         )
@@ -672,7 +667,6 @@ class ObjectNode(FilesystemNode):
 
 
 class ResultsNode(ContainerNode):
-
     def __init__(self, name="results", parent=None, session: Optional["pyos.Session"] = None):
         super().__init__(name, parent, session=session)
         assert parent is None
@@ -680,7 +674,7 @@ class ResultsNode(ContainerNode):
 
     def append(self, node: FilesystemNode, display_name: str = None):
         """Append a node to the results"""
-        node._parent = self  # pylint: disable=protected-access
+        node._parent = self
         display_name = display_name or node.name
         node.display_name = display_name
         self._children.append(node)
@@ -692,7 +686,6 @@ class ResultsNode(ContainerNode):
 
 
 class FrozenResultsNode(ContainerNode):
-
     def __init__(
         self,
         children: Iterable[FilesystemNode],

@@ -5,10 +5,10 @@ import sys
 
 import cmd2
 
-from . import ls
-from .. import completion, flags
 from ... import _globals, fs, pathlib, psh_lib, representers
 from ... import results as results_
+from .. import completion, flags
+from . import ls
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ def cat(*obj_or_ids, representer=None):
                     yield representer(hist.load(entry))
                 else:
                     yield representer(entry)
-            except Exception as exc:  # pylint: disable=broad-except
+            except Exception as exc:
                 yield representer(exc)
 
     results = results_.CachingResults(iterator(), representer=str)
@@ -75,7 +75,7 @@ class Cat(cmd2.CommandSet):
         help="optional f-string for printing attributes e.g. -f {colour} prints "
         "obj.colour for each object",
     )
-    ls_parser.add_argument("path", nargs="*", type=str, completer_method=completion.file_completer)
+    ls_parser.add_argument("path", nargs="*", type=str, completer=completion.file_completer)
 
     @cmd2.with_argparser(ls_parser)
     def do_cat(self, args):

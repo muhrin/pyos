@@ -4,8 +4,8 @@ import argparse
 
 import cmd2
 
-from .. import completion, flags
 from ... import os, psh_lib
+from .. import completion, flags
 
 
 @psh_lib.command(pass_options=True)
@@ -22,7 +22,7 @@ class Mkdir(cmd2.CommandSet):
     __doc__ = mkdir.__doc__
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("path", nargs=1, type=str, completer_method=completion.dir_completer)
+    parser.add_argument("path", nargs=1, type=str, completer=completion.dir_completer)
     parser.add_argument(
         "-p",
         action="store_true",

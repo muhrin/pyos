@@ -1,6 +1,4 @@
-# pylint: disable=anomalous-backslash-in-string, pointless-statement
-# flake8: noqa: W605
-"""
+r"""
 
                   ____  ____
                  / __ \/ __ /
@@ -19,7 +17,7 @@ except they take on a new, more powerful form because you're in a fully fledged 
 and not restricted to just two types (file and directories) like on a traditional filesystem but
 indeed any python type that can be stored by PyOS's backend.
 """
-# pylint: disable=wrong-import-position
+
 # Order is important here, first we list all the 'base' modules, then the rest
 from . import (
     _globals,
@@ -39,7 +37,7 @@ from . import (
 )
 from ._globals import *
 from ._sessions import *
-from .exceptions import *  # pylint: disable=redefined-builtin
+from .exceptions import *
 from .pathlib import Path, PurePath, working_path
 from .version import *
 from .version import __version__
@@ -48,7 +46,7 @@ _MODULES = "os", "config", "db", "fmt", "fs", "pathlib", "psh_lib", "psh"
 _DEPRECATED = ("working_path",)
 _ADDITIONAL = "PurePath", "Path", "__version__", "connect", "results", "representers"
 
-__all__ = (
+__all__ = (  # noqa: PLE0605
     _globals.__all__
     + version.__all__
     + exceptions.__all__

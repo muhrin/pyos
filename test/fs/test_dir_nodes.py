@@ -7,8 +7,6 @@ import pytest
 import pyos
 from pyos import psh
 
-# pylint: disable=unused-argument
-
 
 def test_dir_in_directory():
     home = psh.pwd()

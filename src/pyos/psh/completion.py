@@ -61,6 +61,12 @@ class PathCompletion(os.PathLike):
         raise FileNotFoundError(f"Path does not exist: '{item}'")
 
 
+def _get_app(owner) -> "pyos.psh.PyosShell":
+    """cmd2 passes the object that owns the command to completers, which may be a CommandSet
+    rather than the shell itself"""
+    return getattr(owner, "_cmd", owner)
+
+
 def path_complete(
     app: "pyos.psh.PyosShell",
     text: str,
@@ -82,6 +88,8 @@ def path_complete(
         be kept in the results
     :return: a list of possible tab completions
     """
+    app = _get_app(app)
+
     # If the search text is blank, then search in the CWD for *
     if not text:
         search_str = "*"

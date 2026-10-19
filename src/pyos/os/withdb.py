@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING, Iterator
 
 import mincepy
 
-from . import nodb, types
 from .. import _globals, db, exceptions
+from . import nodb, types
 from .nodb import curdir, pardir, sep
 
 if TYPE_CHECKING:
@@ -141,7 +141,6 @@ def listdir(lsdir: types.PathSpec = ".") -> list[str]:
 
 
 def open(
-    # pylint: disable=redefined-builtin
     file: types.PathSpec,
     mode="r",
     encoding: str = None,
@@ -216,7 +215,6 @@ def remove(file_path: types.PathSpec):
 
 
 class _ScandirIter:
-
     def __init__(self, iterator: Iterator):
         self._iterator = iterator
 

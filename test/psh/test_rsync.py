@@ -14,6 +14,9 @@ def ensure_at_path(*objs, path, session: pyos.Session):
 def get_uri_with_objsys_path(archive_uri: str, path: str):
     if path.startswith(os.sep):
         path = path[1:]
+    if archive_uri.startswith("litemongo:"):
+        # The database name is in the fragment, so the path goes after it
+        return f"{archive_uri}/{path}"
     return str(yarl.URL(archive_uri) / path)
 
 

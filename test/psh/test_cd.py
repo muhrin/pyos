@@ -4,8 +4,6 @@ import pyos
 from pyos import psh
 import pyos.os
 
-# pylint: disable=invalid-name
-
 
 def test_cd_simple():
     pyos.os.makedirs("a/b/")

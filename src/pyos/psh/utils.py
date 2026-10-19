@@ -1,12 +1,7 @@
 import collections
 import concurrent.futures
 import contextlib
-
-try:
-    from contextlib import nullcontext
-except ImportError:
-    from contextlib2 import nullcontext
-
+from contextlib import nullcontext
 import io
 import logging
 import os
@@ -131,9 +126,7 @@ class Piper:
 
         # Open up the 0th pipe and set up our input stream
         _read, write = self._get_pipe(0)
-        self._in_steam = open(  # pylint: disable=consider-using-with
-            write, "w", encoding=self.encoding
-        )
+        self._in_steam = open(write, "w", encoding=self.encoding)
 
         # Input/Output redirectors
         self._in_redir = ThreadStreamRedirector(name="stdin", default=self._orig_stdin)
@@ -169,7 +162,6 @@ class Piper:
                 read, _write = self._get_pipe(idx)
 
                 # OUTPUT: Determine what the output stream for this part should be
-                # pylint: disable=consider-using-with
                 if idx == len(self._funcs) - 1:
                     # At the end, so just go to standard out
                     open_out_stream = nullcontext(self._out_stream)
@@ -186,7 +178,7 @@ class Piper:
                     open(read, "r", encoding=self.encoding),
                     open_out_stream,
                     done_redirecting,
-                )  # pylint: disable=consider-using-with
+                )
 
                 try:
                     done_redirecting.wait(timeout=0.1)
@@ -196,7 +188,7 @@ class Piper:
 
                     # Didn't raise, so we need to raise ourselves
                     raise RuntimeError(
-                        f"Failed to redirect streams for command '{func}' in a timely " "manner"
+                        f"Failed to redirect streams for command '{func}' in a timely manner"
                     ) from timeout
 
                 del done_redirecting
@@ -289,9 +281,6 @@ PipeInfo = collections.namedtuple("PipeInfo", "pipe_in pipe_out")
 class RedirectionSavedState(cmd2.utils.RedirectionSavedState):
     """Extension of cmd2's standard redirection saved state to support additional properties"""
 
-    # pylint: disable=too-few-public-methods
-
-    # pylint: disable=too-many-arguments
     def __init__(
         self,
         self_stdout: Union[cmd2.utils.StdSim, TextIO],
@@ -301,7 +290,10 @@ class RedirectionSavedState(cmd2.utils.RedirectionSavedState):
         pipe_proc_reader: Optional[cmd2.utils.ProcReader],
         saved_redirecting: bool,
     ):
-        super().__init__(self_stdout, sys_stdout, pipe_proc_reader, saved_redirecting)
+        super().__init__(
+            self_stdout, self_stdout == sys_stdout, pipe_proc_reader, saved_redirecting
+        )
+        self.saved_sys_stdout = sys_stdout
         self.saved_self_stdin = self_stdin
         self.saved_sys_stdin = sys_stdin
 
@@ -321,7 +313,7 @@ def plugins_get_commands() -> List:
     def get_command(extension: stevedore.extension.Extension):
         try:
             commands.extend(extension.plugin())
-        except Exception:  # pylint: disable=broad-except
+        except Exception:
             _LOGGER.exception("Failed to get command plugin from %s", extension.name)
 
     try:

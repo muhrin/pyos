@@ -8,9 +8,7 @@ from typing import Union
 
 from . import types
 
-# pylint: disable=invalid-name
-
-sep = "/"  # The path separator pylint: disable=invalid-name
+sep = "/"  # The path separator
 curdir = "."  # Used to refer to the current directory
 pardir = ".."  # Used to refer to the parent directory
 
@@ -38,7 +36,6 @@ def check_arg_types(funcname, *args):
 
 
 class DirEntry:
-
     def __init__(self, obj_name: str, obj_path: str, is_file: bool):
         self._name = obj_name
         self._path = obj_path
@@ -71,7 +68,7 @@ def fspath(file_path: types.PathSpec) -> Union[str, bytes]:
     # Work from the object's type to match method resolution of other magic methods.
     path_type = type(file_path)
     try:
-        path_repr = path_type.__fspath__(file_path)  # pylint: disable=unnecessary-dunder-call
+        path_repr = path_type.__fspath__(file_path)
     except AttributeError:
         if hasattr(path_type, "__fspath__"):
             raise

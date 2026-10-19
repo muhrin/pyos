@@ -3,8 +3,6 @@ import pytest
 from pyos import psh
 import pyos.os
 
-# pylint: disable=no-value-for-parameter
-
 
 def test_mkdir_basic():
     """Delete by the various identifier"""

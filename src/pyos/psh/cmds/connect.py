@@ -14,7 +14,6 @@ if TYPE_CHECKING:
 
 
 class Connnection(cmd2.CommandSet):
-
     connect_parser = argparse.ArgumentParser()
     connect_parser.add_argument("uri", type=str, help="the URI of the archive to connect to")
     _session: Optional["pyos.Session"] = None

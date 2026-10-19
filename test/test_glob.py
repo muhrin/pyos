@@ -7,8 +7,6 @@ from pyos import glob, os, psh
 
 from . import support
 
-# pylint: disable=invalid-name, redefined-outer-name
-
 
 def norm(tempdir, *parts) -> str:
     return os.path.normpath(os.path.join(tempdir, *parts))
@@ -43,7 +41,7 @@ def test_dir():
     mktemp(tempdir, "a", "bcd", "efg", "ha")
 
     yield tempdir
-    psh.rm - psh.r(tempdir)  # pylint: disable=expression-not-assigned
+    psh.rm - psh.r(tempdir)
 
 
 def check_glob(tempdir, *parts, **kwargs):
@@ -122,9 +120,9 @@ def test_glob_directory_with_trailing_slash(test_dir):
 
     # Patterns ending with a slash shouldn't match non-dirs
     res = glob.glob(do_norm("Z*Z") + os.sep)
-    assert res == []  # pylint: disable=use-implicit-booleaness-not-comparison
+    assert res == []
     res = glob.glob(do_norm("ZZZ") + os.sep)
-    assert res == []  # pylint: disable=use-implicit-booleaness-not-comparison
+    assert res == []
     # When there is a wildcard pattern which ends with os.sep, glob()
     # doesn't blow up.
     res = glob.glob(do_norm("aa*") + os.sep)

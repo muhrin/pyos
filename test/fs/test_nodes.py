@@ -83,7 +83,7 @@ def test_container_show():
     person = Person(name, 34)
     pyos.db.save_one(person, person.name)
 
-    res: pyos.fs.ContainerNode = pyos.psh.ls()  # pylint: disable=no-value-for-parameter
+    res: pyos.fs.ContainerNode = pyos.psh.ls()
 
     # Check the various properties that can be shown
     res.show("loaded")

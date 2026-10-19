@@ -21,12 +21,10 @@ _DEFAULT_REPRESENTER = None
 
 
 def get_default():
-    # flake8: noqa: F824
-    global _DEFAULT_REPRESENTER  # pylint: disable=global-statement, global-variable-not-assigned
     if _DEFAULT_REPRESENTER is None:
         try:
             # We try importing here just in case the user has since installed pyprnt
-            import pyprnt as _  # pylint: disable=import-outside-toplevel
+            import pyprnt as _
 
             del _
             return prnt
@@ -37,7 +35,7 @@ def get_default():
 
 
 def set_default(representer):
-    global _DEFAULT_REPRESENTER  # pylint: disable=global-statement
+    global _DEFAULT_REPRESENTER  # noqa: PLW0603
     _DEFAULT_REPRESENTER = representer
 
 
@@ -47,7 +45,7 @@ def dict_representer(obj):
             return obj.read_text()
 
         return pprint.pformat(fmt.obj_dict(obj))
-    except Exception as exc:  # pylint: disable=broad-except
+    except Exception as exc:
         return str(exc)
 
 
@@ -78,7 +76,7 @@ def to_simple_repr(obj):
     if isinstance(obj, mincepy.File):
         return obj.read_text()
 
-    if isinstance(obj, Sequence):  # pylint: disable=isinstance-second-argument-not-valid-type
+    if isinstance(obj, Sequence):
         return obj
 
     if isinstance(obj, Exception):

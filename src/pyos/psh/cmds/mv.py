@@ -5,14 +5,14 @@ import argparse
 import click
 import cmd2
 
-from . import ls
-from .. import completion, flags
 from ... import pathlib, psh_lib
+from .. import completion, flags
+from . import ls
 
 
 @psh_lib.command(pass_options=True)
 @psh_lib.flag(flags.f, help="force - do not prompt before overwriting")
-def mv(options, *args):  # pylint: disable=invalid-name
+def mv(options, *args):
     """Take one or more files or directories with the final parameter being interpreted as
      destination
 
@@ -57,7 +57,7 @@ def mv(options, *args):  # pylint: disable=invalid-name
 class Mv(cmd2.CommandSet):
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", action="store_true", help="force - do not prompt before overwriting")
-    parser.add_argument("path", nargs="*", type=str, completer_method=completion.path_complete)
+    parser.add_argument("path", nargs="*", type=str, completer=completion.path_complete)
 
     @cmd2.with_argparser(parser)
     def do_mv(self, args):

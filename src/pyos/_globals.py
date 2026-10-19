@@ -1,8 +1,7 @@
-from typing import Optional
+from typing import TYPE_CHECKING, Final, Optional
 from urllib import parse
 
 import mincepy
-from typing_extensions import TYPE_CHECKING, Final
 
 from . import _sessions
 
@@ -30,7 +29,7 @@ def init(historian: mincepy.Historian = None, use_globally=True) -> "pyos.Sessio
     """Initialise a Historian such that it is ready to be used with pyOS"""
     from . import db
 
-    global _GLOBAL_SESSION  # pylint: disable=global-statement
+    global _GLOBAL_SESSION  # noqa: PLW0603
     historian = historian or mincepy.get_historian()
 
     db.schema.ensure_up_to_date(historian)
@@ -46,8 +45,6 @@ def init(historian: mincepy.Historian = None, use_globally=True) -> "pyos.Sessio
 
 def get_historian() -> mincepy.Historian:
     """Get the active historian in pyos"""
-    # flake8: noqa: F824
-    global _GLOBAL_SESSION  # pylint: disable=global-statement, global-variable-not-assigned
     if _GLOBAL_SESSION is None:
         raise RuntimeError(
             "A global pyOS session has not been initialised.  Call connect() or init() first."
@@ -57,14 +54,11 @@ def get_historian() -> mincepy.Historian:
 
 
 def get_global_session() -> "pyos.Session":
-    # flake8: noqa: F824
-    global _GLOBAL_SESSION  # pylint: disable=global-variable-not-assigned
     return _GLOBAL_SESSION
 
 
 def reset_global_session():
-    # flake8: noqa: F824
-    global _GLOBAL_SESSION  # pylint: disable=global-statement, global-variable-not-assigned
+    global _GLOBAL_SESSION  # noqa: PLW0603
     if _GLOBAL_SESSION is not None:
         _GLOBAL_SESSION.close()
         _GLOBAL_SESSION = None

@@ -19,9 +19,9 @@ class Option:
             args = params[0]
             kwargs = params[1]
 
-            params = list(str(arg) for arg in args)
-            params.extend(tuple(f"{key}={value}" for key, value in kwargs.items()))
-            parts.extend(("(", ",".join(params), ")"))
+            call_args = [str(arg) for arg in args]
+            call_args.extend(f"{key}={value}" for key, value in kwargs.items())
+            parts.extend(("(", ",".join(call_args), ")"))
 
         return "".join(parts)
 
@@ -58,8 +58,7 @@ OptionLike = Union[Option, int]
 
 
 class OptionSpec:
-
-    def __init__(self, opt: Option, is_flag=True, help=""):  # pylint: disable=redefined-builtin
+    def __init__(self, opt: Option, is_flag=True, help=""):
         self.option = opt
         self.is_flag = is_flag
         self.help = help
@@ -100,7 +99,7 @@ class Options:
         return self._opts.pop(name, default[0] if default else None)
 
     def update(self, other):
-        for name, opt in other._opts.items():  # pylint: disable=protected-access
+        for name, opt in other._opts.items():
             if name not in self._opts:
                 self._opts[name] = opt
             else:
@@ -179,7 +178,7 @@ class Command(CommandLike):
         self.accepts[spec.option.name] = spec
         self._create_docstring()
 
-    def __call__(self, *args, **kwargs):  # pylint: disable=method-hidden
+    def __call__(self, *args, **kwargs):
         """Execute this command directly"""
         if self.pass_options:
             options, rest = separate_opts(*args)
@@ -199,7 +198,7 @@ class Command(CommandLike):
             for name, spec in sorted(self.accepts.items(), key=lambda pair: str(pair[0])):
                 doc.append(f"\t-{name}\t{spec.help}")
 
-        self.__call__.__func__.__doc__ = "\n".join(doc)  # pylint: disable=no-member
+        self.__call__.__func__.__doc__ = "\n".join(doc)
 
 
 class CommandBuilder(CommandLike):
@@ -232,9 +231,9 @@ class CommandBuilder(CommandLike):
                 self.options.add(other.name, True)
                 if params_stack:
                     # Assume the parameters are for the command, but make sure only one
-                    assert (
-                        len(params_stack) == 1
-                    ), f"Flag '{other.name}' does not take any parameters"
+                    assert len(params_stack) == 1, (
+                        f"Flag '{other.name}' does not take any parameters"
+                    )
             else:
                 option_params = params_stack.pop(0)  # tuple of (args, kwargs)
                 assert not option_params[1], "Can't supply kwargs to an option"
@@ -260,7 +259,7 @@ class CommandBuilder(CommandLike):
 # endregion
 
 
-def option(opt: Option, help=""):  # pylint: disable=redefined-builtin
+def option(opt: Option, help=""):
     """Decorator for defining an option taken by a command function"""
     spec = OptionSpec(opt, is_flag=False, help=help)
 
@@ -276,7 +275,7 @@ def option(opt: Option, help=""):  # pylint: disable=redefined-builtin
     return attach
 
 
-def flag(opt: OptionLike, help=""):  # pylint: disable=redefined-builtin
+def flag(opt: OptionLike, help=""):
     """Decorator for defining an option taken by a command function"""
     opt = _make_option(opt)
 

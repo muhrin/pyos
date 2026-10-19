@@ -3,9 +3,9 @@ from typing import TYPE_CHECKING, Optional
 import mincepy
 import mincepy.frontend
 
-from . import nodes
 from .. import _globals, db, os
 from .. import results as results_
+from . import nodes
 
 if TYPE_CHECKING:
     import pyos
@@ -13,7 +13,6 @@ if TYPE_CHECKING:
 __all__ = ("find",)
 
 
-# pylint: disable=redefined-builtin
 def find(
     *starting_point,
     meta: Optional[dict] = None,
@@ -60,8 +59,9 @@ def find(
                 session=session,
             ):
                 descendent_path = db.fs.Entry.path(matching)
-                path = os.withdb.from_fs_path(descendent_path)
-                yield nodes.ObjectNode(db.fs.Entry.id(matching), path)
+                yield nodes.ObjectNode(
+                    db.fs.Entry.id(matching), os.withdb.from_fs_path(descendent_path)
+                )
 
     results = nodes.FrozenResultsNode(results_.CachingResults(yield_results()))
     results.show("relpath", mode=nodes.SINGLE_COLUMN_VIEW)

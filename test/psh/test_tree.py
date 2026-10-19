@@ -3,8 +3,6 @@ from mincepy.testing import Car
 from pyos import psh
 import pyos.os
 
-# pylint: disable=no-value-for-parameter
-
 
 def test_tree_basic():
     Car().save()

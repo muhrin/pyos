@@ -13,7 +13,6 @@ __all__ = ("Session",)
 
 
 class Session(mincepy.archives.ArchiveListener):
-
     def __init__(self, historian: mincepy.Historian, cwd: "pyos.os.PathSpec" = None):
         """Start a new session"""
         self._historian = historian

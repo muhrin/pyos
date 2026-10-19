@@ -1,7 +1,7 @@
 """The save command"""
 
-from .. import flags
 from ... import db, pathlib, psh_lib
+from .. import flags
 
 
 @psh_lib.command(pass_options=True)

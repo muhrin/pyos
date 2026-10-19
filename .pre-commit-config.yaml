@@ -1,60 +1,51 @@
+ci:
+  skip: [ ty ]
+
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
+      - id: check-added-large-files
+        args: [ '--maxkb=5000' ]
       - id: end-of-file-fixer
-      - id: fix-encoding-pragma
-        args: [ --remove ]
+      - id: check-case-conflict
+      - id: detect-private-key
       - id: mixed-line-ending
       - id: trailing-whitespace
 
-  - repo: https://github.com/ikamensh/flynt/
-    rev: '1.0.1'
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.1
     hooks:
-      - id: flynt
-
-  - repo: https://github.com/psf/black
-    rev: 25.1.0
-    hooks:
-      - id: black
-        exclude: (.*)/migrations
-
-  - repo: https://github.com/pycqa/flake8
-    rev: 7.2.0
-    hooks:
-      - id: flake8
-
-  - repo: https://github.com/pycqa/isort
-    rev: '6.0.1'
-    hooks:
-      - id: isort
+      - id: ruff-check
+        args: [ --fix ]
+      - id: ruff-format
 
   - repo: https://github.com/PyCQA/bandit
-    rev: 1.8.3
+    rev: 1.9.4
     hooks:
       - id: bandit
         args: [ "-c", "pyproject.toml" ]
+        # Needed to read pyproject.toml when the hook's Python is older than 3.11
         additional_dependencies: [ '.[toml]' ]
 
-  - repo: https://github.com/PyCQA/pylint
-    # Configuration help can be found here:
-    # https://pylint.pycqa.org/en/latest/user_guide/installation/pre-commit-integration.html
-    rev: v3.3.6
+  - repo: local
     hooks:
-      - id: pylint
-        alias: pylint-with-spelling
-        stages: [ manual ]
+      # Type checking.  This needs the project's dependencies to resolve imports, so it uses the
+      # active environment (pip install -e .[dev]) and is only run on demand:
+      #   pre-commit run --hook-stage manual ty --all-files
+      - id: ty
+        name: ty
+        entry: ty check
         language: system
-        types: [ python ]
+        stages: [ manual ]
+        types_or: [ python, pyi ]
+        pass_filenames: false
         require_serial: true
-        exclude:
-          (?x)^(
-          docs/.*|
-          test/.*
-          )$
 
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.6.0
+    rev: v4.19.2
     hooks:
       - id: commitizen
         stages: [ commit-msg ]

@@ -1,15 +1,16 @@
 """The meta command"""
 
 import argparse
+import ast
 import logging
 import sys
 
 import cmd2
 
-from . import ls
-from .. import completion, flags
 from ... import _globals, db, fs, psh_lib
 from ... import results as results_
+from .. import completion, flags
+from . import ls
 
 logger = logging.getLogger(__name__)
 
@@ -17,9 +18,8 @@ logger = logging.getLogger(__name__)
 @psh_lib.command(pass_options=True)
 @psh_lib.flag(flags.s, "Set the metadata")
 @psh_lib.flag(flags.u, "Update the metadata")
-def meta(options, *obj_or_ids, **updates):  # pylint: disable=too-many-return-statements
+def meta(options, *obj_or_ids, **updates):
     """Get, set or update the metadata on one or more objects"""
-    # pylint: disable=too-many-branches
     if not obj_or_ids:
         return None
 
@@ -62,13 +62,22 @@ def meta(options, *obj_or_ids, **updates):  # pylint: disable=too-many-return-st
     return None
 
 
+def _parse_value(value: str):
+    """Interpret a value given on the command line as a Python literal (e.g. 123 or [1, 2]) if
+    possible, otherwise keep it as a string"""
+    try:
+        return ast.literal_eval(value)
+    except (ValueError, SyntaxError):
+        return value
+
+
 class Meta(cmd2.CommandSet):
     parser = argparse.ArgumentParser()
 
     set_update = parser.add_mutually_exclusive_group()
     set_update.add_argument("-s", action="store_true", help="set the metadata")
     set_update.add_argument("-u", action="store_true", help="update the metadata")
-    parser.add_argument("path", nargs="*", type=str, completer_method=completion.path_complete)
+    parser.add_argument("path", nargs="*", type=str, completer=completion.path_complete)
 
     @cmd2.with_argparser(parser)
     def do_meta(self, args):
@@ -86,7 +95,19 @@ class Meta(cmd2.CommandSet):
                 logger.exception("Exception trying to readlines")
                 raise
 
+        updates = {}
+        if args.s or args.u:
+            # When setting or updating, 'key=value' arguments are the new metadata
+            paths = []
+            for entry in args.path:
+                key, sep, value = entry.partition("=")
+                if sep and key:
+                    updates[key] = _parse_value(value)
+                else:
+                    paths.append(entry)
+            args.path = paths
+
         logger.debug("Writing to %s", sys.stdout)
-        result = command(*args.path)
+        result = command(*args.path, **updates)
         rep = repr(result)
         print(rep, file=sys.stdout)

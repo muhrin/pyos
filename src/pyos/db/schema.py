@@ -33,7 +33,7 @@ def ensure_up_to_date(historian: mincepy.Historian):
     """Ensure that the database schema is up-to-date, performing migrations to bring it up to
     date if it is not."""
     archive: mincepy.mongo.MongoArchive = historian.archive
-    db = archive.database  # pylint: disable=invalid-name
+    db = archive.database
     db_version = get_db_version(db)
 
     if db_version < get_source_version():

@@ -1,6 +1,6 @@
 from . import psh, version
-from .pathlib import Path, PurePath  # pylint: disable=unused-import
-from .psh import *  # pylint: disable=unused-wildcard-import, wildcard-import
+from .pathlib import Path, PurePath
+from .psh import *
 
 __all__ = psh.__all__ + ("PurePath", "Path")
 

@@ -7,4 +7,4 @@ from .utils import *
 
 ADDITIONAL = "queries", "fs", "schema"
 
-__all__ = lib.__all__ + utils.__all__ + ADDITIONAL  # pylint: disable=undefined-variable
+__all__ = lib.__all__ + utils.__all__ + ADDITIONAL  # noqa: PLE0605

@@ -1,25 +1,23 @@
 __all__ = "PyOSError", "IsADirectoryError", "NotADirectoryError", "FileNotFoundError"
 
-# pylint: disable=redefined-builtin
-
 
 class PyOSError(Exception):
     """Raised when there is a PyOS exception"""
 
 
-class IsADirectoryError(PyOSError):  # pylint: disable=redefined-builtin
+class IsADirectoryError(PyOSError):  # noqa: A001
     """Raise when a file is expected but a directory was passed"""
 
 
-class NotADirectoryError(PyOSError):  # pylint: disable=redefined-builtin
+class NotADirectoryError(PyOSError):  # noqa: A001
     """Raise when a directory is expected but a file was passed"""
 
 
-class FileNotFoundError(PyOSError):  # pylint: disable=redefined-builtin
+class FileNotFoundError(PyOSError):  # noqa: A001
     """A file was not found"""
 
 
-class FileExistsError(PyOSError):  # pylint: disable=redefined-builtin
+class FileExistsError(PyOSError):  # noqa: A001
     """Raised when trying to create a file or directory which already exists"""
 
     def __init__(self, *args, existing_entry_id=None, path=None):

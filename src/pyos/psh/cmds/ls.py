@@ -5,8 +5,8 @@ import logging
 
 import cmd2
 
-from .. import completion, flags
 from ... import fs, pathlib, psh_lib
+from .. import completion, flags
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
     help="list one file per line.  This will avoid waiting for all results to be loaded before "
     "printing",
 )
-def ls(options, *args) -> fs.ContainerNode:  # pylint: disable=invalid-name, too-many-branches
+def ls(options, *args) -> fs.ContainerNode:
     """List the contents of a directory
 
     :type: restrict listing to a particular type
@@ -78,7 +78,7 @@ class Ls(cmd2.CommandSet):
         help="list one file per line.  This will avoid waiting for all results to be loaded before "
         "printing",
     )
-    parser.add_argument("path", nargs="*", type=str, completer_method=completion.path_complete)
+    parser.add_argument("path", nargs="*", type=str, completer=completion.path_complete)
 
     @cmd2.with_argparser(parser)
     def do_ls(self, args):

@@ -11,10 +11,9 @@ import cmd2.plugin
 import cmd2.utils
 import mincepy
 
+from .. import _globals, version
+from .. import os as pos
 from . import constants, utils
-from .. import _globals
-from .. import os as pos  # pylint: disable=reimported
-from .. import version
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,13 +30,13 @@ def mod() -> str:
         "Documentation: https://pyos.readthedocs.io/",
         "",
         "",
-        f"Powered by mincePy (v{mincepy.__version__})",  # pylint: disable=no-member,
+        f"Powered by mincePy (v{mincepy.__version__})",
         f"Version {version.__version__}",
     ]
     second_column.extend([""] * (len(banner_lines) - len(second_column)))
 
     message = []
-    for banner, info in zip(banner_lines, second_column):
+    for banner, info in zip(banner_lines, second_column, strict=True):
         fmt_string = f"{{:<{max_line_length}}} | {{}}"
         message.append(fmt_string.format(banner, info))
     message.append("\n")
@@ -59,9 +58,16 @@ class PyosShell(cmd2.Cmd):
         super().__init__(
             startup_script=startup_script,
             allow_cli_args=False,
-            use_ipython=True,
+            include_ipy=True,
             persistent_history_file=hist_path,
+            # Load the commands defined as CommandSets (no longer the default in cmd2 3)
+            auto_load_commands=True,
         )
+
+        # Make the psh commands available in the ipy shell
+        from pyos import psh
+
+        self.py_locals.update({name: getattr(psh, name) for name in psh.__all__})
 
         if startup_commands:
             self._startup_commands.extend(startup_commands)
@@ -120,8 +126,7 @@ class PyosShell(cmd2.Cmd):
             for part in statement.pipe_to.split(cmd2.constants.REDIRECTION_PIPE):
                 # Parse the command
                 # Whitespace (especially at beginning) confuses parsing to statement
-                part = part.strip()
-                part_statement = self._input_line_to_statement(part)
+                part_statement = self._input_line_to_statement(part.strip())
                 funcs.append(functools.partial(self.onecmd, part_statement))
 
             thread_proc = utils.Piper(funcs, out_stream=self.stdout)
@@ -145,11 +150,11 @@ class PyosShell(cmd2.Cmd):
         return super()._redirect_output(statement)
 
     # Preserve quotes since we are passing these strings to the shell
-    @cmd2.with_argparser(cmd2.Cmd.shell_parser, preserve_quotes=True)
+    @cmd2.with_argparser(cmd2.Cmd._build_shell_parser, preserve_quotes=True)
     def do_shell(self, args: argparse.Namespace) -> None:
         """Execute a command as if at the OS prompt"""
         # Create a list of arguments to shell
-        tokens = [args.command] + args.command_args
+        tokens = [args.command, *args.command_args]
 
         # Expand ~ where needed
         cmd2.utils.expand_user_in_tokens(tokens)
@@ -159,10 +164,9 @@ class PyosShell(cmd2.Cmd):
         # still receive the SIGINT since it is in the same process group as us.
         with self.sigint_protection:
             # For any stream that is a StdSim, we will use a pipe so we can capture its output
-
             kwargs = dict(
+                # Pass standard input if redirecting (e.g. a pyos command piped into this one)
                 stdin=sys.stdin if self._redirecting else None,
-                # Pass standard input if redirecting
                 stdout=(
                     subprocess.PIPE if isinstance(self.stdout, cmd2.utils.StdSim) else self.stdout
                 ),
@@ -183,63 +187,6 @@ class PyosShell(cmd2.Cmd):
 
                 # Save the return code of the application for use in a pyscript
                 self.last_result = proc.returncode
-
-    # Only include the do_ipy() method if IPython is available on the system
-    if cmd2.cmd2.ipython_available:  # pragma: no cover
-
-        @cmd2.with_argparser(cmd2.cmd2.Cmd.ipython_parser)
-        def do_ipy(self, _: argparse.Namespace) -> Optional[bool]:
-            """
-            Enter an interactive IPython shell
-
-            :return: True if running of commands should stop
-            """
-            from cmd2.py_bridge import PyBridge
-
-            # noinspection PyUnusedLocal
-            def load_ipy(cmd2_app: PyosShell, py_bridge: PyBridge):
-                """
-                Embed an IPython shell in an environment that is restricted to only the variables
-                in this function
-
-                :param cmd2_app: instance of the cmd2 app
-                :param py_bridge: a PyBridge
-                """
-                from pyos import psh
-
-                # Create a variable pointing to py_bridge and name it using the value of
-                # py_bridge_name
-                exec(f"{cmd2_app.py_bridge_name} = py_bridge")  # pylint: disable=exec-used # nosec
-
-                # Add self variable pointing to cmd2_app, if allowed
-                if cmd2_app.self_in_py:
-                    exec("self = cmd2_app")  # pylint: disable=exec-used # nosec
-
-                # Delete these names from the environment so IPython can't use them
-                del cmd2_app
-                del py_bridge
-
-                cmd2.cmd2.embed(
-                    banner1=(
-                        "Entering an pyOS IPython shell. Type quit or <Ctrl>-d to exit.\n"
-                        "Run Python code from external files with: run filename.py\n"
-                    ),
-                    user_module=psh,
-                    exit_msg=f"Leaving IPython, back to {sys.argv[0]}",
-                )
-
-            if self.in_pyscript():
-                self.perror("Recursively entering interactive Python shells is not allowed")
-            else:
-                try:
-                    self._in_py = True
-                    new_py_bridge = PyBridge(self)
-                    load_ipy(self, new_py_bridge)
-                    return new_py_bridge.stop
-                finally:
-                    self._in_py = False
-
-            return None
 
     def _create_redirection_save(self):
         """Save the current state of the steams and members related to redirection"""

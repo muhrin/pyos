@@ -19,7 +19,7 @@ def pretty_type_string(obj_type: type) -> str:
 
 def obj_dict(obj):
     """Given an object return a dictionary that represents it"""
-    if isinstance(obj, Mapping):  # pylint: disable=isinstance-second-argument-not-valid-type
+    if isinstance(obj, Mapping):
         return dict(obj)
 
     repr_dict = {}
@@ -29,7 +29,7 @@ def obj_dict(obj):
                 value = getattr(obj, name)
                 if not inspect.isroutine(value):
                     repr_dict[name] = value
-            except Exception as exc:  # pylint: disable=broad-except
+            except Exception as exc:
                 repr_dict[name] = f"{type(exc).__name__}: {exc}"
 
     return repr_dict

@@ -30,11 +30,11 @@ def in_(*args):
     return {"$in": list(args)}
 
 
-def gt(val):  # pylint: disable=invalid-name
+def gt(val):
     return {"$gt": val}
 
 
-gt_ = gt  # pylint: disable=invalid-name
+gt_ = gt
 
 
 def subdirs(root: str, start_depth=1, end_depth=1) -> dict:

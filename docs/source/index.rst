@@ -67,12 +67,12 @@ Installation from git:
 .. code-block:: shell
 
     # via pip
-    pip install https://github.com/muhrin/pyos/archive/master.zip
+    pip install git+https://github.com/muhrin/pyos.git
 
     # manually
     git clone https://github.com/muhrin/pyos.git
     cd pyos
-    python setup.py install
+    pip install .
 
 
 Development
@@ -86,17 +86,32 @@ Clone the project:
     cd pyos
 
 
-Create a new virtualenv for `pyOS`_:
+Create a new virtual environment for `pyOS`_ (Python 3.11 or later):
 
 .. code-block:: shell
 
-    virtualenv -p python3 pyos
+    python3 -m venv env
 
-Install all requirements for `pyOS`_:
+Install all requirements for `pyOS`_ and the pre-commit hooks (ruff, bandit, etc.):
 
 .. code-block:: shell
 
     env/bin/pip install -e '.[dev]'
+    env/bin/pre-commit install
+
+Types are checked with ty (also run in CI).  Files that don't pass yet are listed under
+``[tool.ty.src] exclude`` in ``pyproject.toml``, please remove them from there once fixed:
+
+.. code-block:: shell
+
+    env/bin/ty check
+
+The tests can be run against MongoDB (by default ``mongodb://127.0.0.1``) or, without a server,
+using litemongo's in-memory engine:
+
+.. code-block:: shell
+
+    MINCEPY_TEST_URI="litemongo://?engine=memory#pyos-tests" env/bin/pytest test
 
 Table Of Contents
 +++++++++++++++++

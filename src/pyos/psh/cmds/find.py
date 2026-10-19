@@ -5,8 +5,8 @@ import argparse
 import cmd2
 from mincepy import qops
 
-from .. import argparse_types, completion
 from ... import fs, os, pathlib, psh_lib
+from .. import argparse_types, completion
 
 __all__ = ("find",)
 
@@ -16,7 +16,7 @@ def find(
     *starting_point: os.PathLike,
     meta: dict = None,
     state: dict = None,
-    type=None,  # pylint: disable=redefined-builtin
+    type=None,
     mindepth=0,
     maxdepth=-1,
 ) -> fs.ResultsNode:
@@ -58,7 +58,7 @@ class Find(cmd2.CommandSet):
         action="append",
         type=str,
         default=[],
-        completer_method=completion.dir_completer,
+        completer=completion.dir_completer,
         help="starting point (path) for search",
     )
     parser.add_argument(
@@ -73,7 +73,7 @@ class Find(cmd2.CommandSet):
         dest="maxdepth",
         type=int,
         default=-1,
-        help="maximum depth to search at relative to starting point(s) " "(-1 means no maximum)",
+        help="maximum depth to search at relative to starting point(s) (-1 means no maximum)",
     )
     parser.add_argument(
         "--mindepth",

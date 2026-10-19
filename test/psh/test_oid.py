@@ -18,17 +18,17 @@ def test_oid():
         cars.append(Car())
         paths.append(f"car_{idx}")
 
-    db.save_many(zip(cars, paths))
+    db.save_many(zip(cars, paths, strict=True))
 
     results = cmds.oid(*cars)
-    for car, result_oid in zip(cars, results):
+    for car, result_oid in zip(cars, results, strict=True):
         assert car.obj_id == result_oid
 
     assert len(cars) == len(results)
 
     # Now check paths
     results = cmds.oid(*paths)
-    for car, result_oid in zip(cars, results):
+    for car, result_oid in zip(cars, results, strict=True):
         assert car.obj_id == result_oid
 
     assert len(cars) == len(results)

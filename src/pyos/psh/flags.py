@@ -4,9 +4,6 @@ from .. import psh_lib
 
 __all__ = "f", "l", "L", "n", "p", "d", "u", "r", "s", "v"
 
-# pylint: disable=invalid-name
-# flake8: noqa: E741
-
 # Define standard flags
 d = psh_lib.Option("d")
 f = psh_lib.Option("f")

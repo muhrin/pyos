@@ -4,12 +4,12 @@ import argparse
 
 import cmd2
 
-from .. import completion
 from ... import exceptions, os, psh_lib
+from .. import completion
 
 
 @psh_lib.command()
-def cd(path: os.PathSpec):  # pylint: disable=invalid-name
+def cd(path: os.PathSpec):
     """Change the current working directory"""
     path = os.path.normpath(os.path.expanduser(path))
     try:
@@ -19,13 +19,12 @@ def cd(path: os.PathSpec):  # pylint: disable=invalid-name
 
 
 class Cd(cmd2.CommandSet):
-
     def __init__(self):
         super().__init__()
         self._prev_dir = "~"
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("path", nargs=1, type=str, completer_method=completion.dir_completer)
+    parser.add_argument("path", nargs=1, type=str, completer=completion.dir_completer)
 
     @cmd2.with_argparser(parser)
     def do_cd(self, args):

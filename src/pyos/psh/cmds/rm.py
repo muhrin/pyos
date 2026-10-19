@@ -6,9 +6,9 @@ import copy
 import cmd2
 import tqdm
 
-from . import ls
-from .. import completion, flags
 from ... import _globals, fs, psh_lib
+from .. import completion, flags
+from . import ls
 
 
 def _remove_directories(nodes):
@@ -26,7 +26,7 @@ def _remove_directories(nodes):
 @psh_lib.command(pass_options=True)
 @psh_lib.flag(flags.p, help="show progress bar")
 @psh_lib.flag(flags.r, help="remove directories and their contents recursively")
-def rm(options, *obj_or_ids):  # pylint: disable=invalid-name
+def rm(options, *obj_or_ids):
     """Remove objects"""
     if not obj_or_ids:
         return
@@ -60,7 +60,7 @@ class Rm(cmd2.CommandSet):
         action="store_true",
         help="remove directories and their contents recursively",
     )
-    parser.add_argument("path", nargs="*", type=str, completer_method=completion.path_complete)
+    parser.add_argument("path", nargs="*", type=str, completer=completion.path_complete)
 
     @cmd2.with_argparser(parser)
     def do_rm(self, args):

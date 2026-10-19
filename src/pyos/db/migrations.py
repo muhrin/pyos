@@ -1,8 +1,8 @@
 import mincepy
 import mincepy.mongo
 
-from . import constants
 from .. import config
+from . import constants
 
 
 def initial(historian: mincepy.Historian):
@@ -30,7 +30,7 @@ def add_pyos_collections(historian: mincepy.Historian):
     from . import fs
 
     archive: mincepy.mongo.MongoArchive = historian.archive
-    db = archive.database  # pylint: disable=invalid-name
+    db = archive.database
 
     schema_version = getattr(archive, "schema_version", 0)
 

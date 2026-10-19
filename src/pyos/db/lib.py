@@ -5,8 +5,8 @@ import deprecation
 import mincepy
 from tqdm import tqdm
 
-from . import fs
 from .. import _globals, exceptions, os, version
+from . import fs
 
 if TYPE_CHECKING:
     import pyos
@@ -59,9 +59,7 @@ def set_meta(*obj_or_identifier, meta: dict, session: Optional["pyos.Session"] =
         session.historian.meta.set(obj_id, meta)
 
 
-def find_meta(
-    filter: dict = None, obj_ids=None, session: Optional["pyos.Session"] = None
-):  # pylint: disable=redefined-builtin
+def find_meta(filter: dict = None, obj_ids=None, session: Optional["pyos.Session"] = None):
     session = session if session is not None else _globals.get_global_session()
     filter = filter or {}
     return session.historian.meta.find(filter, obj_ids)
@@ -95,7 +93,7 @@ def get_paths(*obj_or_id, session: Optional["pyos.Session"] = None) -> Sequence[
     obj_ids = tuple(map(session.historian.to_obj_id, obj_or_id))
 
     paths = []
-    for obj_id, path in zip(obj_ids, fs.get_paths(*obj_ids, session=session)):
+    for obj_id, path in zip(obj_ids, fs.get_paths(*obj_ids, session=session), strict=True):
         paths.append(PathInfo(obj_id, os.withdb.from_fs_path(path)))
 
     return paths
@@ -253,7 +251,7 @@ def save_many(
             progress_bar.update(1)
 
     if exc is not None:
-        raise exc  # pylint: disable=raising-bad-type
+        raise exc
 
     return obj_ids
 
@@ -289,11 +287,11 @@ def get_obj_id_from_path(*path: os.PathSpec, session: Optional["pyos.Session"] =
     """Given a path yield the id of the corresponding object.  Yields None if not found."""
     session = session if session is not None else _globals.get_global_session()
 
-    for entry in path:
-        entry = os.fspath(entry)
+    for path_spec in path:
+        entry_path = os.fspath(path_spec)
 
         # Check if the basename is an object id
-        basename = os.path.basename(entry)
+        basename = os.path.basename(entry_path)
         if basename:
             try:
                 yield session.historian.archive.construct_archive_id(basename)
@@ -301,7 +299,7 @@ def get_obj_id_from_path(*path: os.PathSpec, session: Optional["pyos.Session"] =
             except ValueError:
                 pass
 
-        entry = fs.find_entry(os.withdb.to_fs_path(entry), session=session)
+        entry = fs.find_entry(os.withdb.to_fs_path(entry_path), session=session)
         if entry is None:
             yield None
         else:
@@ -335,9 +333,7 @@ def get_oid(*identifier, session: Optional["pyos.Session"] = None) -> Iterator:
                 except TypeError:
                     pass
                 else:
-                    obj_id = next(  # pylint: disable=stop-iteration-return
-                        get_obj_id_from_path(path)
-                    )
+                    obj_id = next(get_obj_id_from_path(path))
 
         yield obj_id
 
