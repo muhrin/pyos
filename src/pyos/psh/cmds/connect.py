@@ -20,6 +20,15 @@ class Connnection(cmd2.CommandSet):
     @cmd2.with_argparser(connect_parser)
     def do_connect(self, args):
         """Connect to a mincepy archive"""
+        app = self._cmd
+        if app.in_script() and getattr(app, "uri", ""):
+            print(
+                f"Skipping 'connect {args.uri}' from the script, using '{app.uri}' given on the "
+                "command line",
+                file=sys.stderr,
+            )
+            return
+
         try:
             _globals.connect(args.uri)
             print(f"Connected to {args.uri}")

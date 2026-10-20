@@ -9,8 +9,9 @@ from pyos import _globals, psh
 
 URI_HELP = (
     "the URI of the archive to connect to, e.g. litemongo:///path/to/dir#db or "
-    "litemongo://?engine=memory#db (in memory).  Defaults to $MINCEPY_ARCHIVE, if set, "
-    "otherwise use 'connect' from within the shell"
+    "litemongo://?engine=memory#db (in memory).  This takes precedence over 'connect' in the "
+    "startup script.  Defaults to $MINCEPY_ARCHIVE, if set, otherwise use 'connect' from within "
+    "the shell"
 )
 
 
@@ -44,10 +45,10 @@ def psh_(script, cmd, uri):
 
     # Need to clear args because otherwise cmd2 picks them up
     if headless_cmds:
-        psh.PyosShell.execute(*headless_cmds)
+        psh.PyosShell.execute(*headless_cmds, uri=uri)
         return
 
-    app = psh.PyosShell()
+    app = psh.PyosShell(uri=uri)
     sys.exit(app.cmdloop())
 
 
@@ -62,5 +63,5 @@ def shell(uri):
     """Start the pyos shell"""
     _connect(uri)
     # Need to clear args because otherwise cmd2 picks them up
-    app = psh.PyosShell()
+    app = psh.PyosShell(uri=uri)
     sys.exit(app.cmdloop())

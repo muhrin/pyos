@@ -51,7 +51,13 @@ class PyosShell(cmd2.Cmd):
         startup_script="",
         startup_commands: Optional[list[str]] = None,
         skip_intro=False,
+        uri: str = "",
     ):
+        """
+        :param uri: the URI that the session was connected to from the command line (if any).  This
+            takes precedence over any 'connect' in scripts, such as the startup script.
+        """
+        self.uri = uri
 
         hist_path = os.path.join(utils.get_app_dir(), constants.HISTORY_FILE)
         startup_script = startup_script or os.path.join(utils.get_app_dir(), constants.STARTUP_FILE)

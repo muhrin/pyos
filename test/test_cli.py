@@ -33,3 +33,24 @@ def test_psh_not_connected(monkeypatch):
     result = CliRunner().invoke(cli.psh_, ["-c", "disconnect"])
     assert result.exit_code == 0, result.output
     assert _globals.get_global_session() is None
+
+
+def _database_name() -> str:
+    return _globals.get_global_session().historian.archive.database.name
+
+
+def test_psh_uri_overrides_startup_script(app_dir, test_utils, cli_uri):
+    """A URI given on the command line should take precedence over connecting in the startup
+    script (which would otherwise also be a wait if it points to a server that isn't running)"""
+    script_uri = test_utils.create_archive_uri(db_name="pyos-cli-startup")
+    (app_dir / "pshrc").write_text(f"connect {script_uri}\n")
+
+    result = CliRunner().invoke(cli.psh_, ["--uri", cli_uri, "-c", "pwd"])
+    assert result.exit_code == 0, result.output
+    assert "Skipping 'connect" in result.output
+    assert _database_name() == "pyos-cli-test"
+
+    # Without a URI on the command line the startup script connects as usual
+    result = CliRunner().invoke(cli.psh_, ["-c", "pwd"])
+    assert result.exit_code == 0, result.output
+    assert _database_name() == "pyos-cli-startup"
