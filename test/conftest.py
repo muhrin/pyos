@@ -5,6 +5,7 @@ import pytest
 
 import pyos
 import pyos.db
+import pyos.psh.utils
 
 from . import utils
 
@@ -17,6 +18,15 @@ def archive_base_uri() -> str:
 @pytest.fixture
 def archive_uri():
     return utils.get_archive_uri()
+
+
+@pytest.fixture(autouse=True)
+def app_dir(tmp_path, monkeypatch):
+    """Keep the shell away from the user's own pyos configuration (startup script and history)"""
+    path = tmp_path / "pyos-config"
+    path.mkdir()
+    monkeypatch.setattr(pyos.psh.utils, "get_app_dir", lambda: str(path))
+    return path
 
 
 @pytest.fixture(autouse=True)
