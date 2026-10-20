@@ -30,6 +30,13 @@ class Session(mincepy.archives.ArchiveListener):
 
         historian.archive.add_archive_listener(self)
 
+    def __enter__(self) -> "pyos.Session":
+        """Nothing to be done"""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
     @property
     def historian(self) -> mincepy.Historian:
         return self._historian

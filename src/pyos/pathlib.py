@@ -8,7 +8,8 @@ import uuid
 import deprecation
 import mincepy.types
 
-from . import exceptions, fs, os, version
+from . import exceptions, os, version
+from .fs import nodes
 
 __all__ = ("Path", "PurePath")
 
@@ -165,7 +166,7 @@ class Path(
         if not self.exists():
             raise exceptions.FileNotFoundError(f"No such directory: '{os.path.relpath(self)}'")
 
-        node = fs.DirectoryNode(self)
+        node = nodes.DirectoryNode(self)
         node.expand(1)
         for child in node.children:
             yield child.abspath

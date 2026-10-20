@@ -699,7 +699,7 @@ class FrozenResultsNode(ContainerNode):
 
 
 @functools.singledispatch
-def to_node(entry, historian: mincepy.Historian = None) -> FilesystemNode:
+def to_node(entry, session: Optional["pyos.Session"] = None) -> FilesystemNode:
     """Get the node for a given object.  This can be either:
 
     1.  A directory path -> DirectoryNode

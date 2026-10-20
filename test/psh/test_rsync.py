@@ -57,7 +57,7 @@ def test_rsync_history(historian, test_utils):
         ensure_at_path(car.obj_id, path=dest_path, session=remote)
 
         # Check that, by default, history is not transferred
-        results = list(remote.snapshots.records.find(obj_id=car_id))
+        results = list(remote.historian.snapshots.records.find(obj_id=car_id))
         assert len(results) == 1
         assert results[0].version == 1  # Only the blue car is expected
 

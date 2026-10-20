@@ -106,7 +106,11 @@ class PyosShell(cmd2.Cmd):
 
     def _update_prompt(self):
         try:
-            historian = _globals.get_global_session().historian
+            session = _globals.get_global_session()
+            if session is None:
+                historian = None
+            else:
+                historian = session.historian
         except RuntimeError:
             # Happens when there is a global historian but pyos.db.init() hasn't been called
             historian = None

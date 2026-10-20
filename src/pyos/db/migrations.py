@@ -45,6 +45,9 @@ def add_pyos_collections(historian: mincepy.Historian):
     # Find all the objects that have a directory key
     root = fs.FilesystemBuilder(is_root=True)
     for meta in meta_entries:
+        if "_id" not in meta or config.DIR_KEY not in meta:
+            continue
+
         obj_id = meta["_id"]
         directory = root
         for entry in meta[config.DIR_KEY].split("/")[1:-1]:

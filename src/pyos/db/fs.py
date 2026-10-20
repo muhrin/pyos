@@ -10,7 +10,7 @@ The edge also stores the name of the entry.
 import abc
 import collections
 import datetime
-from typing import TYPE_CHECKING, Iterable, Iterator, Optional
+from typing import TYPE_CHECKING, Final, Iterable, Iterator, Optional
 
 import bson
 import mincepy
@@ -42,27 +42,27 @@ class Schema:
     Schema for the edges in the filesystem collection
     """
 
-    ID = "_id"
-    NAME = "name"
-    PARENT = "parent"
-    TYPE = "type"
-    CTIME = "ctime"  # Creation time of the entry
-    UTIME = "utime"  # Last update time of the entry (e.g. name change or move)
+    ID: Final[str] = "_id"
+    NAME: Final[str] = "name"
+    PARENT: Final[str] = "parent"
+    TYPE: Final[str] = "type"
+    CTIME: Final[str] = "ctime"  # Creation time of the entry
+    UTIME: Final[str] = "utime"  # Last update time of the entry (e.g. name change or move)
 
     # Optional fields
     STIME = (
         mincepy.SNAPSHOT_TIME
     )  # Last snapshot time of the object (i.e. last time it was changed)
-    DESCENDENTS = DESCENDENTS
-    DEPTH = "depth"
-    VER = mincepy.VERSION
-    TYPE_ID = mincepy.TYPE_ID
-    PATH_ENTRIES = "path_entries"
-    PATH = "path"
+    DESCENDENTS: Final[str] = DESCENDENTS
+    DEPTH: Final[str] = "depth"
+    VER: Final[str] = mincepy.VERSION
+    TYPE_ID: Final[str] = mincepy.TYPE_ID
+    PATH_ENTRIES: Final[str] = "path_entries"
+    PATH: Final[str] = "path"
 
     # Values
-    TYPE_DIR = "dir"
-    TYPE_OBJ = "obj"
+    TYPE_DIR: Final[str] = "dir"
+    TYPE_OBJ: Final[str] = "obj"
 
     @staticmethod
     def dir_dict(name: str, parent, dir_id=None) -> dict:

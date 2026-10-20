@@ -3,7 +3,7 @@ from urllib import parse
 
 import mincepy
 
-from . import _sessions
+from . import _sessions, db
 
 if TYPE_CHECKING:
     import pyos
@@ -17,9 +17,6 @@ _GLOBAL_SESSION: Optional["pyos.Session"] = None
 
 def connect(uri: str = "", use_globally=True) -> "pyos.Session":
     parsed = parse.urlparse(uri)
-    if parsed.fragment == "":
-        parsed = parsed._replace(fragment=DEFAULT_DB)
-
     historian = mincepy.connect(parsed, use_globally=use_globally)
 
     return init(historian, use_globally)
@@ -27,8 +24,6 @@ def connect(uri: str = "", use_globally=True) -> "pyos.Session":
 
 def init(historian: mincepy.Historian = None, use_globally=True) -> "pyos.Session":
     """Initialise a Historian such that it is ready to be used with pyOS"""
-    from . import db
-
     global _GLOBAL_SESSION  # noqa: PLW0603
     historian = historian or mincepy.get_historian()
 
