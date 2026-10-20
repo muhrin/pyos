@@ -5,7 +5,7 @@ import argparse
 import click
 import cmd2
 
-from ... import pathlib, psh_lib
+from ... import os, pathlib, psh_lib
 from .. import completion, flags
 from . import ls
 
@@ -36,9 +36,15 @@ def mv(options, *args):
         raise ValueError("mv: missing destination")
 
     args = list(args)
-    dest = pathlib.Path(args.pop())
+    dest_arg = args.pop()
+    dest = pathlib.Path(dest_arg)
 
     to_move = ls(-flags.d, *args)
+
+    if isinstance(dest_arg, str) and dest_arg.endswith(os.sep) and not dest.exists():
+        # A trailing separator means 'into this directory', which may not exist yet (directories
+        # only exist while they have something in them)
+        os.makedirs(dest_arg)
 
     if dest.is_dir():
         dest = dest.resolve()

@@ -41,8 +41,11 @@ dependencies = [
 [project.optional-dependencies]
 gui = ["mincepy[gui]"]
 dev = [
+    "hatchling",
+    "ipykernel",
     "ipython",
     "jupyter-sphinx",
+    "nbclient",
     "nbsphinx",
     "pip",
     "pytest>4",

@@ -63,18 +63,40 @@ def test_mv_from_path():
     assert contents[0].entry_id == car.obj_id
 
 
-#
-# def test_mv_from_obj_id():
-#     pyos.os.makedirs('test/')
-#
-#     car = Car()
-#     car.save()
-#
-#     psh.mv(car.obj_id, 'test/')
-#     contents = psh.ls('test/')
-#     assert len(contents) == 1
-#     assert isinstance(contents[0], nodes.FilesystemNode)
-#     assert contents[0].entry_id == car.obj_id
+def test_mv_from_obj_id():
+    pyos.os.makedirs("test/")
+
+    car = Car()
+    car.save()
+
+    psh.mv(car.obj_id, "test/")
+    contents = psh.ls("test/")
+    assert len(contents) == 1
+    assert isinstance(contents[0], nodes.FilesystemNode)
+    assert contents[0].entry_id == car.obj_id
+
+
+def test_mv_objects():
+    """Live objects can be moved and renamed (as done in the restaurants example)"""
+    pyos.os.makedirs("garage/")
+    ferrari, skoda = Car(make="ferrari"), Car(make="skoda")
+    psh.save(ferrari)
+    psh.save(skoda)
+
+    psh.mv(ferrari, "garage/")
+    psh.mv(skoda, "skoda")
+    assert psh.locate(ferrari) == pyos.Path("garage/").resolve() / str(ferrari.obj_id)
+    assert psh.locate(skoda) == pyos.Path("skoda").resolve()
+
+    # Move everything in a directory, the way the restaurants example does
+    pyos.os.makedirs("lot/")
+    psh.mv(skoda, "lot/")
+    psh.save(Car(make="fiat"), "lot/fiat")
+    psh.cd("lot/")
+    for car in psh.ls | psh.load:
+        psh.mv(car, "../garage/")
+    psh.cd("..")
+    assert {car.make for car in psh.ls("garage/") | psh.load} == {"ferrari", "skoda", "fiat"}
 
 
 def test_mv_dest_as_path():
@@ -166,3 +188,14 @@ def test_mv_rename_directory():
     assert len(results) == 1
     assert isinstance(results[0], nodes.FilesystemNode)
     assert results[0].entry_id == car_id
+
+
+def test_mv_into_new_directory():
+    """A destination ending in a separator is a directory, even if it doesn't exist yet"""
+    curry, pizza = Car(make="curry"), Car(make="pizza")
+    psh.save(curry, "curry")
+    psh.save(pizza, "pizza")
+
+    psh.mv(curry, "food/")
+    psh.mv(pizza, "food/")
+    assert sorted(node.name for node in psh.ls("food/")) == ["curry", "pizza"]

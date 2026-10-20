@@ -561,7 +561,7 @@ class ObjectNode(FilesystemNode):
     def __init__(
         self,
         obj_id,
-        path: os.PathSpec,
+        path: Optional[os.PathSpec],
         record: mincepy.DataRecord = None,
         parent=None,
         entry: dict = None,

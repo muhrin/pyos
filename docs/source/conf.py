@@ -34,6 +34,10 @@ _spec.loader.exec_module(module)
 
 autoclass_content = "both"
 
+# The example notebooks are run when building the docs: use an in-memory database for them so that
+# no server is needed
+os.environ.setdefault("MINCEPY_ARCHIVE", "litemongo://?engine=memory#pyos-docs")
+
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -66,7 +70,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "pyOS"
-copyright = "2020, Martin Uhrin"
+copyright = "2020-2026, Martin Uhrin"
 author = "Martin Uhrin"
 
 # The version info for the project you're documenting, acts as replacement for
@@ -83,7 +87,7 @@ release = module.__version__
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -109,14 +113,12 @@ html_theme = "alabaster"
 #
 # html_theme_options = {}
 html_theme_options = {
-    "analytics_id": "UA-17296547-3",
     "codecov_button": True,
-    "description": "Python object storage with versioning made simple",
+    "description": "Browse python objects as if they were files on disk",
     "github_button": True,
     "github_repo": "pyos",
     "github_type": "star",
     "github_user": "muhrin",
-    "travis_button": True,
     "logo": "logo.svg",
     "logo_name": True,
 }
@@ -173,7 +175,7 @@ texinfo_documents = [
         "pyOS Documentation",
         author,
         "pyos",
-        "One line description of project.",
+        "Browse python objects as if they were files on disk",
         "Miscellaneous",
     ),
 ]

@@ -12,26 +12,25 @@
 Welcome to pyOS's documentation!
 ================================
 
+.. image:: https://github.com/muhrin/pyos/actions/workflows/ci.yml/badge.svg
+    :target: https://github.com/muhrin/pyos/actions/workflows/ci.yml
+    :alt: CI
+
 .. image:: https://codecov.io/gh/muhrin/pyos/branch/develop/graph/badge.svg
     :target: https://codecov.io/gh/muhrin/pyos
-    :alt: Coveralls
-
-.. image:: https://travis-ci.org/muhrin/pyos.svg
-    :target: https://travis-ci.org/muhrin/pyos
-    :alt: Travis CI
+    :alt: Coverage
 
 .. image:: https://img.shields.io/pypi/v/pyos.svg
     :target: https://pypi.python.org/pypi/pyos/
     :alt: Latest Version
 
-.. image:: https://img.shields.io/pypi/wheel/pyos.svg
+.. image:: https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2Fmuhrin%2Fpyos%2Fdevelop%2Fpyproject.toml
     :target: https://pypi.python.org/pypi/pyos/
-
-.. image:: https://img.shields.io/pypi/pyversions/pyos.svg
-    :target: https://pypi.python.org/pypi/pyos/
+    :alt: Python versions
 
 .. image:: https://img.shields.io/pypi/l/pyos.svg
     :target: https://pypi.python.org/pypi/pyos/
+    :alt: License
 
 
 `pyOS`_: A fresh way to interact with your python objects as though they were files on your filesystem.
@@ -43,8 +42,10 @@ Features
 * Familiar shell like interface: ``ls``, ``mv``, ``cat``, ``rm`` but on your objects!
 * Powerful and fast ``find`` facility to locate and organise your python world.
 * Version control of all your objects by default.
-* Familiar flags from the shell e.g. ``ls (-l)``, ``cp(-n)``.
+* Familiar flags from the shell e.g. ``ls(-l)``, ``rm(-r)``.
 * Easy pipe-like chaining e.g. ``find(meta=dict(name='martin')) | rm``
+* Use it from Python (e.g. IPython or Jupyter) or from its own shell, ``pyos shell``.
+* Store your objects in a local directory (no server needed) or in MongoDB.
 
 Think of pyOS as a mixture between an ORM like `Django`_ or `SQLAlchemy`_ but where you can store any class by providing
 a simple mapper, from then on you interact with your objects as if they were files in a filesystem.
@@ -55,7 +56,7 @@ Many of the familiar \*nix commands are available (``ls``, ``mv``, ``rm``, ``tre
 Installation
 ++++++++++++
 
-Installation with pip:
+pyOS needs Python 3.11 or later.  Installation with pip:
 
 .. code-block:: shell
 
@@ -73,6 +74,30 @@ Installation from git:
     git clone https://github.com/muhrin/pyos.git
     cd pyos
     pip install .
+
+
+Getting started
++++++++++++++++
+
+Tell pyOS where to store objects (see :doc:`basics` for more on connecting):
+
+.. code-block:: shell
+
+    # In a local directory, no server needed
+    export MINCEPY_ARCHIVE="litemongo:///path/to/my/db#pyos"
+
+    # Or, in MongoDB, e.g. a server started with: docker run -d -p 27017:27017 mongo
+    export MINCEPY_ARCHIVE="mongodb://localhost/pyos"
+
+Then use it from Python:
+
+.. code-block:: python
+
+    from pyos.pyos import *
+
+    ls()
+
+or from the shell, ``pyos shell`` (optionally with ``--uri <archive URI>``).
 
 
 Development
@@ -132,4 +157,4 @@ Versioning
 This software follows `Semantic Versioning`_
 
 
-.. _Semantic Versioning: http://semver.org/
+.. _Semantic Versioning: https://semver.org/

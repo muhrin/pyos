@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Sequence
 
 import mincepy
 
-from .. import fs, glob, os, pathlib
+from .. import _globals, fs, glob, os, pathlib
 
 if TYPE_CHECKING:
     import pyos
@@ -14,6 +14,11 @@ __all__ = ("parse_fs_entry", "gather_obj_ids")
 
 @functools.singledispatch
 def parse_arg(arg) -> Sequence:
+    # Anything else could be a (saved) object or an object id
+    obj_id = _globals.get_global_session().historian.to_obj_id(arg)
+    if obj_id is not None:
+        return [fs.ObjectNode(obj_id, path=None)]
+
     raise TypeError(f"Unknown type '{arg.__class__.__name__}'")
 
 
@@ -28,7 +33,8 @@ def _(arg: "pyos.fs.DirectoryNode"):
 
 
 @parse_arg.register(fs.ResultsNode)
-def _(arg: "pyos.fs.ResultsNode"):
+@parse_arg.register(fs.nodes.FrozenResultsNode)
+def _(arg: "pyos.fs.ResultsNode | pyos.fs.nodes.FrozenResultsNode"):
     return parse_fs_entry(*arg.children)
 
 

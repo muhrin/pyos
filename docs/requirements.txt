@@ -1,3 +1,2 @@
-# ONLY FOR ReadTheDocs
+# Requirements for building the docs (e.g. on Read the Docs, see .readthedocs.yaml)
 .[dev]
-nbsphinx

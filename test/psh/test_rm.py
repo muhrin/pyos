@@ -1,5 +1,5 @@
 import mincepy
-from mincepy.testing import Car
+from mincepy.testing import Car, Person
 
 from pyos import psh
 import pyos.os
@@ -90,3 +90,14 @@ def test_rm_objects_with_references():
     psh.rm - psh.r("/cars/")
 
     assert len(psh.ls("/cars/")) == 0
+
+
+def test_rm_find_results():
+    """The results of find can be piped into rm (as in the documentation)"""
+    martin = Person("martin", 35)
+    psh.save(martin, "martin")
+    psh.save(Person("sonia", 30), "sonia")
+    (psh.meta - psh.s)(martin, name="martin")
+
+    psh.find(meta=dict(name="martin")) | psh.rm
+    assert [node.name for node in psh.ls()] == ["sonia"]
