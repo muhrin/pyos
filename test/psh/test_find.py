@@ -1,4 +1,7 @@
+import pathlib
+
 from mincepy.testing import Car, Person
+import pytest
 from pytray import obj_load
 
 from pyos import psh
@@ -199,3 +202,33 @@ def test_shell_find_query_state(pyos_shell):
     assert len(lines) == 1
     assert str(fiat.obj_id) not in res.stdout
     assert str(subaru.obj_id) in res.stdout
+
+
+def test_find_filter_expressions():
+    """mincePy filter expressions can be given along with (or instead of) the starting points"""
+    pyos.os.makedirs("people/")
+    mark, sonia = Person("mark", 30), Person("sonia", 40)
+    psh.save(mark, "people/mark")
+    psh.save(sonia, "people/sonia")
+    psh.save(Person("mark", 50), "other_mark")
+
+    def found(results) -> set:
+        return {node.obj_id for node in results}
+
+    assert found(psh.find("people/", Person.name == "mark")) == {mark.obj_id}
+    assert len(psh.find(Person.name == "mark")) == 2  # From the current directory
+
+    # Several filters must all match, and they combine with the keyword arguments
+    assert found(psh.find(Person.name == "mark", Person.age < 40)) == {mark.obj_id}
+    assert found(psh.find("people/", Person.age > 20, state=dict(name="sonia"))) == {sonia.obj_id}
+
+    # Paths can also be pathlib paths or directory nodes
+    assert found(psh.find(pathlib.PurePosixPath("people"), Person.name == "mark")) == {mark.obj_id}
+    people = psh.ls("people/", -psh.d)[0]
+    assert found(psh.find(people, Person.name == "sonia")) == {sonia.obj_id}
+
+
+def test_find_bad_argument():
+    """Something that is neither a path nor a filter should be reported clearly"""
+    with pytest.raises(TypeError, match="__expr__"):
+        psh.find(42)

@@ -1,8 +1,12 @@
 """The find command"""
 
 import argparse
+import functools
+import operator
+import os as std_os
 
 import cmd2
+import mincepy
 from mincepy import qops
 
 from ... import fs, os, pathlib, psh_lib
@@ -13,35 +17,59 @@ __all__ = ("find",)
 
 @psh_lib.command()
 def find(
-    *starting_point: os.PathLike,
+    *args,
     meta: dict = None,
     state: dict = None,
     type=None,
     mindepth=0,
     maxdepth=-1,
 ) -> fs.ResultsNode:
-    """Find objects matching the given criteria, optionally starting from one or more paths
+    """Find objects matching the given criteria, optionally starting from one or more paths, e.g.::
 
+        find("/home/", Person.name == "mark")
 
-    :param starting_point: one or more paths to start the search from
+    :param args: the paths to start the search from (strings, paths or filesystem nodes), and any
+        filters that objects must match.  Anything that isn't a path is passed on to mincePy (see
+        :func:`mincepy.build_expr`) so all of its filter expressions can be used, and if several
+        are given objects must match all of them.
     :param meta: a dictionary for the metadata to match
     :param state: a dictionary for the record state to match
     :param type: restrict the match to objects of this type
     :param mindepth: the minimum depth to search at relative to the start point(s)
     :param maxdepth: the maximum depth to search at relative to the start point(s)
     """
-    _options, spoints = psh_lib.opts.separate_opts(*starting_point)
+    _options, rest = psh_lib.opts.separate_opts(*args)
+    spoints, filters = _split_args(rest)
     if not spoints:
-        spoints = (pathlib.Path(),)
+        spoints = [pathlib.Path()]
 
     return fs.find(
         *spoints,
         meta=meta,
         state=state,
         type=type,
+        obj_filter=functools.reduce(operator.and_, filters) if filters else None,
         mindepth=mindepth,
         maxdepth=maxdepth,
     )
+
+
+def _split_args(args) -> tuple[list, list[mincepy.Expr]]:
+    """Split the arguments into the starting points (paths) and the filters, anything that isn't a
+    path is given to mincePy to interpret"""
+    spoints = []
+    filters = []
+    for arg in args:
+        if isinstance(arg, (str, os.PathLike)):
+            spoints.append(arg)
+        elif isinstance(arg, fs.nodes.FilesystemNode):
+            spoints.append(arg.abspath)
+        elif isinstance(arg, std_os.PathLike):
+            spoints.append(std_os.fspath(arg))
+        else:
+            filters.append(mincepy.build_expr(arg))
+
+    return spoints, filters
 
 
 class Find(cmd2.CommandSet):
