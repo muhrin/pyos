@@ -37,7 +37,7 @@ class Connnection(cmd2.CommandSet):
 
     def do_disconnect(self, _args):
         """Disconnect from the current archive"""
-        if _globals.get_global_session() is None:
+        if _globals.get_global_session(create=False) is None:
             print("Not connected", file=sys.stderr)
             return
 

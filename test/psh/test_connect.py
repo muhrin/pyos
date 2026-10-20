@@ -13,7 +13,7 @@ def test_connect_disconnect(pyos_shell, test_utils):
 
     res = pyos_shell.app_cmd("disconnect")
     assert not res.stderr
-    assert _globals.get_global_session() is None
+    assert _globals.get_global_session(create=False) is None
     assert pyos_shell.prompt == "[not connected]$ "
 
 
@@ -21,7 +21,7 @@ def test_disconnect_when_not_connected(pyos_shell, historian):
     # Use a separate session, the one from the fixtures is closed by them
     pyos.init(historian)
     pyos_shell.app_cmd("disconnect")
-    assert _globals.get_global_session() is None
+    assert _globals.get_global_session(create=False) is None
 
     # Disconnecting again shouldn't fail
     res = pyos_shell.app_cmd("disconnect")

@@ -117,9 +117,9 @@ def set_paths(
     for obj_or_id, path in obj_id_path:
         obj_id = session.historian.to_obj_id(obj_or_id)
 
-        fs.set_obj_path(obj_id, os.withdb.to_fs_path(path), session=session)
+        fs.set_obj_path(obj_id, os.withdb.to_fs_path(path, session=session), session=session)
 
-        paths.append(PathInfo(obj_id, os.path.abspath(path)))
+        paths.append(PathInfo(obj_id, os.path.abspath(path, session=session)))
 
     return paths
 
@@ -133,7 +133,9 @@ def rename(obj_or_id, dest: "pyos.os.PathSpec", session: Optional["pyos.Session"
     session = session if session is not None else _globals.get_global_session()
     obj_id = session.historian.to_obj_id(obj_or_id)
 
-    fs.rename(src_id=obj_id, dest=os.withdb.to_fs_path(dest), session=session)  # DB HIT
+    fs.rename(
+        src_id=obj_id, dest=os.withdb.to_fs_path(dest, session=session), session=session
+    )  # DB HIT
 
 
 def get_abspath(obj_id, _meta: dict) -> str:
@@ -233,7 +235,7 @@ def save_many(
                     raise exceptions.IsADirectoryError(path)
 
                 # Get information about the destination
-                save_path = os.withdb.to_fs_path(path)
+                save_path = os.withdb.to_fs_path(path, session=session)
                 dest_entry = cache.get_entry_from_path(save_path)
 
                 if dest_entry is not None and fs.Entry.is_dir(dest_entry):
@@ -259,7 +261,7 @@ def save_many(
 def load(*identifier, session: Optional["pyos.Session"] = None):
     """Load one or more objects"""
     session = session if session is not None else _globals.get_global_session()
-    session.historian.load(*identifier)
+    return session.historian.load(*identifier)
 
 
 def to_obj_id(identifier, session: Optional["pyos.Session"] = None):
@@ -299,7 +301,7 @@ def get_obj_id_from_path(*path: os.PathSpec, session: Optional["pyos.Session"] =
             except ValueError:
                 pass
 
-        entry = fs.find_entry(os.withdb.to_fs_path(entry_path), session=session)
+        entry = fs.find_entry(os.withdb.to_fs_path(entry_path, session=session), session=session)
         if entry is None:
             yield None
         else:

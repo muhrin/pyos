@@ -32,7 +32,7 @@ def test_psh_not_connected(monkeypatch):
     monkeypatch.setattr(_globals, "_GLOBAL_SESSION", None)
     result = CliRunner().invoke(cli.psh_, ["-c", "disconnect"])
     assert result.exit_code == 0, result.output
-    assert _globals.get_global_session() is None
+    assert _globals.get_global_session(create=False) is None
 
 
 def _database_name() -> str:

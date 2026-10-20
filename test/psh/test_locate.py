@@ -39,3 +39,15 @@ def test_locate_multiple():
     locations = psh.locate(str(car1.obj_id), car2.obj_id)
     assert locations[0] == car1_path
     assert locations[1] == car2_path
+
+
+def test_locate_nodes_and_paths():
+    """locate should also take paths and filesystem nodes, e.g. the results of find"""
+    pyos.os.makedirs("garage/")
+    car = Car(make="ferrari")
+    psh.save(car, "garage/ferrari")
+    expected = pyos.Path("garage/ferrari").resolve()
+
+    assert psh.locate("garage/ferrari") == expected
+    assert psh.locate(psh.find(state=dict(make="ferrari"))) == expected
+    assert (psh.find(state=dict(make="ferrari")) | psh.locate) == expected

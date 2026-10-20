@@ -40,16 +40,20 @@ def exists(path: types.PathSpec) -> bool:
 lexists = exists
 
 
-def abspath(path: types.PathSpec) -> str:
+def abspath(path: types.PathSpec, *, session: "pyos.Session | None" = None) -> str:
     """
     Return a normalised absolutised version of the pathname path. This is equivalent to calling
     the function normpath() as follows: normpath(join(os.getcwd(), path)).
+
+    :param session: the session whose working directory relative paths are relative to (by default
+        the global session)
     """
     path = nodb.fspath(path)
     if nodb.isabs(path):
         return path
 
-    return nodb.normpath(nodb.join(getcwd(), path))
+    cwd = getcwd() if session is None else from_fs_path(session.cwd)
+    return nodb.normpath(nodb.join(cwd, path))
 
 
 def relpath(path: types.PathSpec, start=curdir) -> str:
@@ -278,8 +282,10 @@ def makedirs(name: types.PathSpec, exists_ok=False):
 # endregion
 
 
-def to_fs_path(path: types.PathSpec) -> "pyos.db.fs.Path":
-    parts = pathlib.PosixPath(abspath(path)).parts
+def to_fs_path(path: types.PathSpec, *, session: "pyos.Session | None" = None) -> "pyos.db.fs.Path":
+    """Convert a path to the form used by the database (relative paths are relative to the working
+    directory of the given session, or the global one)"""
+    parts = pathlib.PosixPath(abspath(path, session=session)).parts
     db.fs.validate_path(parts)
     return parts
 

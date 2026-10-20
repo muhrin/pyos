@@ -36,7 +36,9 @@ def find(
     :return: results node
     """
     if not starting_point:
-        starting_point = (os.getcwd(),)
+        # Start in the working directory of the session being used
+        cwd = _globals.get_global_session().cwd if session is None else session.cwd
+        starting_point = (os.withdb.from_fs_path(cwd),)
 
     meta = (meta or {}).copy()
     state = (state or {}).copy()
@@ -60,10 +62,12 @@ def find(
             ):
                 descendent_path = db.fs.Entry.path(matching)
                 yield nodes.ObjectNode(
-                    db.fs.Entry.id(matching), os.withdb.from_fs_path(descendent_path)
+                    db.fs.Entry.id(matching),
+                    os.withdb.from_fs_path(descendent_path),
+                    session=session,
                 )
 
-    results = nodes.FrozenResultsNode(results_.CachingResults(yield_results()))
+    results = nodes.FrozenResultsNode(results_.CachingResults(yield_results()), session=session)
     results.show("relpath", mode=nodes.SINGLE_COLUMN_VIEW)
     return results
 
@@ -78,7 +82,7 @@ def _iter_matching(
     session: Optional["pyos.Session"],
 ):
     # Find the filesystem entry we're looking for
-    start_fs_path = os.withdb.to_fs_path(path)
+    start_fs_path = os.withdb.to_fs_path(path, session=session)
     entry = db.fs.find_entry(start_fs_path, session=session)
     entry_id = db.fs.Entry.id(entry)
 

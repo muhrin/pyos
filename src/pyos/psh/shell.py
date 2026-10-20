@@ -106,7 +106,8 @@ class PyosShell(cmd2.Cmd):
 
     def _update_prompt(self):
         try:
-            session = _globals.get_global_session()
+            # Don't connect just to show the prompt
+            session = _globals.get_global_session(create=False)
             if session is None:
                 historian = None
             else:

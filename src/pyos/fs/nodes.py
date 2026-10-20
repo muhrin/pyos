@@ -140,7 +140,9 @@ class FilesystemNode(BaseNode):
                 if entry is None:
                     raise exceptions.FileNotFoundError(entry_id)
             elif path is not None:
-                entry = db.fs.find_entry(os.withdb.to_fs_path(path), session=session)  # DB HIT
+                entry = db.fs.find_entry(
+                    os.withdb.to_fs_path(path, session=session), session=session
+                )  # DB HIT
                 if entry is None:
                     raise exceptions.FileNotFoundError(path)
             else:
@@ -153,7 +155,7 @@ class FilesystemNode(BaseNode):
             else:
                 path = os.withdb.from_fs_path(entry_path)
 
-        path = pathlib.PurePath(os.path.abspath(path))
+        path = pathlib.PurePath(os.path.abspath(path, session=session))
         super().__init__(path.name, parent, session=session)
         self._abspath = path
         self._entry = entry
@@ -256,7 +258,7 @@ class ContainerNode(BaseNode):
     def __getitem__(self, item):
         items = super().__getitem__(item)
         if isinstance(item, slice):
-            res = ResultsNode()
+            res = ResultsNode(session=self._session)
             # Transfer the view mode
             res.show(*self._show, mode=self._view_mode)
             for entry in items:
@@ -437,7 +439,7 @@ class DirectoryNode(ContainerNode, FilesystemNode):
         session: Optional["pyos.Session"] = None,
     ):
         super().__init__(
-            path=pathlib.PurePath(os.path.abspath(path)),
+            path=pathlib.PurePath(os.path.abspath(path, session=session)),
             parent=parent,
             entry=entry,
             session=session,
@@ -452,7 +454,7 @@ class DirectoryNode(ContainerNode, FilesystemNode):
 
     def __copy__(self):
         """Create a copy with no parent"""
-        dir_node = DirectoryNode(self.abspath, self._entry)
+        dir_node = DirectoryNode(self.abspath, entry=self._entry, session=self._session)
         # dir_node._children = [copy.copy(child) for child in self.children]
         dir_node._children = copy.copy(self._children)
         return dir_node
@@ -544,10 +546,9 @@ class ObjectNode(FilesystemNode):
 
     @classmethod
     def from_path(cls, path: "pyos.os.PathLike", session: Optional["pyos.Session"] = None):
-        full_path = os.path.abspath(path)
-
         session = session if session is not None else _globals.get_global_session()
-        entry = db.fs.find_entry(os.withdb.to_fs_path(full_path), session=session)
+        full_path = os.path.abspath(path, session=session)
+        entry = db.fs.find_entry(os.withdb.to_fs_path(full_path, session=session), session=session)
         if entry is None:
             raise ValueError(f"'{full_path}' is not a valid object path")
 
@@ -709,17 +710,16 @@ def to_node(entry, session: Optional["pyos.Session"] = None) -> FilesystemNode:
 
 
 @to_node.register(FilesystemNode)
-def _(entry: FilesystemNode, historian: mincepy.Historian = None):
+def _(entry: FilesystemNode, session: Optional["pyos.Session"] = None):
     return entry
 
 
 @to_node.register(os.PathLike)
 def _(path: os.PathLike, session: Optional["pyos.Session"] = None):
-    # Make sure we've got a pure path so we don't actually check that database
-    path = os.path.abspath(path)
-
     session = session if session is not None else _globals.get_global_session()
-    fs_entry = db.fs.find_entry(os.withdb.to_fs_path(path), session=session)
+    # Make sure we've got a pure path so we don't actually check that database
+    path = os.path.abspath(path, session=session)
+    fs_entry = db.fs.find_entry(os.withdb.to_fs_path(path, session=session), session=session)
     if fs_entry is None:
         raise ValueError(f"'{path}' is not a valid object path")
 

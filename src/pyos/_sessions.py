@@ -1,3 +1,17 @@
+"""Sessions: the state that pyOS works with.
+
+A :class:`Session` combines a mincePy historian (i.e. a connection to a database) with the pyOS
+state that goes with it, currently the working directory.  Any number of sessions can exist at
+the same time, each with their own database and working directory, and the functions in
+:mod:`pyos.db` and :mod:`pyos.fs` accept the session to use.  See :mod:`pyos._globals` for how the
+global (default) session is chosen.
+
+A session also keeps the pyOS filesystem in step with its database: it listens to the archive so
+that objects saved through its historian by any means (e.g. directly with mincePy, or as
+references of other objects) are given a path in the session's working directory, and objects
+that are deleted are removed from the filesystem.
+"""
+
 import getpass
 from typing import TYPE_CHECKING, Sequence
 
@@ -13,8 +27,22 @@ __all__ = ("Session",)
 
 
 class Session(mincepy.archives.ArchiveListener):
+    """A pyOS session: a historian together with a current working directory.
+
+    Sessions are normally created with :func:`pyos.connect` or :func:`pyos.init`.  They can be used
+    as context managers, in which case they are closed on exit::
+
+        with pyos.connect("litemongo://?engine=memory#scratch", use_globally=False) as session:
+            pyos.db.save_one(car, "my_car", session=session)
+    """
+
     def __init__(self, historian: mincepy.Historian, cwd: "pyos.os.PathSpec" = None):
-        """Start a new session"""
+        """Start a new session
+
+        :param historian: the historian (database connection) to use
+        :param cwd: the initial working directory (by default the user's home directory, if it
+            exists, otherwise the root)
+        """
         self._historian = historian
 
         self._cwd = None
@@ -59,7 +87,7 @@ class Session(mincepy.archives.ArchiveListener):
         overwrite=False,
         meta: dict = None,
     ):
-        return db.save_one(obj, path, overwrite=overwrite, meta=meta)
+        return db.save_one(obj, path, overwrite=overwrite, meta=meta, session=self)
 
     def close(self):
         """Close this session.  This object cannot be used after this call"""
@@ -88,11 +116,12 @@ class Session(mincepy.archives.ArchiveListener):
                 [
                     db.fs.SetObjPath(obj_id, self._cwd + (str(obj_id),), only_new=True)
                     for obj_id in new_objects
-                ]
+                ],
+                session=self,
             )
 
         if deleted_objects:
-            db.fs.remove_objs(tuple(deleted_objects))
+            db.fs.remove_objs(tuple(deleted_objects), session=self)
 
 
 def _get_homedir() -> "pyos.db.fs.Path":

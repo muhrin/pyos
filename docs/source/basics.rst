@@ -22,6 +22,36 @@ Directories
 Directories in pyOS provide a familiar way to organise your objects, just was you would in your filesystem.
 
 
+Connecting and sessions
+-----------------------
+
+pyOS works with a *session*: a connection to a database (a mincePy historian) together with a
+current working directory.  Usually there is just one, the global session, and you don't need to
+think about it: the first time pyOS is used it connects to the default archive (given by the
+``MINCEPY_ARCHIVE`` environment variable, or mincePy's default).  To choose the database yourself:
+
+.. code-block:: python
+
+    import pyos
+
+    pyos.connect("mongodb://localhost/my-db")  # A MongoDB server
+    pyos.connect("litemongo:///path/to/dir#my-db")  # A local directory, no server needed
+    pyos.connect("litemongo://?engine=memory#scratch")  # In memory, gone when Python exits
+
+The shell takes the same URIs, either from the command line (``pyos shell --uri <uri>``, which
+takes precedence over any ``connect`` in the startup script) or with ``connect <uri>`` once in it.
+
+Several sessions can be used at the same time, each with its own database and working directory.
+The functions in ``pyos.db`` and ``pyos.fs`` take the session to use, whereas ``pyos.os``,
+``pyos.pathlib`` and the shell commands always use the global one:
+
+.. code-block:: python
+
+    with pyos.connect("litemongo:///path/to/backup#my-db", use_globally=False) as backup:
+        pyos.db.save_one(car, "my_car", session=backup)
+        print(pyos.fs.find(session=backup))
+
+
 Design decisions
 ----------------
 
