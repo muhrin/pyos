@@ -70,10 +70,11 @@ class PyosShell(cmd2.Cmd):
             auto_load_commands=True,
         )
 
-        # Make the psh commands available in the ipy shell
-        from pyos import psh
+        # Make the same names as 'from pyos.pyos import *' available in the ipy shell
+        from pyos import pathlib, psh
 
         self.py_locals.update({name: getattr(psh, name) for name in psh.__all__})
+        self.py_locals.update(Path=pathlib.Path, PurePath=pathlib.PurePath)
 
         if startup_commands:
             self._startup_commands.extend(startup_commands)
