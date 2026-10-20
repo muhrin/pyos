@@ -53,6 +53,21 @@ Many of the familiar \*nix commands are available (``ls``, ``mv``, ``rm``, ``tre
 ``find``) except they take on a new, more powerful form because you're in a fully fledged python environment!
 
 
+Why pyOS?
++++++++++
+
+* **An organised, searchable home for your results**: no more folders of pickle files, save the
+  objects themselves into directories and find them by what they contain, without a database
+  schema.
+* **Lightweight experiment tracking**: tag objects with metadata, find them by it and move the
+  interesting ones somewhere safe.
+* **Every version kept**: see how any object came to be what it is.
+* **Work locally, share with your group**: start with a local database (nothing to install) and
+  ``rsync`` what is worth keeping to a shared server.
+
+See :doc:`use-cases` for examples of each.
+
+
 Installation
 ++++++++++++
 
@@ -145,6 +160,7 @@ Table Of Contents
    :glob:
    :maxdepth: 3
 
+   use-cases
    basics
    examples/quick-start.ipynb
    examples/restaurants.ipynb

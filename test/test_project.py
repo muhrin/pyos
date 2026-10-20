@@ -2,6 +2,7 @@
 packages contain what they should and that the project metadata is consistent"""
 
 import importlib.util
+import os
 import pathlib
 import shutil
 import socket
@@ -132,3 +133,52 @@ def test_docs_have_no_stale_references(path):
     text = (ROOT / path).read_text().lower()
     for stale in ("travis", "coveralls", "setup.py", "archive/master.zip"):
         assert stale not in text, f"'{stale}' found in {path}"
+
+
+def _python_code_blocks(rst_file: pathlib.Path) -> list[str]:
+    """Get the code from the '.. code-block:: python' blocks of a reStructuredText file"""
+    lines = rst_file.read_text().splitlines()
+    blocks = []
+    idx = 0
+    while idx < len(lines):
+        if lines[idx].strip() == ".. code-block:: python":
+            idx += 1
+            block = []
+            while idx < len(lines) and (not lines[idx].strip() or lines[idx].startswith("    ")):
+                block.append(lines[idx][4:])
+                idx += 1
+            blocks.append("\n".join(block))
+        else:
+            idx += 1
+    return blocks
+
+
+def test_use_case_examples_run(tmp_path):
+    """The examples on the use cases page should run, and do what the page says"""
+    blocks = _python_code_blocks(DOCS / "use-cases.rst")
+    assert blocks
+    script = "\n\n".join(blocks).replace("/path/to/shared/db", str(tmp_path / "shared"))
+    script += """
+
+assert sorted(node.name for node in ls("/projects/curated/")) == ["CuZn", "NiAl"]
+assert list(history(cuzn, representer=lambda res: res.energy)) == [-3.5, -3.6]
+with pyos.connect(shared, use_globally=False) as group:
+    synced = pyos.fs.find("/shared/alloys/", session=group)
+    assert sorted(node.name for node in synced) == ["CuZn", "NiAl"]
+"""
+    (tmp_path / "examples.py").write_text("import pyos\n\n" + script)
+
+    env = dict(
+        os.environ,
+        MINCEPY_ARCHIVE=f"litemongo://?engine=memory#{tmp_path.name}",
+        XDG_CONFIG_HOME=str(tmp_path / "config"),
+    )
+    result = subprocess.run(  # nosec
+        [sys.executable, str(tmp_path / "examples.py")],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr

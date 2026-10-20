@@ -31,6 +31,31 @@ pyOS
 
 A fresh way to interact with your python objects as though they were files on your filesystem.
 
+Why pyOS?
+---------
+
+pyOS gives your Python objects a home: a versioned, searchable filesystem that you browse with the
+commands you already know.  It's at its best in interactive work (IPython, Jupyter), wherever
+results pile up faster than you can organise them:
+
+* **An organised, searchable home for your results**: no more folders of pickle files, save the
+  objects themselves into directories and find them by what they contain, without a database
+  schema:
+
+  .. code-block:: python
+
+      mkdir("projects/alloys/")
+      save(Result("CuZn", energy=-3.5), "projects/alloys/CuZn")
+      find("projects/", Result.energy < -3.2)
+
+* **Lightweight experiment tracking**: tag objects with metadata (``meta -s``), find them by it and
+  ``mv`` the interesting ones somewhere safe.
+* **Every version kept**: ``history(result)`` shows how any object came to be what it is.
+* **Work locally, share with your group**: start with a local database (nothing to install) and
+  ``rsync`` what is worth keeping to a shared server.
+
+See the documentation_ for examples of each.
+
 Installation
 ------------
 
